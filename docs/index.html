@@ -1,13 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>meld-deepresearch &#8212; a verifiable, citation-backed research skill</title>
 <meta name="description" content="A lightweight, portable Agent Skill that turns a vague topic into a verifiable, citation-backed research report. One skill, no framework, zero runtime dependencies.">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#f4f0e6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121215" media="(prefers-color-scheme: dark)">
+<!-- One tint, kept in sync by the theme script; the theme is an explicit choice,
+     so it must not be tied to the OS media query. -->
+<meta name="theme-color" content="#f4f0e6" id="theme-color">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2316151a'/%3E%3Cpath%20d='M9%2023V10l7%206.5L23%2010v13'%20fill='none'%20stroke='%23f08a63'%20stroke-width='3'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 /* ============================================================
@@ -42,13 +43,24 @@
   --font-display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
   --font-sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-mono:ui-monospace,"SFMono-Regular","SF Mono","Cascadia Mono","Segoe UI Mono",Consolas,"Liberation Mono",Menlo,monospace;
+  /* CJK faces, appended after the Latin stack so Latin glyphs keep their own
+     metrics and only Han characters fall through to a Chinese face. */
+  --font-cjk:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Noto Sans SC","Source Han Sans SC","Heiti SC","WenQuanYi Micro Hei",sans-serif;
+  /* CJK display face: a real Chinese serif where the platform ships one, else the
+     sans stack above -- never a Latin serif trying to draw Han characters. */
+  --font-display-cjk:"Source Han Serif SC","Noto Serif SC","Songti SC",var(--font-sans),var(--font-cjk);
 
   --radius:4px;
   --measure:74rem;
+  --theme-color:#f4f0e6;
 }
 
+/* Dark palette. Applied when the reader explicitly chose dark, and also when no
+   choice has been stored and the system asks for dark -- that second case is the
+   no-JS fallback, which is why it is scoped to :not([data-theme]). With JS on,
+   the pre-paint script always writes data-theme, so the explicit rule governs. */
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme]){
     --bg:#121215;
     --bg-raised:#1a1a20;
     --bg-sunken:#0d0d10;
@@ -63,7 +75,26 @@
     --card-shadow:0 20px 42px -32px rgba(0,0,0,.95);
     --band-bg:#1a1a21;
     --band-raised:#23222c;
+    --theme-color:#121215;
   }
+}
+
+:root[data-theme="dark"]{
+  --bg:#121215;
+  --bg-raised:#1a1a20;
+  --bg-sunken:#0d0d10;
+  --ink:#eae6dc;
+  --ink-soft:#a8a49b;
+  --hairline:#2c2c34;
+  --hairline-strong:#44444f;
+  --accent:#e8835f;
+  --accent-soft:#33201a;
+  --grid-dot:rgba(234,230,220,.075);
+  --blur-bg:rgba(18,18,21,.88);
+  --card-shadow:0 20px 42px -32px rgba(0,0,0,.95);
+  --band-bg:#1a1a21;
+  --band-raised:#23222c;
+  --theme-color:#121215;
 }
 
 /* ============================================================
@@ -693,16 +724,173 @@ code{
   .btn:hover,
   .card:hover{transform:none}
 }
+/* ============================================================
+   Theme + language controls
+   ============================================================ */
+.no-js .tools{display:none}          /* a control that cannot work is not offered */
+:root[data-theme="light"]{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+
+.topbar-inner{display:flex;align-items:center;gap:clamp(.55rem,1.6vw,1.25rem)}
+.brand{margin-right:auto}
+
+.tools{display:flex;align-items:center;gap:.45rem;flex:0 0 auto}
+
+.ctl{
+  -webkit-appearance:none;appearance:none;
+  display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
+  min-width:44px;min-height:44px;padding:0 .5rem;
+  font:inherit;font-size:.84rem;font-weight:600;letter-spacing:.01em;
+  color:var(--ink-soft);background:var(--bg-raised);
+  border:1px solid var(--hairline-strong);border-radius:var(--radius);
+  cursor:pointer;
+  transition:color .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.ctl:hover{color:var(--ink);border-color:var(--hairline-strong);box-shadow:var(--card-shadow)}
+.ctl:active{transform:translateY(1px)}
+.ctl svg{width:17px;height:17px;display:block;flex:0 0 auto}
+
+/* the theme button shows the mode a click will move to */
+.icon-sun,.icon-moon{display:none}
+:root[data-theme="dark"] .icon-sun{display:block}
+:root:not([data-theme="dark"]) .icon-moon{display:block}
+
+.seg{
+  display:inline-flex;align-items:stretch;gap:2px;padding:2px;
+  background:var(--bg-sunken);border:1px solid var(--hairline-strong);border-radius:var(--radius);
+}
+.seg button{
+  -webkit-appearance:none;appearance:none;
+  min-width:54px;min-height:38px;padding:0 .55rem;
+  font:inherit;font-size:.82rem;font-weight:600;line-height:1;
+  color:var(--ink-soft);background:transparent;border:0;border-radius:3px;cursor:pointer;
+  transition:color .18s ease,background-color .18s ease;
+}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{color:var(--bg-raised);background:var(--accent)}
+.seg button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.seg .seg-cjk{font-family:var(--font-cjk)}
+
+@media (max-width:760px){
+  .topbar-inner{gap:.4rem;flex-wrap:wrap}
+  .tools{gap:.3rem}
+  .seg button{min-width:46px;min-height:36px;padding:0 .4rem}
+  .ctl{min-width:44px;padding:0 .4rem}
+}
+
+/* Small screens: the repository link is still reachable from the hero and the
+   footer, so it leaves the bar to make room for the two controls. The wordmark
+   stays until the very narrowest phones, where the mark alone carries it -- and
+   the brand link keeps a 44px tap area either way. */
+@media (max-width:600px){
+  .nav-list{display:none}
+  .topbar-inner{gap:.3rem}
+  .brand{display:inline-flex;align-items:center;min-height:44px}
+}
+@media (max-width:379px){
+  .brand-text{display:none}
+  .brand{min-width:44px;justify-content:center}
+}
+
+/* ============================================================
+   Language blocks
+   Only the block matching html[data-lang] renders. That attribute is written
+   statically as "en" in the source, so with JavaScript switched off entirely
+   the English page is still exactly what a reader gets.
+   ============================================================ */
+[data-lang-block]{display:none}
+:root[data-lang="en"] [data-lang-block="en"],
+:root[data-lang="zh-Hans"] [data-lang-block="zh-Hans"]{display:block}
+
+@media print{
+  [data-lang-block]{display:block}
+}
+
+/* ============================================================
+   Chinese typography
+   Han characters need their own face, leading and measure. A Latin serif asked
+   to draw them is the usual give-away, so the Chinese block switches faces.
+   ============================================================ */
+:root[data-lang="zh-Hans"] body{
+  font-family:var(--font-sans),var(--font-cjk);
+  font-size:clamp(1rem,.5vw + .88rem,1.05rem);
+  line-height:1.85;
+  letter-spacing:.01em;
+}
+:root[data-lang="zh-Hans"] h1,
+:root[data-lang="zh-Hans"] h2,
+:root[data-lang="zh-Hans"] h3{
+  font-family:var(--font-display-cjk);
+  line-height:1.35;
+  letter-spacing:0;
+}
+:root[data-lang="zh-Hans"] .lede,
+:root[data-lang="zh-Hans"] .sec-lede{line-height:1.9}
+:root[data-lang="zh-Hans"] .kicker,
+:root[data-lang="zh-Hans"] .eyebrow{letter-spacing:.05em}
+:root[data-lang="zh-Hans"] code,
+:root[data-lang="zh-Hans"] pre,
+:root[data-lang="zh-Hans"] .path-line{font-family:var(--font-mono)}
+
+/* ============================================================
+   Theme transition and small polish
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference){
+  body,.ctl,.seg,.card,.panel,.install-card,.topbar,.footer,code,pre,.chip,.btn{
+    transition:background-color .25s ease,color .25s ease,border-color .25s ease;
+  }
+}
+
+a:focus-visible{outline-color:var(--accent)}
+.split > *{min-width:0}
+.table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 </style>
+<script>
+/* Resolve the language and the theme before the first frame is painted, so a
+   reader never sees a flash of the wrong one.
+
+   The language default is English and nothing is inferred from the browser:
+   this file never reads the browser's language preference, and does no locale,
+   region or timezone sniffing of any kind. Chinese appears only after the
+   reader has explicitly chosen it. */
+(function () {
+  var root = document.documentElement;
+  var store = null;
+  try { store = window.localStorage; } catch (e) { store = null; }
+  function read(key) { try { return store ? store.getItem(key) : null; } catch (e) { return null; } }
+
+  var lang = read("mdr-lang");
+  if (lang !== "zh-Hans") { lang = "en"; }
+  root.setAttribute("data-lang", lang);
+  root.setAttribute("lang", lang);
+
+  var theme = read("mdr-theme");
+  if (theme !== "light" && theme !== "dark") {
+    theme = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+  }
+  root.setAttribute("data-theme", theme);
+
+  var meta = document.getElementById("theme-color");
+  if (meta) {
+    var tint = getComputedStyle(root).getPropertyValue("--theme-color").trim();
+    if (tint) { meta.setAttribute("content", tint); }
+  }
+
+  root.classList.remove("no-js");
+  root.classList.add("js");
+})();
+</script>
 </head>
 <body>
+<div data-lang-block="en">
+
 <a class="skip-link" href="#main">Skip to content</a>
 
-<header class="topbar">
+<header class="topbar" id="top">
   <div class="wrap topbar-inner">
     <a class="brand" href="#top">
       <span class="brand-mark" aria-hidden="true"></span>
-      meld-deepresearch
+      <span class="brand-text">meld-deepresearch</span>
     </a>
     <nav aria-label="Sections">
       <ul class="nav-list" role="list">
@@ -713,6 +901,16 @@ code{
         <li><a class="nav-cta" href="https://github.com/sogeisetsu/meld-deepresearch">GitHub<span aria-hidden="true"> &#8599;</span></a></li>
       </ul>
     </nav>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="Report language">
+        <button type="button" data-lang-set="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang-set="zh-Hans" aria-pressed="false" class="seg-cjk">&#20013;&#25991;</button>
+      </div>
+      <button type="button" class="ctl" data-theme-toggle aria-pressed="false" aria-label="Switch to dark theme" title="Switch to dark theme">
+        <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.2A8.7 8.7 0 1 1 10.8 3.1a6.8 6.8 0 0 0 10.1 10.1Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -963,23 +1161,410 @@ code{
     </div>
   </section>
 
-  <footer class="footer">
-    <div class="wrap footer-inner">
-      <div>
-        <p class="footer-title">meld-deepresearch</p>
-        <p class="fine">One self-contained skill that turns a vague topic into a research report you can check, claim by claim.</p>
-      </div>
-      <nav aria-label="Project links">
-        <ul class="footer-links" role="list">
-          <li><a href="https://github.com/sogeisetsu/meld-deepresearch">GitHub repository<span aria-hidden="true"> &#8599;</span></a></li>
-          <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/ZH/README-ZH.md">Chinese README<span aria-hidden="true"> &#8599;</span></a></li>
-          <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/LICENSE">MIT license<span aria-hidden="true"> &#8599;</span></a></li>
-        </ul>
-      </nav>
-      <p class="footer-meta">MIT licensed &#183; Copyright (c) 2026 sogeisetsu</p>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div>
+      <p class="footer-title">meld-deepresearch</p>
+      <p class="fine">One self-contained skill that turns a vague topic into a research report you can check, claim by claim.</p>
     </div>
-  </footer>
+    <nav aria-label="Project links">
+      <ul class="footer-links" role="list">
+        <li><a href="https://github.com/sogeisetsu/meld-deepresearch">GitHub repository<span aria-hidden="true"> &#8599;</span></a></li>
+        <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/ZH/README-ZH.md">Chinese README<span aria-hidden="true"> &#8599;</span></a></li>
+        <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/LICENSE">MIT license<span aria-hidden="true"> &#8599;</span></a></li>
+      </ul>
+    </nav>
+    <p class="footer-meta">MIT licensed &#183; Copyright (c) 2026 sogeisetsu</p>
+  </div>
+</footer>
+
+</div><!-- /en -->
+
+<div data-lang-block="zh-Hans">
+<a class="skip-link" href="#main-zh">跳至正文</a>
+
+<header class="topbar" id="top-zh">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="#top-zh">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">meld-deepresearch</span>
+    </a>
+    <nav aria-label="页面导航">
+      <ul class="nav-list" role="list">
+        <li><a href="#philosophy-zh">设计理念</a></li>
+        <li><a href="#pipeline-zh">工作流程</a></li>
+        <li><a href="#deliverables-zh">交付产物</a></li>
+        <li><a href="#install-zh">安装</a></li>
+        <li><a class="nav-cta" href="https://github.com/sogeisetsu/meld-deepresearch">GitHub<span aria-hidden="true"> &#8599;</span></a></li>
+      </ul>
+    </nav>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="报告语言">
+        <button type="button" data-lang-set="en" aria-pressed="false">EN</button>
+        <button type="button" data-lang-set="zh-Hans" aria-pressed="true" class="seg-cjk">&#20013;&#25991;</button>
+      </div>
+      <button type="button" class="ctl" data-theme-toggle aria-pressed="false" aria-label="切换到深色模式" title="切换到深色模式">
+        <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.2A8.7 8.7 0 1 1 10.8 3.1a6.8 6.8 0 0 0 10.1 10.1Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main-zh">
+
+  <section class="hero" aria-labelledby="hero-title-zh">
+    <div class="wrap hero-inner">
+      <div class="hero-main">
+        <p class="eyebrow rise">Agent Skill &#183; v0.1.0 &#183; MIT</p>
+        <h1 id="hero-title-zh" class="rise">把含糊的话题，变成一份<span class="hl">可核查、每句话都有引用</span>的研究报告。</h1>
+        <p class="lede rise">一个可移植的 skill，而不是多智能体框架。任何支持 Agent Skills 开放标准的主机都能直接加载：opencode、Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等。</p>
+        <div class="actions rise">
+          <a class="btn btn--primary" href="#install-zh">安装这个 skill</a>
+          <a class="btn btn--ghost" href="https://github.com/sogeisetsu/meld-deepresearch">查看仓库<span aria-hidden="true"> &#8599;</span></a>
+        </div>
+      </div>
+
+      <aside class="hero-rail rise" aria-label="关键信息">
+        <p class="kicker">速览</p>
+        <dl class="spec">
+          <div class="spec-row">
+            <dt>形态</dt>
+            <dd>单个 skill，无框架</dd>
+          </div>
+          <div class="spec-row">
+            <dt>运行时依赖</dt>
+            <dd>无</dd>
+          </div>
+          <div class="spec-row">
+            <dt>脚本</dt>
+            <dd>Python 3 标准库</dd>
+          </div>
+          <div class="spec-row">
+            <dt>档位</dt>
+            <dd>quick / normal，自动选择</dd>
+          </div>
+          <div class="spec-row">
+            <dt>许可证</dt>
+            <dd>MIT</dd>
+          </div>
+        </dl>
+        <p class="status">
+          <span class="status-tag">状态</span>
+          skill 已实现，并在 CI 上用一份精选示例全程跑通；正式发布（M4）尚未进行。
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section" id="philosophy-zh" aria-labelledby="philosophy-title-zh">
+    <div class="wrap">
+      <h2 class="sec-title" id="philosophy-title-zh">
+        <span class="sec-num" aria-hidden="true">01</span>
+        <span>设计理念</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede reveal">质量来自可追溯的证据和主动证伪，而不是更多的智能体。七条规则让每一次运行都经得起检查。</p>
+
+      <ol class="phil" role="list">
+        <li class="reveal">
+          <span class="phil-n">01</span>
+          <h3>纪律优先于编排</h3>
+          <p>质量来自可追溯的证据和主动证伪，而不是更多的智能体。</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">02</span>
+          <h3>一个 skill，零运行时依赖</h3>
+          <p>只有一个可移植的 skill，没有框架。脚本只用 Python 标准库，也不硬编码任何宿主专属的工具名。</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">03</span>
+          <h3>文件才是唯一事实来源</h3>
+          <p>研究过程全部落盘；模型上下文只保留结论。</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">04</span>
+          <h3>机械门禁取代良好意愿</h3>
+          <p>证据规则由校验器强制执行，校验不通过，这一轮就直接失败。</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">05</span>
+          <h3>两档，而不是三档</h3>
+          <p><code>quick</code> 与 <code>normal</code>，按问题自动选择。没有繁重的编排。</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">06</span>
+          <h3>可核查优先于好看</h3>
+          <p>每一条论断都可点击追溯；无法核实的一律标注为 <code>unknown</code>。</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">07</span>
+          <h3>证伪是强制动作</h3>
+          <p>反面证据和相互矛盾的结论必须主动搜寻，绝不能默认它们不存在。</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="pipeline-zh" aria-labelledby="pipeline-title-zh">
+    <div class="wrap">
+      <h2 class="sec-title" id="pipeline-title-zh">
+        <span class="sec-num" aria-hidden="true">02</span>
+        <span>工作流程</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede reveal">十二个阶段，两道硬门禁。原始检索结果与结构化证据全部落盘，上下文只保留结论。</p>
+
+      <ol class="flow reveal">
+        <li><span class="step"><span class="step-name"><span class="step-n">01</span>probe</span><span class="step-note">探测能力</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">02</span>anchor</span><span class="step-note">语言 &#183; 格式 &#183; 输出目录</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">03</span>clarify</span><span class="step-note">1&#8211;3 个范围问题</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">04</span>tier</span><span class="step-note">quick | normal</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">05</span>plan</span><span class="step-note">具名的研究轴</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">06</span>research</span><span class="step-note">检索 &#8594; 打开 &#8594; 评估</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">07</span>merge</span><span class="step-note">合并为一份 evidence.json</span></span></li>
+        <li><span class="step is-gate"><span class="step-name"><span class="step-n">08</span>Gate &#9312;</span><span class="step-note">校验器必须报告 ok</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">09</span>write</span><span class="step-note">行内引用，不新增事实</span></span></li>
+        <li><span class="step is-gate"><span class="step-name"><span class="step-n">10</span>Gate &#9313;</span><span class="step-note">无孤立引用、无未解析引用</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">11</span>sources</span><span class="step-note">规范化 + 去重</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">12</span>deliver</span><span class="step-note">4 份产物 + 覆盖与缺口</span></span></li>
+      </ol>
+
+      <p class="gate-note reveal">Gate &#9312; 运行证据校验器：只有它报告 <code>ok</code>，这一轮才会继续。Gate &#9313; 渲染引用，遇到任何孤立引用或未解析引用都会失败。门禁过不去时，这一轮会停下来如实报告，而不是交付一份坏掉的报告。</p>
+
+      <div class="split">
+        <div class="panel reveal">
+          <h3>关键规则</h3>
+          <ul class="rules" role="list">
+            <li>先检索，再打开。搜索结果的摘录永远不算证据。</li>
+            <li>必须打开原始页面读完之后，才允许写入证据。</li>
+            <li>主动检索反面证据、失败案例和持不同结论的来源。</li>
+            <li>核实不了的，就标注为 <code>unknown</code>，绝不猜测。</li>
+            <li>预算用尽即停止，交付已达成的覆盖，而不是无休止地循环下去。</li>
+          </ul>
+        </div>
+        <div class="panel reveal">
+          <h3 id="budget-title-zh">预算与停止条件</h3>
+          <div class="table-scroll">
+            <table aria-labelledby="budget-title-zh">
+              <thead>
+                <tr>
+                  <th scope="col">档位</th>
+                  <th scope="col">最多抓取</th>
+                  <th scope="col">最少不同来源</th>
+                  <th scope="col">每轴最多轮次</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">quick</th>
+                  <td>8</td>
+                  <td>5</td>
+                  <td>3</td>
+                </tr>
+                <tr>
+                  <th scope="row">normal</th>
+                  <td>25</td>
+                  <td>15</td>
+                  <td>3</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="panel-note">预算耗尽时，这一轮会停止，交付它已达到的覆盖，并明确列出哪些内容没有覆盖到。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="deliverables-zh" aria-labelledby="deliverables-title-zh">
+    <div class="wrap">
+      <h2 class="sec-title" id="deliverables-title-zh">
+        <span class="sec-num" aria-hidden="true">03</span>
+        <span>交付产物</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede reveal">每一次运行都会把四份产物写进同一个目录。</p>
+      <p class="path-line reveal">meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/</p>
+
+      <ul class="cards" role="list">
+        <li class="card reveal">
+          <h3 class="card-title">report.md</h3>
+          <p>最终报告，正文带行内编号引用。</p>
+        </li>
+        <li class="card reveal">
+          <h3 class="card-title">sources.md</h3>
+          <p>去重后的来源清单。</p>
+        </li>
+        <li class="card reveal">
+          <h3 class="card-title">evidence.json</h3>
+          <p>结构化的论断、证据、来源与边界。</p>
+        </li>
+        <li class="card reveal">
+          <h3 class="card-title">citations.json</h3>
+          <p>用于渲染报告的引用映射。</p>
+        </li>
+      </ul>
+
+      <p class="fine reveal">报告里的 <code>## Sources</code> 一节由渲染器生成，不是模型手写的，引用编号也从不手工编排。如果宿主没有文件系统权限，报告会直接以内联方式返回，并说明没有任何内容落盘。</p>
+    </div>
+  </section>
+
+  <section class="section section--band" id="install-zh" aria-labelledby="install-title-zh">
+    <div class="wrap">
+      <h2 class="sec-title" id="install-title-zh">
+        <span class="sec-num" aria-hidden="true">04</span>
+        <span>安装</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede reveal">这个 skill 就是一个目录，里面有 <code>SKILL.md</code>、<code>references/</code> 和 <code>scripts/</code>。用下面任意一条一行命令即可安装。</p>
+
+      <div class="split">
+        <div class="install-card reveal">
+          <p class="kicker">skills.sh / Vercel skills CLI</p>
+          <pre><code>npx skills add sogeisetsu/meld-deepresearch</code></pre>
+          <p class="fine">安装到 skills CLI 支持的那些宿主中。</p>
+        </div>
+        <div class="install-card reveal">
+          <p class="kicker">GitHub CLI v2.90.0+</p>
+          <pre><code>gh skill install sogeisetsu/meld-deepresearch meld-deepresearch</code></pre>
+          <p class="fine">可跨 Copilot、Claude Code、Cursor、Codex 和 Gemini 使用。</p>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="panel reveal">
+          <h3>手动安装</h3>
+          <p>把 <code>skills/meld-deepresearch/</code> 复制到你所用宿主的 skills 目录。跨工具的路径 <code>~/.agents/skills/</code> 已被多个宿主识别。无需任何配置：这个 skill 使用宿主自己的模型，你也不必为它配置模型。</p>
+          <ul class="chips" role="list">
+            <li class="chip">opencode</li>
+            <li class="chip">Claude Code</li>
+            <li class="chip">Codex</li>
+            <li class="chip">Cursor</li>
+            <li class="chip">GitHub Copilot</li>
+            <li class="chip">Gemini CLI</li>
+          </ul>
+        </div>
+        <div class="panel reveal">
+          <h3>环境要求</h3>
+          <ul class="rules" role="list">
+            <li>支持 Agent Skills 开放标准的宿主。</li>
+            <li>具备网络检索与抓取能力。</li>
+            <li>文件读写与命令执行能力，供脚本和产物使用。</li>
+            <li>Python 3，仅用标准库，供校验器、引用渲染器和来源去重器使用。脚本无法执行时，这一轮会优雅降级，并在输出里说明。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
 
 </main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div>
+      <p class="footer-title">meld-deepresearch</p>
+      <p class="fine">一个自包含的 skill，把含糊的话题变成一份可以逐条核查的研究报告。</p>
+    </div>
+    <nav aria-label="项目链接">
+      <ul class="footer-links" role="list">
+        <li><a href="https://github.com/sogeisetsu/meld-deepresearch">GitHub 仓库<span aria-hidden="true"> &#8599;</span></a></li>
+        <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/ZH/README-ZH.md">中文 README<span aria-hidden="true"> &#8599;</span></a></li>
+        <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/LICENSE">MIT 许可证<span aria-hidden="true"> &#8599;</span></a></li>
+      </ul>
+    </nav>
+    <p class="footer-meta">MIT 许可 &#183; Copyright (c) 2026 sogeisetsu</p>
+  </div>
+</footer>
+
+</div><!-- /zh-Hans -->
+
+<script>
+/* The controls only exist when scripting does, which is why .no-js hides them.
+   Both preferences are expressed as attributes on <html> and rendered by CSS,
+   so this script only flips those attributes and remembers the choice. */
+(function () {
+  var root = document.documentElement;
+  var store = null;
+  try { store = window.localStorage; } catch (e) { store = null; }
+
+  var LABELS = {
+    en: { toDark: "Switch to dark theme", toLight: "Switch to light theme" },
+    "zh-Hans": { toDark: "切换到深色模式", toLight: "切换到浅色模式" }
+  };
+  var TITLES = {
+    en: "meld-deepresearch \u2014 a verifiable, citation-backed research skill",
+    "zh-Hans": "meld-deepresearch \u2014\u2014 \u53ef\u6838\u67e5\u3001\u5e26\u5f15\u7528\u7684\u6df1\u5ea6\u7814\u7a76 skill"
+  };
+  var DESCRIPTIONS = {
+    en: "A lightweight, portable Agent Skill that turns a vague topic into a verifiable, citation-backed research report. One skill, no framework, zero runtime dependencies.",
+    "zh-Hans": "\u4e00\u4e2a\u8f7b\u91cf\u3001\u53ef\u79fb\u690d\u7684 Agent Skill\uff0c\u628a\u542b\u7cca\u7684\u8bdd\u9898\u53d8\u6210\u4e00\u4efd\u53ef\u6838\u67e5\u3001\u6bcf\u53e5\u8bdd\u90fd\u6709\u5f15\u7528\u7684\u7814\u7a76\u62a5\u544a\u3002\u5355\u6587\u4ef6 skill\uff0c\u65e0\u6846\u67b6\uff0c\u96f6\u8fd0\u884c\u65f6\u4f9d\u8d56\u3002"
+  };
+
+  function read(key) { try { return store ? store.getItem(key) : null; } catch (e) { return null; } }
+  function save(key, value) { try { if (store) { store.setItem(key, value); } } catch (e) {} }
+
+  function lang() { return root.getAttribute("data-lang") === "zh-Hans" ? "zh-Hans" : "en"; }
+  function theme() { return root.getAttribute("data-theme") === "dark" ? "dark" : "light"; }
+
+  function paint() {
+    var l = lang();
+    var t = theme();
+    var labels = LABELS[l] || LABELS.en;
+    var label = (t === "dark") ? labels.toLight : labels.toDark;
+    var i, list;
+
+    list = document.querySelectorAll("[data-lang-set]");
+    for (i = 0; i < list.length; i++) {
+      list[i].setAttribute("aria-pressed", String(list[i].getAttribute("data-lang-set") === l));
+    }
+    list = document.querySelectorAll("[data-theme-toggle]");
+    for (i = 0; i < list.length; i++) {
+      list[i].setAttribute("aria-pressed", String(t === "dark"));
+      list[i].setAttribute("aria-label", label);
+      list[i].setAttribute("title", label);
+    }
+    var meta = document.getElementById("theme-color");
+    if (meta) {
+      var tint = window.getComputedStyle(root).getPropertyValue("--theme-color").trim();
+      if (tint) { meta.setAttribute("content", tint); }
+    }
+  }
+
+  function applyLang(next, persist) {
+    var l = (next === "zh-Hans") ? "zh-Hans" : "en";
+    root.setAttribute("data-lang", l);
+    root.setAttribute("lang", l);
+    document.title = TITLES[l];
+    var desc = document.querySelector('meta[name="description"]');
+    if (desc) { desc.setAttribute("content", DESCRIPTIONS[l]); }
+    if (persist) { save("mdr-lang", l); }
+    paint();
+  }
+
+  function applyTheme(next, persist) {
+    var t = (next === "dark") ? "dark" : "light";
+    root.setAttribute("data-theme", t);
+    if (persist) { save("mdr-theme", t); }
+    paint();
+  }
+
+  document.addEventListener("click", function (event) {
+    var el = event.target && event.target.closest
+      ? event.target.closest("[data-lang-set],[data-theme-toggle]")
+      : null;
+    if (!el) { return; }
+    if (el.hasAttribute("data-lang-set")) {
+      applyLang(el.getAttribute("data-lang-set"), true);
+    } else {
+      applyTheme(theme() === "dark" ? "light" : "dark", true);
+    }
+  });
+
+  applyLang(lang(), false);
+})();
+</script>
 </body>
 </html>

@@ -199,7 +199,7 @@ python dedupe_sources.py --evidence <evidence.json> --output <sources.md>
 ### 5.7 元文件与站点
 - `package.json`、`README.md`（含 6 宿主安装矩阵 + 致谢）、`NOTICE`、`CHANGELOG.md`、`.gitignore`、`.github/workflows/validate.yml`。
 - `ZH/README-ZH.md`：中文版 README，与英文版**互设双语切换按钮**。`ZH/CHANGELOG-ZH.md` 与 `ZH/SKILL-ZH.md` 为**本地专用**、已被 `.gitignore` 忽略，**不入库、不发布**（因此中文 README 不链接它们）。
-- `docs/index.html` + `docs/.nojekyll`：GitHub Pages 落地页（单文件、零外链、响应式、支持暗色模式）。**Pages 需在仓库 Settings → Pages 手动开启**：Source = `Deploy from a branch`，Branch = `main`，Folder = `/docs`。开启后站点地址为 `https://sogeisetsu.github.io/meld-deepresearch/`。
+- `docs/index.html` + `docs/.nojekyll`：GitHub Pages 落地页。**单文件、零外部请求、可离线**；**中英双语 + 亮/暗双主题**，右上角两个显式控件切换。语言用**双语言块 + 源码里静态写死的 `data-lang="en"`** 实现：不读浏览器语言偏好，不做任何地区/时区嗅探，**首屏必为英文**，且**关闭 JavaScript 时仍是完整的英文页**。主题用 `<html data-theme>` + 预绘制内联脚本（无闪烁），读者未选择时跟随系统偏好。**Pages 需在仓库 Settings → Pages 手动开启**：Source = `Deploy from a branch`，Branch = `main`，Folder = `/docs`。开启后站点地址为 `https://sogeisetsu.github.io/meld-deepresearch/`。
 
 ### 5.8 `examples/` 与 CI 校验
 
