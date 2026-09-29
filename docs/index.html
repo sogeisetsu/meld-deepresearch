@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>meld-deepresearch &#8212; a verifiable, citation-backed research skill</title>
+<meta name="description" content="A lightweight, portable Agent Skill that turns a vague topic into a verifiable, citation-backed research report. One skill, no framework, zero runtime dependencies.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f0e6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121215" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2316151a'/%3E%3Cpath%20d='M9%2023V10l7%206.5L23%2010v13'%20fill='none'%20stroke='%23f08a63'%20stroke-width='3'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+/* ============================================================
+   1. Tokens
+   ============================================================ */
+:root{
+  color-scheme:light dark;
+
+  --bg:#f4f0e6;
+  --bg-raised:#fdfbf6;
+  --bg-sunken:#ebe5d7;
+  --ink:#17161a;
+  --ink-soft:#4b4a52;
+  --hairline:#ded7c7;
+  --hairline-strong:#c3b9a2;
+  --accent:#9d2f1c;
+  --accent-soft:#f4e1d9;
+  --grid-dot:rgba(23,22,26,.09);
+  --blur-bg:rgba(244,240,230,.86);
+  --card-shadow:0 20px 42px -34px rgba(23,22,26,.6);
+
+  /* the "ink band" keeps a fixed dark identity in both themes */
+  --band-bg:#16151a;
+  --band-raised:#201f28;
+  --band-ink:#f4f1e9;
+  --band-ink-soft:#b6b1a6;
+  --band-hairline:#37363f;
+  --band-accent:#f08a63;
+  --band-accent-soft:#2b1d17;
+  --band-code:#0e0d12;
+
+  --font-display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
+  --font-sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,"SFMono-Regular","SF Mono","Cascadia Mono","Segoe UI Mono",Consolas,"Liberation Mono",Menlo,monospace;
+
+  --radius:4px;
+  --measure:74rem;
+}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#121215;
+    --bg-raised:#1a1a20;
+    --bg-sunken:#0d0d10;
+    --ink:#eae6dc;
+    --ink-soft:#a8a49b;
+    --hairline:#2c2c34;
+    --hairline-strong:#44444f;
+    --accent:#e8835f;
+    --accent-soft:#33201a;
+    --grid-dot:rgba(234,230,220,.075);
+    --blur-bg:rgba(18,18,21,.88);
+    --card-shadow:0 20px 42px -32px rgba(0,0,0,.95);
+    --band-bg:#1a1a21;
+    --band-raised:#23222c;
+  }
+}
+
+/* ============================================================
+   2. Base
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+
+html{
+  -webkit-text-size-adjust:100%;
+  scroll-behavior:smooth;
+  scroll-padding-top:4.5rem;
+}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-sans);
+  font-size:clamp(1rem,.55vw + .86rem,1.08rem);
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3{
+  margin:0;
+  font-family:var(--font-display);
+  font-weight:600;
+  line-height:1.12;
+  letter-spacing:-.015em;
+  text-wrap:balance;
+}
+p{margin:0}
+ul,ol{margin:0;padding:0;list-style:none}
+
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:.18em}
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+code{
+  font-family:var(--font-mono);
+  font-size:.85em;
+  background:var(--bg-sunken);
+  border-radius:3px;
+  padding:.08em .34em;
+  overflow-wrap:anywhere;
+}
+
+.skip-link{
+  position:absolute;
+  left:-9999px;
+  top:0;
+  z-index:100;
+  padding:.6rem 1rem;
+  background:var(--ink);
+  color:var(--bg);
+  font-family:var(--font-mono);
+  font-size:.78rem;
+}
+.skip-link:focus{left:.5rem;top:.5rem}
+
+.wrap{width:min(100% - 2.25rem,var(--measure));margin-inline:auto}
+@media (min-width:768px){.wrap{width:min(100% - 4.5rem,var(--measure))}}
+
+.fine{font-size:.85rem;color:var(--ink-soft);max-width:64ch}
+.kicker{
+  font-family:var(--font-mono);
+  font-size:.68rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+}
+
+/* ============================================================
+   3. Top bar
+   ============================================================ */
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:30;
+  background:var(--blur-bg);
+  -webkit-backdrop-filter:blur(12px) saturate(1.3);
+  backdrop-filter:blur(12px) saturate(1.3);
+  border-bottom:1px solid var(--hairline);
+}
+.topbar-inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  min-height:3.5rem;
+}
+.brand{
+  display:inline-flex;
+  align-items:center;
+  gap:.55rem;
+  font-family:var(--font-mono);
+  font-size:.8rem;
+  font-weight:600;
+  color:var(--ink);
+  white-space:nowrap;
+}
+.brand:hover{color:var(--accent);text-decoration:none}
+.brand-mark{
+  width:.55rem;height:.55rem;
+  border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+.nav-list{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:.15rem;
+}
+.nav-list a{
+  display:inline-block;
+  padding:.35rem .6rem;
+  border-radius:var(--radius);
+  font-size:.85rem;
+  font-weight:500;
+  color:var(--ink-soft);
+}
+.nav-list a:hover{color:var(--ink);background:var(--bg-sunken);text-decoration:none}
+.nav-list .nav-cta{
+  border:1px solid var(--hairline-strong);
+  color:var(--ink);
+  font-family:var(--font-mono);
+  font-size:.76rem;
+}
+.nav-list .nav-cta:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:transparent;
+}
+@media (max-width:760px){
+  .nav-list li:not(:last-child){display:none}
+}
+
+/* ============================================================
+   4. Hero
+   ============================================================ */
+.hero{
+  position:relative;
+  overflow:hidden;
+  padding-block:clamp(3rem,8vw,6.25rem) clamp(2.75rem,6vw,5rem);
+}
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  background-image:radial-gradient(var(--grid-dot) 1px,transparent 1px);
+  background-size:22px 22px;
+  -webkit-mask-image:radial-gradient(85% 72% at 10% 0%,#000 8%,transparent 78%);
+  mask-image:radial-gradient(85% 72% at 10% 0%,#000 8%,transparent 78%);
+}
+.hero-inner{
+  position:relative;
+  z-index:1;
+  display:grid;
+  gap:clamp(2.25rem,5vw,3.25rem);
+}
+@media (min-width:900px){
+  .hero-inner{
+    grid-template-columns:minmax(0,1.6fr) minmax(15rem,.85fr);
+    align-items:end;
+    gap:clamp(2.5rem,5vw,4.5rem);
+  }
+}
+
+.eyebrow{
+  display:flex;
+  align-items:center;
+  gap:.7rem;
+  font-family:var(--font-mono);
+  font-size:.7rem;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.eyebrow::before{content:"";flex:0 0 2.4rem;height:1px;background:var(--accent)}
+
+.hero h1{
+  margin-top:1.15rem;
+  max-width:25ch;
+  font-size:clamp(2.05rem,1rem + 4.7vw,4.1rem);
+  line-height:1.04;
+  letter-spacing:-.022em;
+}
+.hl{color:var(--accent);box-shadow:inset 0 -.15em 0 0 var(--accent-soft)}
+
+.lede{
+  margin-top:1.35rem;
+  max-width:52ch;
+  font-family:var(--font-display);
+  font-size:clamp(1.04rem,.5vw + .94rem,1.28rem);
+  line-height:1.5;
+  color:var(--ink-soft);
+}
+
+.actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:2rem}
+.btn{
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  padding:.72rem 1.1rem;
+  border:1px solid transparent;
+  border-radius:var(--radius);
+  font-family:var(--font-mono);
+  font-size:.79rem;
+  transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .18s ease;
+}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+.btn--primary{background:var(--ink);color:var(--bg)}
+.btn--primary:hover{background:var(--accent);color:var(--bg)}
+.btn--ghost{border-color:var(--hairline-strong);background:var(--bg-raised);color:var(--ink)}
+.btn--ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+.hero-rail{display:grid;gap:1.5rem;align-content:end}
+.spec{
+  display:grid;
+  gap:.55rem;
+  padding-left:1rem;
+  border-left:2px solid var(--accent);
+}
+.spec-row{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:.35rem .9rem;
+  align-items:baseline;
+  padding-bottom:.5rem;
+  border-bottom:1px solid var(--hairline);
+}
+.spec-row:last-child{border-bottom:0;padding-bottom:0}
+.spec dt{
+  font-family:var(--font-mono);
+  font-size:.66rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.spec dd{margin:0;font-size:.9rem}
+
+.status{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem .6rem;
+  align-items:baseline;
+  max-width:56ch;
+  font-size:.82rem;
+  color:var(--ink-soft);
+}
+.status-tag{
+  flex:0 0 auto;
+  padding:.1rem .4rem;
+  border-radius:3px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-family:var(--font-mono);
+  font-size:.64rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+/* ============================================================
+   5. Sections
+   ============================================================ */
+.section{
+  padding-block:clamp(3rem,6.5vw,5.5rem);
+  border-top:1px solid var(--hairline);
+}
+.sec-title{
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  font-size:clamp(1.45rem,1rem + 1.7vw,2.3rem);
+  letter-spacing:-.018em;
+}
+.sec-num{
+  font-family:var(--font-mono);
+  font-size:.7rem;
+  font-weight:500;
+  letter-spacing:.1em;
+  color:var(--accent);
+  transform:translateY(-.45em);
+}
+.sec-rule{flex:1 1 3rem;height:1px;min-width:1.5rem;background:var(--hairline)}
+.sec-lede{
+  margin-top:1.1rem;
+  max-width:62ch;
+  font-family:var(--font-display);
+  font-size:clamp(1.02rem,.4vw + .95rem,1.22rem);
+  line-height:1.5;
+  color:var(--ink-soft);
+}
+.path-line{
+  margin-top:1.15rem;
+  padding:.55rem .85rem;
+  border-left:2px solid var(--accent);
+  border-radius:0 var(--radius) var(--radius) 0;
+  background:var(--bg-sunken);
+  font-family:var(--font-mono);
+  font-size:clamp(.68rem,2.4vw,.82rem);
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+
+/* --- philosophy grid --- */
+.phil{
+  display:grid;
+  gap:1px;
+  margin-top:clamp(1.75rem,3vw,2.5rem);
+  background:var(--hairline);
+  border:1px solid var(--hairline);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+@media (min-width:760px){.phil{grid-template-columns:1fr 1fr}}
+.phil li{
+  display:grid;
+  gap:.45rem;
+  align-content:start;
+  padding:clamp(1.15rem,2.2vw,1.7rem);
+  background:var(--bg-raised);
+}
+.phil li:last-child{grid-column:1/-1}
+.phil-n{
+  font-family:var(--font-mono);
+  font-size:.66rem;
+  letter-spacing:.14em;
+  color:var(--accent);
+}
+.phil h3{font-size:1.1rem}
+.phil p{max-width:54ch;font-size:.92rem;color:var(--ink-soft)}
+
+/* --- pipeline --- */
+.flow{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:stretch;
+  gap:.85rem .1rem;
+  margin-top:clamp(1.75rem,3vw,2.5rem);
+}
+.flow li{display:flex;align-items:stretch}
+.flow li + li::before{
+  content:"\2192";
+  align-self:center;
+  margin-inline:.45rem;
+  color:var(--hairline-strong);
+  font-size:.95rem;
+}
+.step{
+  display:grid;
+  gap:.15rem;
+  width:12rem;
+  max-width:100%;
+  padding:.6rem .78rem;
+  border:1px solid var(--hairline);
+  border-radius:var(--radius);
+  background:var(--bg-raised);
+}
+.step-name{
+  display:flex;
+  align-items:baseline;
+  gap:.45rem;
+  font-family:var(--font-mono);
+  font-size:.82rem;
+  font-weight:600;
+  color:var(--ink);
+}
+.step-n{font-size:.66rem;font-weight:500;letter-spacing:.06em;color:var(--ink-soft)}
+.step-note{font-size:.72rem;line-height:1.45;color:var(--ink-soft)}
+.step.is-gate{border-color:var(--accent);background:var(--accent-soft)}
+.step.is-gate .step-name,
+.step.is-gate .step-note,
+.step.is-gate .step-n{color:var(--accent)}
+.step.is-gate .step-note{opacity:.9}
+@media (max-width:600px){
+  .flow{flex-direction:column;align-items:stretch;gap:.3rem}
+  .flow li{flex-direction:column;align-items:flex-start}
+  .flow li + li::before{content:"\2193";margin:.15rem 0 .15rem 1rem}
+  .step{width:100%}
+}
+.gate-note{
+  margin-top:clamp(1.5rem,2.5vw,2rem);
+  max-width:68ch;
+  font-size:.88rem;
+  color:var(--ink-soft);
+}
+
+/* --- panels --- */
+.split{display:grid;gap:1rem;margin-top:clamp(1.75rem,3vw,2.5rem)}
+.split > *{min-width:0}
+@media (min-width:860px){
+  .split{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.25rem}
+}
+.panel{
+  padding:clamp(1.15rem,2.2vw,1.55rem);
+  border:1px solid var(--hairline);
+  border-radius:var(--radius);
+  background:var(--bg-raised);
+}
+.panel h3{margin-bottom:.8rem;font-size:1.05rem}
+.panel > p{font-size:.9rem;color:var(--ink-soft)}
+.panel .panel-note{margin-top:1rem}
+
+.rules{display:grid;gap:.55rem}
+.rules li{
+  position:relative;
+  padding-left:1.35rem;
+  font-size:.9rem;
+  color:var(--ink-soft);
+}
+.rules li::before{
+  content:"";
+  position:absolute;
+  left:.2rem;
+  top:.62em;
+  width:.38rem;
+  height:.38rem;
+  background:var(--accent);
+  border-radius:1px;
+  transform:rotate(45deg);
+}
+
+.table-scroll{overflow-x:auto}
+.table-scroll table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.85rem;
+}
+.table-scroll th,
+.table-scroll td{
+  padding:.5rem .6rem;
+  border-bottom:1px solid var(--hairline);
+  text-align:right;
+  white-space:nowrap;
+}
+.table-scroll thead th{
+  font-family:var(--font-mono);
+  font-size:.66rem;
+  font-weight:500;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.table-scroll tbody th{
+  font-family:var(--font-mono);
+  font-weight:600;
+  color:var(--ink);
+  text-align:left;
+}
+.table-scroll th:first-child,
+.table-scroll td:first-child{text-align:left;padding-left:0}
+.table-scroll td{font-family:var(--font-mono);color:var(--ink)}
+.table-scroll tbody tr:last-child th,
+.table-scroll tbody tr:last-child td{border-bottom:0}
+
+/* --- deliverable cards --- */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr));
+  gap:1rem;
+  margin-top:clamp(1.75rem,3vw,2.5rem);
+}
+.card{
+  display:grid;
+  gap:.5rem;
+  align-content:start;
+  padding:1.15rem 1.2rem;
+  border:1px solid var(--hairline);
+  border-radius:var(--radius);
+  background:var(--bg-raised);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.card:hover{transform:translateY(-3px);border-color:var(--hairline-strong);box-shadow:var(--card-shadow)}
+.card-title{
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  font-family:var(--font-mono);
+  font-size:.94rem;
+  font-weight:600;
+}
+.card-title::before{
+  content:"";
+  flex:0 0 auto;
+  width:.5rem;
+  height:.5rem;
+  border:1.5px solid var(--accent);
+  border-radius:1px;
+}
+.card p{font-size:.9rem;color:var(--ink-soft)}
+.cards + .fine{margin-top:clamp(1.5rem,2.5vw,2rem)}
+
+/* ============================================================
+   6. Ink band (install)
+   ============================================================ */
+.section--band{
+  --bg:var(--band-bg);
+  --bg-raised:var(--band-raised);
+  --bg-sunken:var(--band-code);
+  --ink:var(--band-ink);
+  --ink-soft:var(--band-ink-soft);
+  --hairline:var(--band-hairline);
+  --hairline-strong:var(--band-hairline);
+  --accent:var(--band-accent);
+  --accent-soft:var(--band-accent-soft);
+  background:var(--band-bg);
+  color:var(--band-ink);
+  border-top:1px solid var(--band-hairline);
+}
+.install-card{
+  display:grid;
+  gap:.75rem;
+  align-content:start;
+  padding:1.15rem 1.2rem;
+  border:1px solid var(--hairline);
+  border-radius:var(--radius);
+  background:var(--bg-raised);
+}
+.install-card pre{
+  position:relative;
+  margin:0;
+  padding:.8rem .9rem .8rem 1.85rem;
+  background:var(--band-code);
+  border:1px solid var(--hairline);
+  border-radius:3px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.install-card pre::before{
+  content:"$";
+  position:absolute;
+  left:.7rem;
+  top:.8rem;
+  font-family:var(--font-mono);
+  font-size:.8rem;
+  color:var(--accent);
+}
+.install-card pre code{
+  padding:0;
+  background:none;
+  font-size:.82rem;
+  color:var(--band-ink);
+}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.chip{
+  padding:.28rem .62rem;
+  border:1px solid var(--hairline);
+  border-radius:999px;
+  background:var(--bg-raised);
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  color:var(--ink-soft);
+}
+.panel .chips{margin-top:.9rem}
+
+/* ============================================================
+   7. Footer
+   ============================================================ */
+.footer{
+  padding-block:clamp(2rem,4vw,3rem);
+  border-top:1px solid var(--hairline);
+}
+.footer-inner{display:grid;gap:1.25rem}
+@media (min-width:760px){
+  .footer-inner{grid-template-columns:1.2fr auto;gap:2rem;align-items:start}
+}
+.footer-title{
+  font-family:var(--font-mono);
+  font-size:.85rem;
+  font-weight:600;
+  margin-bottom:.4rem;
+}
+.footer-links{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.4rem 1.25rem;
+  font-size:.85rem;
+}
+.footer-meta{
+  grid-column:1/-1;
+  padding-top:1.25rem;
+  border-top:1px solid var(--hairline);
+  font-family:var(--font-mono);
+  font-size:.74rem;
+}
+
+/* ============================================================
+   8. Motion
+   ============================================================ */
+@keyframes rise{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:none}
+}
+
+@media (prefers-reduced-motion: no-preference){
+  .rise{animation:rise .75s cubic-bezier(.22,.72,.18,1) both}
+  .hero-main .rise:nth-child(1){animation-delay:.05s}
+  .hero-main .rise:nth-child(2){animation-delay:.13s}
+  .hero-main .rise:nth-child(3){animation-delay:.21s}
+  .hero-main .rise:nth-child(4){animation-delay:.29s}
+  .hero-rail.rise{animation-delay:.38s}
+
+  /* Scroll-driven reveals, no JavaScript. Browsers without
+     animation-timeline simply leave the content visible. */
+  @supports (animation-timeline: view()){
+    .reveal{
+      animation:rise 1s linear both;
+      animation-timeline:view();
+      animation-range:entry 15% cover 25%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{
+    animation-duration:.01ms !important;
+    animation-delay:0ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+  .btn:hover,
+  .card:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true"></span>
+      meld-deepresearch
+    </a>
+    <nav aria-label="Sections">
+      <ul class="nav-list" role="list">
+        <li><a href="#philosophy">Philosophy</a></li>
+        <li><a href="#pipeline">Pipeline</a></li>
+        <li><a href="#deliverables">Deliverables</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a class="nav-cta" href="https://github.com/sogeisetsu/meld-deepresearch">GitHub<span aria-hidden="true"> &#8599;</span></a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero-inner">
+      <div class="hero-main">
+        <p class="eyebrow rise">Agent Skill &#183; v0.1.0 &#183; MIT</p>
+        <h1 id="hero-title" class="rise">Turn a vague topic into a <span class="hl">verifiable, citation-backed</span> research report.</h1>
+        <p class="lede rise">One portable skill &#8212; not a multi-agent framework. It runs on any host that supports the Agent Skills open standard: opencode, Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and more.</p>
+        <div class="actions rise">
+          <a class="btn btn--primary" href="#install">Install the skill</a>
+          <a class="btn btn--ghost" href="https://github.com/sogeisetsu/meld-deepresearch">Read the repository<span aria-hidden="true"> &#8599;</span></a>
+        </div>
+      </div>
+
+      <aside class="hero-rail rise" aria-label="Key facts">
+        <p class="kicker">At a glance</p>
+        <dl class="spec">
+          <div class="spec-row">
+            <dt>Scope</dt>
+            <dd>one skill, no framework</dd>
+          </div>
+          <div class="spec-row">
+            <dt>Runtime deps</dt>
+            <dd>none</dd>
+          </div>
+          <div class="spec-row">
+            <dt>Scripts</dt>
+            <dd>Python 3, standard library</dd>
+          </div>
+          <div class="spec-row">
+            <dt>Tiers</dt>
+            <dd>quick / normal, auto-selected</dd>
+          </div>
+          <div class="spec-row">
+            <dt>License</dt>
+            <dd>MIT</dd>
+          </div>
+        </dl>
+        <p class="status">
+          <span class="status-tag">Status</span>
+          The skill is implemented and exercised by CI on a curated example; publication is still pending (M4).
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section" id="philosophy" aria-labelledby="philosophy-title">
+    <div class="wrap">
+      <h2 class="sec-title" id="philosophy-title">
+        <span class="sec-num" aria-hidden="true">01</span>
+        <span>Design philosophy</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede reveal">Quality comes from traceable evidence and active falsification &#8212; not from more agents. Seven rules keep every run honest.</p>
+
+      <ol class="phil" role="list">
+        <li class="reveal">
+          <span class="phil-n">01</span>
+          <h3>Discipline over orchestration</h3>
+          <p>Quality comes from traceable evidence and active falsification, not from more agents.</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">02</span>
+          <h3>One skill, zero runtime dependencies</h3>
+          <p>One portable skill, no framework. The scripts are Python standard library only, and no host-specific tool names are hardcoded.</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">03</span>
+          <h3>Files are the source of truth</h3>
+          <p>Research artifacts are written to disk; the model context keeps only conclusions.</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">04</span>
+          <h3>Mechanical gates over good intentions</h3>
+          <p>A validator enforces the evidence rules and can fail the run.</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">05</span>
+          <h3>Two tiers, not three</h3>
+          <p><code>quick</code> and <code>normal</code>, chosen automatically from the question. No heavy orchestration.</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">06</span>
+          <h3>Verifiability over polish</h3>
+          <p>Every claim is clickable; anything unverified is labelled <code>unknown</code>.</p>
+        </li>
+        <li class="reveal">
+          <span class="phil-n">07</span>
+          <h3>Falsification is mandatory</h3>
+          <p>Counter-evidence and contradictions are actively searched, never assumed absent.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="pipeline" aria-labelledby="pipeline-title">
+    <div class="wrap">
+      <h2 class="sec-title" id="pipeline-title">
+        <span class="sec-num" aria-hidden="true">02</span>
+        <span>How it works</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede reveal">Twelve stages, two hard gates. Raw retrieval and structured evidence go to disk; the context keeps only conclusions.</p>
+
+      <ol class="flow reveal">
+        <li><span class="step"><span class="step-name"><span class="step-n">01</span>probe</span><span class="step-note">capability check</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">02</span>anchor</span><span class="step-note">language &#183; format &#183; output dir</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">03</span>clarify</span><span class="step-note">1&#8211;3 scope questions</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">04</span>tier</span><span class="step-note">quick | normal</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">05</span>plan</span><span class="step-note">named research axes</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">06</span>research</span><span class="step-note">search &#8594; open &#8594; evaluate</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">07</span>merge</span><span class="step-note">one evidence.json</span></span></li>
+        <li><span class="step is-gate"><span class="step-name"><span class="step-n">08</span>Gate &#9312;</span><span class="step-note">validator must report ok</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">09</span>write</span><span class="step-note">inline citations, no new facts</span></span></li>
+        <li><span class="step is-gate"><span class="step-name"><span class="step-n">10</span>Gate &#9313;</span><span class="step-note">no orphan, no unresolved</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">11</span>sources</span><span class="step-note">normalize + de-duplicate</span></span></li>
+        <li><span class="step"><span class="step-name"><span class="step-n">12</span>deliver</span><span class="step-note">4 artifacts + coverage &amp; gaps</span></span></li>
+      </ol>
+
+      <p class="gate-note reveal">Gate &#9312; runs the evidence validator: the run only continues when it reports <code>ok</code>. Gate &#9313; renders the citations and fails on any orphan or unresolved reference. When a gate cannot pass, the run stops and reports that honestly instead of delivering a broken report.</p>
+
+      <div class="split">
+        <div class="panel reveal">
+          <h3>Key rules</h3>
+          <ul class="rules" role="list">
+            <li>Search before fetching. A result snippet is never evidence.</li>
+            <li>Open the original page and read it before admitting anything.</li>
+            <li>Actively search counter-evidence, failed cases and dissenting sources.</li>
+            <li>Label what stays unverifiable as <code>unknown</code>, never a guess.</li>
+            <li>Stop at the budget and return the best coverage found rather than looping forever.</li>
+          </ul>
+        </div>
+        <div class="panel reveal">
+          <h3 id="budget-title">Budget and stop conditions</h3>
+          <div class="table-scroll">
+            <table aria-labelledby="budget-title">
+              <thead>
+                <tr>
+                  <th scope="col">Tier</th>
+                  <th scope="col">Max fetches</th>
+                  <th scope="col">Min distinct sources</th>
+                  <th scope="col">Max rounds per axis</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">quick</th>
+                  <td>8</td>
+                  <td>5</td>
+                  <td>3</td>
+                </tr>
+                <tr>
+                  <th scope="row">normal</th>
+                  <td>25</td>
+                  <td>15</td>
+                  <td>3</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="panel-note">When the budget is exhausted the run stops, returns the coverage it reached, and lists explicitly what was not covered.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="deliverables" aria-labelledby="deliverables-title">
+    <div class="wrap">
+      <h2 class="sec-title" id="deliverables-title">
+        <span class="sec-num" aria-hidden="true">03</span>
+        <span>Deliverables</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede reveal">Every run writes four artifacts into one directory.</p>
+      <p class="path-line reveal">meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/</p>
+
+      <ul class="cards" role="list">
+        <li class="card reveal">
+          <h3 class="card-title">report.md</h3>
+          <p>The final report, with inline numbered citations.</p>
+        </li>
+        <li class="card reveal">
+          <h3 class="card-title">sources.md</h3>
+          <p>The de-duplicated source list.</p>
+        </li>
+        <li class="card reveal">
+          <h3 class="card-title">evidence.json</h3>
+          <p>Structured claims, evidence, sources, and boundaries.</p>
+        </li>
+        <li class="card reveal">
+          <h3 class="card-title">citations.json</h3>
+          <p>The citation map used to render the report.</p>
+        </li>
+      </ul>
+
+      <p class="fine reveal">The report's own <code>## Sources</code> section is written by the renderer, not by the model, and citations are never hand-numbered. If the host has no filesystem access, the report is returned inline and the run states that nothing was persisted.</p>
+    </div>
+  </section>
+
+  <section class="section section--band" id="install" aria-labelledby="install-title">
+    <div class="wrap">
+      <h2 class="sec-title" id="install-title">
+        <span class="sec-num" aria-hidden="true">04</span>
+        <span>Install</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede reveal">The skill is a directory containing <code>SKILL.md</code>, <code>references/</code> and <code>scripts/</code>. Install it with either one-liner.</p>
+
+      <div class="split">
+        <div class="install-card reveal">
+          <p class="kicker">skills.sh / Vercel skills CLI</p>
+          <pre><code>npx skills add sogeisetsu/meld-deepresearch</code></pre>
+          <p class="fine">Installs into the hosts that the skills CLI supports.</p>
+        </div>
+        <div class="install-card reveal">
+          <p class="kicker">GitHub CLI v2.90.0+</p>
+          <pre><code>gh skill install sogeisetsu/meld-deepresearch meld-deepresearch</code></pre>
+          <p class="fine">Works across Copilot, Claude Code, Cursor, Codex and Gemini.</p>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="panel reveal">
+          <h3>Manual install</h3>
+          <p>Copy <code>skills/meld-deepresearch/</code> into your host's skills directory. The cross-tool path <code>~/.agents/skills/</code> is recognized by several hosts. No configuration is required: the skill uses the host's model, and you do not configure a model for it.</p>
+          <ul class="chips" role="list">
+            <li class="chip">opencode</li>
+            <li class="chip">Claude Code</li>
+            <li class="chip">Codex</li>
+            <li class="chip">Cursor</li>
+            <li class="chip">GitHub Copilot</li>
+            <li class="chip">Gemini CLI</li>
+          </ul>
+        </div>
+        <div class="panel reveal">
+          <h3>Requirements</h3>
+          <ul class="rules" role="list">
+            <li>A host that supports the Agent Skills open standard.</li>
+            <li>Network search and fetch capability.</li>
+            <li>File read/write and command execution, for the scripts and the artifacts.</li>
+            <li>Python 3, standard library only, for the validator, the citation renderer and the source de-duplicator. The run degrades gracefully when those scripts cannot be executed, and says so in its output.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div>
+        <p class="footer-title">meld-deepresearch</p>
+        <p class="fine">One self-contained skill that turns a vague topic into a research report you can check, claim by claim.</p>
+      </div>
+      <nav aria-label="Project links">
+        <ul class="footer-links" role="list">
+          <li><a href="https://github.com/sogeisetsu/meld-deepresearch">GitHub repository<span aria-hidden="true"> &#8599;</span></a></li>
+          <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/ZH/README-ZH.md">Chinese README<span aria-hidden="true"> &#8599;</span></a></li>
+          <li><a href="../LICENSE">MIT license</a></li>
+        </ul>
+      </nav>
+      <p class="footer-meta">MIT licensed &#183; Copyright (c) 2026 sogeisetsu</p>
+    </div>
+  </footer>
+
+</main>
+</body>
+</html>
