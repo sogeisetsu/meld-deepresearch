@@ -196,8 +196,10 @@ python dedupe_sources.py --evidence <evidence.json> --output <sources.md>
 
 - `check_evidence.py --plan` 只依赖 `dimensions[].id` 与 `dimensions[].key_questions[].id`；其余字段为人类可读元数据，校验器忽略。
 
-### 5.7 元文件
-`package.json`、`README.md`（含 6 宿主安装矩阵 + 致谢）、`NOTICE`、`CHANGELOG.md`、`.gitignore`、`.github/workflows/validate.yml`。
+### 5.7 元文件与站点
+- `package.json`、`README.md`（含 6 宿主安装矩阵 + 致谢）、`NOTICE`、`CHANGELOG.md`、`.gitignore`、`.github/workflows/validate.yml`。
+- `ZH/README-ZH.md`：中文版 README，与英文版**互设双语切换按钮**。`ZH/CHANGELOG-ZH.md` 与 `ZH/SKILL-ZH.md` 为**本地专用**、已被 `.gitignore` 忽略，**不入库、不发布**（因此中文 README 不链接它们）。
+- `docs/index.html` + `docs/.nojekyll`：GitHub Pages 落地页（单文件、零外链、响应式、支持暗色模式）。**Pages 需在仓库 Settings → Pages 手动开启**：Source = `Deploy from a branch`，Branch = `main`，Folder = `/docs`。开启后站点地址为 `https://sogeisetsu.github.io/meld-deepresearch/`。
 
 ### 5.8 `examples/` 与 CI 校验
 

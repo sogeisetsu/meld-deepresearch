@@ -6,7 +6,7 @@
 
 ```text
 meld-deepresearch/                    # repository root
-├── .gitignore                        # ignored paths: OS/editor junk, Python caches, venvs, .env, local run outputs, .opencode/
+├── .gitignore                        # ignored: OS/editor junk, Python caches, venvs, .env, local run outputs, .opencode/, .openchamber/, local-only ZH translations
 ├── .gitattributes                    # line-ending policy: LF in repo for text/*.py/*.md, CRLF for Windows scripts, binary marked
 ├── AGENTS.md                         # agent-facing project guide: design philosophy, boundaries, conventions, validation commands
 ├── README.md                         # public overview: positioning, design philosophy, install matrix, usage
@@ -14,9 +14,12 @@ meld-deepresearch/                    # repository root
 ├── NOTICE                            # third-party attribution: borrowed projects and their licenses
 ├── CHANGELOG.md                      # release history, Keep a Changelog format
 ├── package.json                      # repo metadata for npx / skills CLI (name, version, license, files)
+├── ZH/                               # Chinese docs: README-ZH.md is published; CHANGELOG-ZH.md + SKILL-ZH.md are local-only (gitignored)
 ├── docs/                             # project documentation
 │   ├── PLAN.md                       # authoritative development plan: mechanism, milestones, borrow map (Chinese)
-│   └── FILE_TREE.md                  # this file: annotated file tree + update rule
+│   ├── FILE_TREE.md                  # this file: annotated file tree + update rule
+│   ├── index.html                    # GitHub Pages landing page (single self-contained file, zero external requests)
+│   └── .nojekyll                     # tells GitHub Pages to serve docs/ as-is instead of running Jekyll
 ├── skills/                           # skill packages (this repo ships exactly one)
 │   └── meld-deepresearch/            # the skill directory (contents listed in the note below)
 ├── examples/                         # example artifacts, used by CI
