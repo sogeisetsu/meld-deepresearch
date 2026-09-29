@@ -12,27 +12,37 @@ English.
 4. `## Contradictions & Counter-evidence`
 5. `## Gaps & Unknowns`
 6. `## Sources`
+7. `## Observations` — **conditional and renderer-owned**: appended after
+   `## Sources` only when the report cites at least one observation; the writer
+   never writes it (same ownership rule as `## Sources`)
 
 | Section | What belongs here |
 |---|---|
 | `# Title` | Specific, scope-revealing (topic + angle), not a generic label |
-| `## Executive Summary` | 3–6 sentences: the answer, the biggest caveat, the confidence level; grounded in `key_findings[]`; **any figure stated here carries a `[^source_id]` marker** — summarising `key_findings[]` without markers is allowed only when the ES states no figures |
+| `## Executive Summary` | 3–6 sentences: the answer, the biggest caveat, the confidence level; grounded in `key_findings[]`; **any figure stated here carries a `[^sN]` or `[^oN]` marker** — summarising `key_findings[]` without markers is allowed only when the ES states no figures |
 | `## Findings` | One finding per subsection/bullet, each carrying inline citations; may be grouped by axis `dN` |
 | `## Contradictions & Counter-evidence` | **Mandatory, never empty.** Sources that disagree, failed or disconfirmed claims, and why the report leaned one way; if genuinely nothing contradicts, say so explicitly and cite what was checked |
 | `## Gaps & Unknowns` | Questions the evidence could not answer, each labeled `unknown` with the reason (no source found, access limited, data stale) — never a guess |
 | `## Sources` | Owned by `render_citations.py`: numbered citation list for every source the report cites, regenerated wholesale by the renderer. The writer ends `report.src.md` with this heading and nothing after it |
+| `## Observations` | Owned by `render_citations.py`: appended **only when at least one observation is cited**, one line per cited observation — `[ON] method — environment (captured YYYY-MM-DD)`. The writer never writes this section |
 
 ## Inline citation mechanism
 
-While drafting (`report.src.md`), cite with a footnote marker keyed to the
-source id from `evidence.json`:
+While drafting (`report.src.md`), cite with a footnote marker keyed to an id
+from `evidence.json`:
 
 ```markdown
 Adoption accelerated after the v1.0 release.[^s1]
+The host's installed CLI reports version 2.100.0.[^o1]
 ```
 
-- Marker form: `[^source_id]`, where `source_id` is an id in `evidence.json`'s
-  `sources[]`.
+Two marker families, cited exactly alike:
+
+- `[^sN]` — a **source**: `sN` is an id in `evidence.json`'s `sources[]`.
+- `[^oN]` — a **first-hand observation**: `oN` is an id in
+  `evidence.json`'s `observations[]` (a command run, a measurement taken, a
+  file inspected). Observations are evidence like any other; the renderer turns
+  `[^oN]` into `[ON]`.
 - A later script (`render_citations.py`) converts markers into numbered
   citations and emits `citations.json`.
 - **The model never hand-numbers citations** and never invents `[1]`-style
@@ -41,12 +51,18 @@ Adoption accelerated after the v1.0 release.[^s1]
   that heading (appending the heading only if the draft lacks it).
   `report.src.md` must **end with a `## Sources` heading and nothing after
   it** — the writer never writes the list itself.
+- **`render_citations.py` owns `## Observations` too:** it appends that section
+  after `## Sources` **only when the report cites at least one observation**,
+  one line per cited observation in the form
+  `[ON] method — environment (captured YYYY-MM-DD)`. The writer never writes
+  this section either — same ownership rule as `## Sources`.
 - Gate ② vocabulary, matching `render_citations.py` exactly:
-  - **orphan** — a `[^source_id]` marker whose id is **absent from
-    `sources[]`** → gate ② fails.
+  - **orphan** — a `[^sN]` marker whose id is **absent from `sources[]`**, or a
+    `[^oN]` marker whose id is **absent from `observations[]`** → gate ② fails.
   - **unresolved** — a marker left un-replaced (empty id, or a residual `[^`
     in the rendered output) → gate ② fails.
-  - **uncited** — a source present in `sources[]` that the report never cites →
+  - **uncited** — a source in `sources[]` or an observation in
+    `observations[]` that the report never cites →
     **warning only**, never a failure.
 - **`sources.md` is not `## Sources`.** `sources.md` is the standalone
   de-duplicated source table (a deliverable produced by `dedupe_sources.py`);
@@ -60,9 +76,14 @@ Adoption accelerated after the v1.0 release.[^s1]
   projections stay explicitly projected.
 - **No new facts.** Everything asserted in the report exists in
   `evidence.json`; the report adds structure and synthesis, not evidence.
-- **Every number is traceable.** Each figure carries a `[^source_id]` marker
+- **Every number is traceable.** Each figure carries a `[^sN]` or `[^oN]` marker
   in every section — the Executive Summary included — and matches the snippet
   recorded for it (date-stamped when time-sensitive).
+- **First-hand observations are ordinary evidence.** A claim based on an
+  observation is cited with `[^oN]` exactly like a sourced claim, and nothing
+  else changes: the `Contradictions & Counter-evidence` and `Gaps & Unknowns`
+  rules apply to it unchanged, and an observation never upgrades a claim's
+  strength by itself.
 - **Attribute and hedge.** Contested points name who says what instead of
   asserting a single view.
 - **Label the unknown.** Unanswered items are written as `unknown`, never
@@ -84,7 +105,8 @@ Ask each question before delivering; fix the report, not the answers.
 | Do | Don't |
 |---|---|
 | Attribute claims to their sources and hedge appropriately | Publish a claim backed only by a single `tertiary` source |
-| Cite every factual statement and every number with `[^source_id]`, including figures in the Executive Summary | Leave a marker orphaned (id absent from `sources[]`) or unresolved (left un-replaced) |
+| Cite every factual statement and every number with `[^sN]` or `[^oN]`, including figures in the Executive Summary | Leave a marker orphaned (id absent from `sources[]` / `observations[]`) or unresolved (left un-replaced) |
+| Cite a first-hand observation with `[^oN]` and record its method so it is reproducible — a command must be re-runnable | Rest on an observation nobody could repeat: an unrecorded command, or a method with no `method`/`command` detail |
 | State counter-evidence and where the disagreement lies | Present only the confirming side |
 | Report what the evidence shows | State recommendations or prescriptions as findings |
 | Write unanswered items as `unknown` with a reason | Guess or silently drop a question |

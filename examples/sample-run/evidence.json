@@ -89,6 +89,21 @@
           "quote_type": "paraphrase"
         }
       ]
+    },
+    {
+      "id": "d1.c6",
+      "text": "The 2.0 release-notes page answered successfully when checked on 2026-09-29.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "release",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "observation_id": "o1",
+          "snippet": "HTTP/1.1 200 OK",
+          "quote_type": "direct"
+        }
+      ]
     }
   ],
   "sources": [
@@ -119,6 +134,17 @@
       "title": "Nimbus (software)",
       "quality": "tertiary",
       "published_at": null
+    }
+  ],
+  "observations": [
+    {
+      "id": "o1",
+      "kind": "command",
+      "method": "checked the release-notes page from the documentation host",
+      "command": "curl -sI https://example.org/nimbus/announcements/2-0",
+      "captured_at": "2026-09-29",
+      "environment": "Windows 11, curl 8.9.1",
+      "snippet": "HTTP/1.1 200 OK"
     }
   ],
   "writing_context": [

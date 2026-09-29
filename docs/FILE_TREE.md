@@ -20,8 +20,8 @@ meld-deepresearch/                    # repository root
 ├── skills/                           # skill packages (this repo ships exactly one)
 │   └── meld-deepresearch/            # the skill directory (contents listed in the note below)
 ├── examples/                         # example artifacts, used by CI
-│   ├── sample-run/                   # one complete illustrative run: report.src.md, report.md, sources.md, evidence.json, citations.json
-│   └── invalid/                      # negative fixtures: four broken evidence.json files + one orphan-citation draft
+│   ├── sample-run/                   # one complete illustrative run: report.src.md, report.md, sources.md, evidence.json, citations.json, plan.json
+│   └── invalid/                      # negative fixtures: five broken evidence.json files + one orphan-citation draft
 └── .github/                          # GitHub configuration
     └── workflows/                    # CI: validate.yml (spec check + end-to-end script self-test)
 ```

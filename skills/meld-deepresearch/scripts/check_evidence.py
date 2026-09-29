@@ -28,19 +28,23 @@ Exit codes
 Error codes
 -----------
 E_JSON (always exit 2, including CLI usage errors) / E_SHAPE / E_ID_PATTERN /
-E_ID_UNIQUE / E_ENUM / E_REF_SOURCE / E_REF_CLAIM / E_REF_KQ /
-E_FACTUAL_SOURCE / E_INTERPRETIVE_TWO / E_PROJECTIVE_BASIS / E_NORMATIVE /
-E_EMPTY / E_PLAN_DIM_UNKNOWN / E_PLAN_DIM_UNCOVERED.
+E_ID_UNIQUE / E_ENUM / E_REF_SOURCE / E_REF_OBSERVATION / E_REF_CLAIM /
+E_REF_KQ / E_FACTUAL_SOURCE / E_INTERPRETIVE_TWO / E_PROJECTIVE_BASIS /
+E_OBS_SHAPE / E_EMPTY / E_PLAN_DIM_UNKNOWN / E_PLAN_DIM_UNCOVERED.
 
 Warning codes
 -------------
-W_NO_FINDINGS / W_NO_REFUTE / W_KQ_UNANSWERED (warnings keep ok: true).
+W_NORMATIVE / W_NO_FINDINGS / W_NO_REFUTE / W_KQ_UNANSWERED (warnings keep
+ok: true).
 
-Normative detection (E_NORMATIVE) is a documented best-effort heuristic: the
+Normative detection (W_NORMATIVE) is a documented best-effort heuristic: the
 claim's ``text`` is lowercased and matched word-boundary / case-insensitively
 against this fixed phrase list, which mirrors evidence-contract.md rule 4 byte
 for byte: "should", "ought to", "we recommend", "is recommended",
-"are recommended", "best practice", "advisable", "must adopt".
+"are recommended", "best practice", "advisable", "must adopt". It is a WARNING
+only: the list cannot tell a descriptive paraphrase ("the docs recommend X")
+from a prescription, and a heuristic must not consume a run's single fix
+chance.
 
 Standard library only: no third-party imports, no network, no shell calls, no
 temporary files. Reads UTF-8 (a BOM is tolerated) and prints ASCII-safe JSON.
@@ -55,6 +59,8 @@ CLAIM_ID_RE = re.compile(r"^d\d+\.c\d+$")
 CONTEXT_ID_RE = re.compile(r"^d\d+\.w\d+$")
 APPLIES_TO_RE = re.compile(r"^d\d+(?:\.c\d+)?$")
 KEY_QUESTION_RE = re.compile(r"^kq\d+$")
+# oN: 1-based, no leading zeros (so neither "o0" nor "o01" is accepted).
+OBSERVATION_ID_RE = re.compile(r"^o[1-9][0-9]*$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[Tt ].+$")
 # F3: reachability is NOT machine-checked; only the absolute http(s) shape is.
@@ -65,18 +71,25 @@ POLARITIES = ("support", "refute", "neutral")
 QUOTE_TYPES = ("direct", "paraphrase", "numeric")
 QUALITIES = ("primary", "secondary", "tertiary")
 CREDIBLE_QUALITIES = ("primary", "secondary")
+OBSERVATION_KINDS = ("command", "measurement", "file", "inspection")
 
 TOP_LEVEL_KEYS = ("claims", "sources", "writing_context", "key_findings")
+# observations[] is optional: a file without first-hand evidence simply omits
+# it (or passes an empty array), and that is not an error.
+OPTIONAL_TOP_LEVEL_KEYS = ("observations",)
 NON_EMPTY_KEYS = ("claims", "sources")
 SOURCE_KEYS = ("id", "url", "title", "quality", "published_at")
 CLAIM_KEYS = ("id", "text", "kind", "polarity", "topic_tag",
               "answers_key_question", "evidence")
-EVIDENCE_KEYS = ("source_id", "snippet", "quote_type")
+EVIDENCE_KEYS = ("snippet", "quote_type")
 CONTEXT_KEYS = ("id", "kind", "text", "source_ids", "applies_to", "use")
 FINDING_KEYS = ("finding", "claim_ids")
+OBSERVATION_KEYS = ("id", "kind", "method", "command", "captured_at",
+                    "environment", "snippet")
 
 # F6: fixed phrase list for the "no normative claims" heuristic. Keep this in
 # sync with evidence-contract.md rule 4 — word boundaries, case folded first.
+# C5: the list stays pinned and unchanged, but a hit is now a WARNING only.
 NORMATIVE_PHRASES = (
     "should",
     "ought to",
@@ -197,19 +210,117 @@ def _validate_sources(doc, errors):
     return meta
 
 
-def _validate_evidence(claim_where, evidence, source_meta, errors):
+def _validate_observations(doc, errors):
+    """Validate the optional observations[] array.
+
+    Returns the set of well-formed observation ids that claims may cite.
+    Every structural problem here is reported as E_OBS_SHAPE (including a
+    duplicate or badly patterned id), except an unknown ``kind`` value, which
+    is an enum violation like everywhere else (E_ENUM).
+    """
+    ids = set()
+    if "observations" not in doc:
+        return ids
+    observations = doc.get("observations")
+    if not isinstance(observations, list):
+        # validate() already reported the top-level shape error.
+        return ids
+    seen = set()
+    for index, observation in enumerate(observations):
+        where = "observations[%d]" % index
+        if not isinstance(observation, dict):
+            errors.append(_entry(
+                "E_OBS_SHAPE", "observation must be an object", where))
+            continue
+        for key in OBSERVATION_KEYS:
+            if key not in observation:
+                errors.append(_entry(
+                    "E_OBS_SHAPE", "missing required field '%s'" % key,
+                    "%s.%s" % (where, key)))
+
+        observation_id = observation.get("id")
+        if "id" in observation:
+            if not _non_empty(observation_id):
+                errors.append(_entry(
+                    "E_OBS_SHAPE", "'id' must be a non-empty string",
+                    where + ".id"))
+            elif not OBSERVATION_ID_RE.match(observation_id):
+                errors.append(_entry(
+                    "E_OBS_SHAPE",
+                    "'id' must match oN (1-based, no leading zeros), "
+                    "e.g. o1 or o12", where + ".id"))
+            elif observation_id in seen:
+                errors.append(_entry(
+                    "E_OBS_SHAPE",
+                    "duplicate observation id '%s'" % observation_id,
+                    where + ".id"))
+            else:
+                seen.add(observation_id)
+                ids.add(observation_id)
+
+        if "kind" in observation and observation.get("kind") not in \
+                OBSERVATION_KINDS:
+            errors.append(_entry(
+                "E_ENUM",
+                "'kind' must be one of %s" % "|".join(OBSERVATION_KINDS),
+                where + ".kind"))
+
+        for field in ("method", "snippet"):
+            if field in observation and not _non_empty(observation.get(field)):
+                errors.append(_entry(
+                    "E_OBS_SHAPE",
+                    "'%s' must be a non-empty string" % field,
+                    "%s.%s" % (where, field)))
+
+        if "captured_at" in observation:
+            captured = observation.get("captured_at")
+            if not (isinstance(captured, str) and DATE_RE.match(captured)):
+                errors.append(_entry(
+                    "E_OBS_SHAPE",
+                    "'captured_at' must be a YYYY-MM-DD date",
+                    where + ".captured_at"))
+
+        if "environment" in observation:
+            environment = observation.get("environment")
+            if environment is not None and not isinstance(environment, str):
+                errors.append(_entry(
+                    "E_OBS_SHAPE",
+                    "'environment' must be a string or null",
+                    where + ".environment"))
+
+        if "command" in observation:
+            command = observation.get("command")
+            if command is not None and not isinstance(command, str):
+                errors.append(_entry(
+                    "E_OBS_SHAPE", "'command' must be a string or null",
+                    where + ".command"))
+            elif observation.get("kind") == "command" and (
+                    not isinstance(command, str) or not command.strip()):
+                errors.append(_entry(
+                    "E_OBS_SHAPE",
+                    "'command' must be a non-empty string when kind is "
+                    "'command'", where + ".command"))
+    return ids
+
+
+def _validate_evidence(claim_where, evidence, source_meta, observation_ids,
+                       errors):
     """Validate claims[].evidence[].
 
-    Returns (evidence_ok, distinct_source_ids, distinct_urls, credible).
-    ``distinct_*`` only count entries that resolve into ``source_meta``.
+    Each item points at exactly one origin: ``source_id`` XOR
+    ``observation_id``. Returns
+    ``(evidence_ok, distinct_source_ids, distinct_source_urls,
+    distinct_observation_ids, credible)``; only entries that resolve are
+    counted.
     """
     distinct_ids = set()
     distinct_urls = set()
+    distinct_obs = set()
     credible = False
     if not isinstance(evidence, list):
         errors.append(_entry(
             "E_SHAPE", "'evidence' must be an array", claim_where + ".evidence"))
-        return False, distinct_ids, distinct_urls, credible
+        return False, distinct_ids, distinct_urls, distinct_obs, credible
     for index, item in enumerate(evidence):
         where = "%s.evidence[%d]" % (claim_where, index)
         if not isinstance(item, dict):
@@ -217,7 +328,19 @@ def _validate_evidence(claim_where, evidence, source_meta, errors):
                                  where))
             continue
         _check_keys(item, EVIDENCE_KEYS, where, errors)
-        if "source_id" in item:
+
+        # Exactly one origin: a JSON null counts as "not filled in".
+        has_source = "source_id" in item and item.get("source_id") is not None
+        has_observation = ("observation_id" in item
+                           and item.get("observation_id") is not None)
+        if has_source == has_observation:
+            errors.append(_entry(
+                "E_SHAPE",
+                "evidence item must carry exactly one of 'source_id' or "
+                "'observation_id' (both filled in or neither is an error)",
+                where))
+
+        if has_source:
             source_id = item.get("source_id")
             if not _non_empty(source_id):
                 errors.append(_entry(
@@ -236,6 +359,23 @@ def _validate_evidence(claim_where, evidence, source_meta, errors):
                 url = record.get("url")
                 if isinstance(url, str) and url.strip():
                     distinct_urls.add(url.strip())
+
+        if has_observation:
+            observation_id = item.get("observation_id")
+            if not _non_empty(observation_id):
+                errors.append(_entry(
+                    "E_SHAPE",
+                    "'observation_id' must be a non-empty string",
+                    where + ".observation_id"))
+            elif observation_id not in observation_ids:
+                errors.append(_entry(
+                    "E_REF_OBSERVATION",
+                    "observation_id '%s' does not resolve to an entry in "
+                    "observations[]" % observation_id,
+                    where + ".observation_id"))
+            else:
+                distinct_obs.add(observation_id)
+
         if "snippet" in item and not _non_empty(item.get("snippet")):
             errors.append(_entry(
                 "E_SHAPE", "'snippet' must be a non-empty string",
@@ -247,10 +387,10 @@ def _validate_evidence(claim_where, evidence, source_meta, errors):
                     "E_ENUM",
                     "'quote_type' must be one of %s" % "|".join(QUOTE_TYPES),
                     where + ".quote_type"))
-    return True, distinct_ids, distinct_urls, credible
+    return (True, distinct_ids, distinct_urls, distinct_obs, credible)
 
 
-def _validate_claims(doc, source_meta, errors, warnings):
+def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
     """Validate claims[]; return (claim_ids, axes, answered_kqs, has_refute)."""
     claim_ids = set()
     seen = set()
@@ -329,17 +469,25 @@ def _validate_claims(doc, source_meta, errors, warnings):
         evidence_ok = False
         distinct_ids = set()
         distinct_urls = set()
+        distinct_obs = set()
         credible = False
         if "evidence" in claim:
-            evidence_ok, distinct_ids, distinct_urls, credible = \
-                _validate_evidence(where, claim.get("evidence"), source_meta,
-                                   errors)
+            (evidence_ok, distinct_ids, distinct_urls, distinct_obs,
+             credible) = _validate_evidence(where, claim.get("evidence"),
+                                            source_meta, observation_ids,
+                                            errors)
 
-        if kind == "factual" and evidence_ok and not credible:
+        # An observation is first-hand evidence, so it satisfies `factual` on
+        # its own; `interpretive` counts distinct origins, and one origin is
+        # either a source (identified by its url) or an observation.
+        origin_count = len(distinct_urls) + len(distinct_obs)
+
+        if kind == "factual" and evidence_ok and not credible and not \
+                distinct_obs:
             errors.append(_entry(
                 "E_FACTUAL_SOURCE",
                 "factual claim needs at least one evidence item backed by a "
-                "primary or secondary source", where))
+                "primary or secondary source, or by an observation", where))
         elif kind == "projective" and evidence_ok:
             evidence = claim.get("evidence")
             if not isinstance(evidence, list) or len(evidence) < 1:
@@ -348,30 +496,29 @@ def _validate_claims(doc, source_meta, errors, warnings):
                     "projective claim needs at least one evidence item "
                     "recording its basis", where))
         elif kind == "interpretive" and evidence_ok:
-            # F5: two distinct source_ids AND distinct (stripped) urls.
-            if len(distinct_ids) < 2:
+            # F5: two distinct origins — a source_id with its own url, or an
+            # observation_id.
+            if origin_count < 2:
                 errors.append(_entry(
                     "E_INTERPRETIVE_TWO",
-                    "interpretive claim needs evidence from at least two "
-                    "distinct source_ids (found %d)" % len(distinct_ids),
-                    where))
-            elif len(distinct_urls) < 2:
-                errors.append(_entry(
-                    "E_INTERPRETIVE_TWO",
-                    "interpretive claim needs distinct urls, but its %d "
-                    "distinct source_ids all share the url %r" % (
-                        len(distinct_ids),
-                        min(distinct_urls) if distinct_urls else ""),
+                    "interpretive claim needs at least two distinct origins "
+                    "(distinct source_id with a distinct url, or distinct "
+                    "observation_id); found %d distinct source_id(s) resolving "
+                    "to %d distinct url(s) and %d distinct observation(s)" % (
+                        len(distinct_ids), len(distinct_urls),
+                        len(distinct_obs)),
                     where))
 
         if isinstance(text, str):
             match = NORMATIVE_RE.search(text.lower())
             if match:
-                errors.append(_entry(
-                    "E_NORMATIVE",
-                    "claim text is normative (matched %r); state what the "
-                    "evidence shows, not what anyone should do" % match.group(0),
-                    where))
+                # C5: a warning, never an error — the phrase list cannot tell
+                # a descriptive paraphrase from a prescription.
+                warnings.append(_entry(
+                    "W_NORMATIVE",
+                    "claim text reads as normative (matched %r); state what "
+                    "the evidence shows, not what anyone should do"
+                    % match.group(0), where))
 
     return claim_ids, axes, answered, has_refute
 
@@ -580,6 +727,11 @@ def validate(doc, plan):
         elif not isinstance(doc[key], list):
             errors.append(_entry(
                 "E_SHAPE", "'%s' must be an array" % key, key))
+    # observations[] is optional, but when present it must be an array.
+    for key in OPTIONAL_TOP_LEVEL_KEYS:
+        if key in doc and not isinstance(doc[key], list):
+            errors.append(_entry(
+                "E_SHAPE", "'%s' must be an array" % key, key))
 
     # F2: claims[] and sources[] must be non-empty; key_findings[] may be
     # empty but that is reported as a warning only. writing_context[] may be
@@ -598,8 +750,9 @@ def validate(doc, plan):
             "key_findings"))
 
     source_meta = _validate_sources(doc, errors)
+    observation_ids = _validate_observations(doc, errors)
     claim_ids, axes, answered, has_refute = _validate_claims(
-        doc, source_meta, errors, warnings)
+        doc, source_meta, observation_ids, errors, warnings)
     _validate_writing_context(doc, set(source_meta), errors)
     _validate_key_findings(doc, claim_ids, errors)
 

@@ -1,28 +1,45 @@
 #!/usr/bin/env python3
-"""Render ``[^source_id]`` citation markers into a numbered reference list.
+"""Render ``[^sN]`` / ``[^oN]`` citation markers into numbered reference lists.
 
 Usage:
     python render_citations.py --report <report.src.md> --evidence <evidence.json> \
         --output <report.md> [--citations <citations.json>]
 
 Marker format:
-    ``[^source_id]`` written inline in the draft report, where ``source_id`` is
-    an id present in ``evidence.json``'s ``sources[]`` (see
-    ``references/evidence-contract.md``). Markers are numbered in order of
-    first appearance, replaced inline with ``[N]``, and everything after the
-    ``## Sources`` heading is replaced by the generated numbered list (the
-    heading is appended when the report has none). Repeated markers reuse the
-    same number.
+    Two marker families, both written inline in the draft report (see
+    ``references/evidence-contract.md``):
+
+    ``[^sN]``  a source id present in ``evidence.json``'s ``sources[]``
+    ``[^oN]``  an observation id present in ``evidence.json``'s
+               ``observations[]`` (an optional top-level array; an absent
+               array is treated as empty)
+
+    The two families are numbered independently, each in order of first
+    appearance: source markers become ``[N]``, observation markers become
+    ``[ON]``, so a source and an observation may both be number 1. Repeated
+    markers reuse the same number.
+
+    Everything after the ``## Sources`` heading is replaced by the generated
+    numbered source list (the heading is appended when the report has none).
+    When at least one observation is cited, a ``## Observations`` section is
+    appended as well, one line per cited observation in the form
+    ``[ON] method — environment (captured YYYY-MM-DD)`` (an empty or null
+    ``environment`` renders as ``unknown``). A marker whose id resolves in
+    neither family is an **orphan** and is left un-replaced so a human can
+    find it.
 
 Results:
     stdout is one JSON object: ``{"ok": bool, "citation_count": N,
-    "orphans": [...], "uncited": [...]}``.
+    "observation_count": N, "orphans": [...], "uncited": [...]}``.
     ``--citations`` (default: ``citations.json`` next to ``--output``) gets
-    ``{"ok": bool, "citations": [...], "orphans": [...], "uncited": [...]}``.
+    ``{"ok": bool, "citations": [...], "observations": [...],
+    "orphans": [...], "uncited": [...]}``.
 
 Exit codes:
-    0  rendered successfully (uncited sources are a warning, never a failure)
-    1  orphan markers (id not in ``sources[]``) or unresolved markers remain
+    0  rendered successfully (uncited sources and observations are a warning,
+       never a failure)
+    1  orphan markers (id not in ``sources[]`` / ``observations[]``) or
+       unresolved markers remain
     2  bad input (missing/unreadable file, invalid JSON, wrong usage)
 
 Stdout is ASCII-safe (``ensure_ascii=True``); ``report.md`` and
@@ -38,6 +55,10 @@ import sys
 
 MARKER_RE = re.compile(r"\[\^([^\]]*)\]")
 SOURCES_HEADING_RE = re.compile(r"^## Sources[^\n]*", re.MULTILINE)
+OBSERVATIONS_HEADING_RE = re.compile(r"^## Observations[^\n]*", re.MULTILINE)
+# Observation ids follow the contract pattern ``oN`` (1-based, no leading
+# zeros); anything else is treated as a source id.
+OBSERVATION_ID_RE = re.compile(r"^o\d+$")
 
 
 def emit(obj):
@@ -80,6 +101,11 @@ def load_evidence(path):
         fail("evidence file must be a JSON object")
     if not isinstance(data.get("sources"), list):
         fail("evidence file must contain a 'sources' array")
+    # ``observations[]`` is optional: absent or null means "no observations".
+    if data.get("observations") is None:
+        data["observations"] = []
+    elif not isinstance(data["observations"], list):
+        fail("evidence file 'observations' must be an array")
     return data
 
 
@@ -94,10 +120,14 @@ class _Parser(argparse.ArgumentParser):
 def build_parser():
     parser = _Parser(
         prog="render_citations.py",
-        description="Render [^source_id] markers into a numbered citation list.",
+        description="Render [^sN] / [^oN] markers into numbered citation lists.",
     )
     parser.add_argument("--report", required=True, help="draft report (report.src.md)")
-    parser.add_argument("--evidence", required=True, help="evidence.json with sources[]")
+    parser.add_argument(
+        "--evidence",
+        required=True,
+        help="evidence.json with sources[] (and optional observations[])",
+    )
     parser.add_argument("--output", required=True, help="rendered report.md")
     parser.add_argument(
         "--citations",
@@ -107,46 +137,76 @@ def build_parser():
     return parser
 
 
-def index_sources(sources):
-    """First occurrence wins; preserve sources[] order for uncited reporting."""
+def index_by_id(entries):
+    """First occurrence wins; preserve array order for uncited reporting."""
     ordered_ids = []
     by_id = {}
-    for source in sources:
-        if not isinstance(source, dict):
+    for entry in entries:
+        if not isinstance(entry, dict):
             continue
-        source_id = source.get("id")
-        if not isinstance(source_id, str) or not source_id:
+        entry_id = entry.get("id")
+        if not isinstance(entry_id, str) or not entry_id:
             continue
-        if source_id not in by_id:
-            by_id[source_id] = source
-            ordered_ids.append(source_id)
+        if entry_id not in by_id:
+            by_id[entry_id] = entry
+            ordered_ids.append(entry_id)
     return by_id, ordered_ids
 
 
-def assign_numbers(report_text, by_id):
-    """Number markers by first appearance; collect orphan ids in the same pass."""
-    numbers = {}
+def resolve_marker(marker_id, by_source_id, by_observation_id):
+    """Classify a marker id: ``"source"``, ``"observation"``, or ``None``.
+
+    Ids matching the observation pattern ``oN`` resolve against
+    ``observations[]`` first (falling back to ``sources[]`` for any legacy
+    source id shaped like an observation); every other id resolves against
+    ``sources[]`` first (falling back to ``observations[]``). An id that
+    resolves in neither family is an orphan.
+    """
+    if OBSERVATION_ID_RE.match(marker_id):
+        if marker_id in by_observation_id:
+            return "observation"
+        return "source" if marker_id in by_source_id else None
+    if marker_id in by_source_id:
+        return "source"
+    return "observation" if marker_id in by_observation_id else None
+
+
+def assign_numbers(report_text, by_source_id, by_observation_id):
+    """Number each marker family by first appearance; collect orphan ids.
+
+    The two sequences are independent: a source and an observation may both
+    be number 1.
+    """
+    source_numbers = {}
+    observation_numbers = {}
     orphans = []
     for match in MARKER_RE.finditer(report_text):
-        source_id = match.group(1).strip()
-        if not source_id:
+        marker_id = match.group(1).strip()
+        if not marker_id:
             continue  # empty marker -> unresolved, caught by the residual check
-        if source_id not in by_id:
-            if source_id not in orphans:
-                orphans.append(source_id)
-            continue
-        if source_id not in numbers:
-            numbers[source_id] = len(numbers) + 1
-    return numbers, orphans
+        family = resolve_marker(marker_id, by_source_id, by_observation_id)
+        if family == "source":
+            if marker_id not in source_numbers:
+                source_numbers[marker_id] = len(source_numbers) + 1
+        elif family == "observation":
+            if marker_id not in observation_numbers:
+                observation_numbers[marker_id] = len(observation_numbers) + 1
+        elif marker_id not in orphans:
+            orphans.append(marker_id)
+    return source_numbers, observation_numbers, orphans
 
 
-def substitute_markers(report_text, numbers):
-    """Replace resolvable markers with [N]; leave orphans visible for humans."""
+def substitute_markers(report_text, source_numbers, observation_numbers):
+    """Replace resolvable markers with [N] / [ON]; leave orphans visible."""
 
     def replace(match):
-        source_id = match.group(1).strip()
-        if source_id and source_id in numbers:
-            return "[%d]" % numbers[source_id]
+        marker_id = match.group(1).strip()
+        if not marker_id:
+            return match.group(0)
+        if marker_id in source_numbers:
+            return "[%d]" % source_numbers[marker_id]
+        if marker_id in observation_numbers:
+            return "[O%d]" % observation_numbers[marker_id]
         return match.group(0)
 
     return MARKER_RE.sub(replace, report_text)
@@ -184,31 +244,99 @@ def build_sources_section(text, numbers, by_id):
     return body
 
 
+def observation_line(number, observation):
+    method = str(observation.get("method") or "")
+    environment = observation.get("environment")
+    if environment in (None, ""):
+        environment = "unknown"
+    captured_at = observation.get("captured_at")
+    if captured_at in (None, ""):
+        captured_at = "unknown"
+    return "[O%d] %s — %s (captured %s)" % (number, method, environment, captured_at)
+
+
+def build_observations_section(text, numbers, by_id):
+    """Append ## Observations, or rebuild the content after an existing one.
+
+    Only called when at least one observation is cited.
+    """
+    ordered = sorted(numbers.items(), key=lambda item: item[1])
+    lines = [
+        observation_line(number, by_id[observation_id])
+        for observation_id, number in ordered
+    ]
+    block = "\n".join(lines)
+
+    heading = OBSERVATIONS_HEADING_RE.search(text)
+    if heading:
+        head = text[: heading.end()]  # heading line without its newline
+        if block:
+            return head + "\n\n" + block + "\n"
+        return head + "\n"
+
+    body = text
+    if body and not body.endswith("\n"):
+        body += "\n"
+    body += "\n## Observations\n"
+    if block:
+        body += "\n" + block + "\n"
+    return body
+
+
 def main(argv=None):
     args = build_parser().parse_args(argv)
 
     report_text = read_text(args.report, "report file")
     evidence = load_evidence(args.evidence)
 
-    by_id, ordered_ids = index_sources(evidence["sources"])
-    numbers, orphans = assign_numbers(report_text, by_id)
-    rendered = substitute_markers(report_text, numbers)
-    rendered = build_sources_section(rendered, numbers, by_id)
+    by_id, ordered_ids = index_by_id(evidence["sources"])
+    obs_by_id, obs_ordered_ids = index_by_id(evidence["observations"])
+    source_numbers, observation_numbers, orphans = assign_numbers(
+        report_text, by_id, obs_by_id
+    )
+    rendered = substitute_markers(report_text, source_numbers, observation_numbers)
+    rendered = build_sources_section(rendered, source_numbers, by_id)
+    if observation_numbers:
+        rendered = build_observations_section(
+            rendered, observation_numbers, obs_by_id
+        )
 
     unresolved = "[^" in rendered
-    uncited = [source_id for source_id in ordered_ids if source_id not in numbers]
+    uncited = [
+        source_id for source_id in ordered_ids if source_id not in source_numbers
+    ] + [
+        observation_id
+        for observation_id in obs_ordered_ids
+        if observation_id not in observation_numbers
+    ]
     ok = not orphans and not unresolved
 
     citations = [
         {
-            "number": numbers[source_id],
+            "number": source_numbers[source_id],
             "source_id": source_id,
             "title": by_id[source_id].get("title"),
             "url": by_id[source_id].get("url"),
             "quality": by_id[source_id].get("quality"),
             "published_at": by_id[source_id].get("published_at"),
         }
-        for source_id, _ in sorted(numbers.items(), key=lambda item: item[1])
+        for source_id, _ in sorted(
+            source_numbers.items(), key=lambda item: item[1]
+        )
+    ]
+    observation_citations = [
+        {
+            "number": observation_numbers[observation_id],
+            "observation_id": observation_id,
+            "kind": obs_by_id[observation_id].get("kind"),
+            "method": obs_by_id[observation_id].get("method"),
+            "command": obs_by_id[observation_id].get("command"),
+            "captured_at": obs_by_id[observation_id].get("captured_at"),
+            "environment": obs_by_id[observation_id].get("environment"),
+        }
+        for observation_id, _ in sorted(
+            observation_numbers.items(), key=lambda item: item[1]
+        )
     ]
 
     write_text(args.output, rendered)
@@ -221,6 +349,7 @@ def main(argv=None):
             {
                 "ok": ok,
                 "citations": citations,
+                "observations": observation_citations,
                 "orphans": orphans,
                 "uncited": uncited,
             },
@@ -233,7 +362,8 @@ def main(argv=None):
     emit(
         {
             "ok": ok,
-            "citation_count": len(numbers),
+            "citation_count": len(source_numbers),
+            "observation_count": len(observation_numbers),
             "orphans": orphans,
             "uncited": uncited,
         }

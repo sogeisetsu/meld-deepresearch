@@ -34,6 +34,17 @@
       "published_at": null
     }
   ],
+  "observations": [
+    {
+      "number": 1,
+      "observation_id": "o1",
+      "kind": "command",
+      "method": "checked the release-notes page from the documentation host",
+      "command": "curl -sI https://example.org/nimbus/announcements/2-0",
+      "captured_at": "2026-09-29",
+      "environment": "Windows 11, curl 8.9.1"
+    }
+  ],
   "orphans": [],
   "uncited": []
 }

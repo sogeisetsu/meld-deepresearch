@@ -1,0 +1,18 @@
+{
+  "tier": "normal",
+  "dimensions": [
+    {
+      "id": "d1",
+      "name": "Nimbus 2.0 release and adoption",
+      "scope_ownership": "release facts, adoption signals and their limits; this sample uses a single axis",
+      "source_classes": ["primary", "secondary", "tertiary"],
+      "depth": "every key question answered by at least one primary or secondary source",
+      "time_sensitivity": "sensitive",
+      "key_questions": [
+        {"id": "kq1", "text": "What did the 2.0 release change and when did it ship?"},
+        {"id": "kq2", "text": "How fast was adoption, and what explains it?"},
+        {"id": "kq3", "text": "What does the current rate project for the next year?"}
+      ]
+    }
+  ]
+}

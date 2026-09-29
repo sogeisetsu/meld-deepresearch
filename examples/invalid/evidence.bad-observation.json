@@ -1,0 +1,24 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "Nimbus 2.0 was published on 2026-03-14.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "release",
+      "answers_key_question": null,
+      "evidence": [
+        {"source_id": "s1", "snippet": "Nimbus 2.0 is available today.", "quote_type": "direct"},
+        {"observation_id": "o9", "snippet": "HTTP/1.1 200 OK", "quote_type": "direct"}
+      ]
+    }
+  ],
+  "observations": [],
+  "sources": [
+    {"id": "s1", "url": "https://example.org/nimbus/announcements/2-0", "title": "Nimbus 2.0 release notes", "quality": "primary", "published_at": "2026-03-14"}
+  ],
+  "writing_context": [],
+  "key_findings": [
+    {"finding": "The 2.0 release date is recorded by the release notes.", "claim_ids": ["d1.c1"]}
+  ]
+}

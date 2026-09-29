@@ -9,8 +9,8 @@ Execution rules for `meld-deepresearch`. `SKILL.md` decides *whether* to run and
 | Probe / anchor / clarify / tier select | see `SKILL.md` | in-memory anchors, `assumptions` |
 | Plan | quick: `kq1..kqn` in memory; normal: named dimensions | normal only: `plan.json` |
 | **Research (this file, §2–§7)** | per-axis loop | `sub_reports/dN.evidence.json` |
-| **Merge (this file, §9)** | concatenate the four top-level arrays from every axis file | `evidence.json` |
-| Gate ① | evidence validator on the **merged** `evidence.json` | `{"ok": true}` |
+| **Merge (this file, §9)** | concatenate the five top-level arrays from every axis file | `evidence.json` |
+| Gate ① | evidence validator on the **merged** `evidence.json` (normal: plus `--plan`) | `{"ok": true}` |
 | Write | one-shot draft, inline citations, no new facts | `report.src.md` |
 | Gate ② | citation renderer | `report.md`, `citations.json` |
 | Deliver | 4 artifacts + coverage note | see §11 |
@@ -23,6 +23,11 @@ Each axis `dN` runs the same loop, at most **3 rounds**:
 Search -> candidate URL pool -> Fetch -> read the ORIGINAL page
        -> evaluate -> find gaps -> Search again
 ```
+
+**One round = one search → fetch → evaluate cycle for an axis:** the search
+that refills the candidate pool, every fetch made from that pool, and the
+evaluation that follows (§5). The ≤3-rounds-per-axis cap in §8 counts these
+cycles.
 
 Exact rules — all mandatory:
 
@@ -84,6 +89,12 @@ The next round's queries target this gap list first. Any gap still open when the
 | `normal` | ≤ 25 | ≥ 15 | ≤ 3 |
 
 - Budget is counted across the whole run; axes share it.
+- **Every fetch attempt counts against the fetch budget, including failed
+  attempts** (timeouts, 403s, bot walls, unparsable pages). An attempt that
+  cost a network round-trip still cost budget; do not retry past the cap.
+- **Searches are not charged to the fetch budget.** They are counted separately
+  as rounds — one round = one search → fetch → evaluate cycle (§2) — and are
+  bound by the ≤3-rounds-per-axis limit, not by the fetch budget.
 - **When the budget is exhausted: STOP.** Return the best coverage achieved so far and **explicitly list what was not covered** (per-axis gaps from §7). Never loop forever, never take "just one more round" past the cap.
 - If the source floor cannot be reached inside the fetch budget, report the shortfall honestly instead of padding with snippet-only or duplicate sources.
 
@@ -91,19 +102,21 @@ The next round's queries target this gap list first. Any gap still open when the
 
 ### Merge (after every axis, before gate ①)
 
-Concatenate the four top-level arrays — `claims`, `sources`, `writing_context`,
-`key_findings` — from every `sub_reports/dN.evidence.json` into a single
-`<output_dir>/evidence.json`:
+Concatenate the five top-level arrays — `claims`, `sources`, `observations`,
+`writing_context`, `key_findings` — from every `sub_reports/dN.evidence.json`
+into a single `<output_dir>/evidence.json`:
 
 - **Ids stay unique after merging.** The prefix discipline already makes this
-  true: claims are `dN.cM` and writing contexts are `dN.wM` (axis-scoped), and
-  sources are `sN` taken from one run-wide counter, never a per-axis one. A
-  collision found anyway is re-keyed before gate ①; the validator rejects
-  duplicate ids.
+  true: claims are `dN.cM` and writing contexts are `dN.wM` (axis-scoped),
+  while sources (`sN`) and observations (`oN`) are taken from one run-wide
+  counter, never a per-axis one. A collision found anyway is re-keyed before
+  gate ①; the validator rejects duplicate ids.
 - **A source appearing in more than one axis file becomes one `sources[]`
   entry with a single id.** Re-point every `evidence[].source_id` and
   `writing_context[].source_ids[]` that named a duplicate id at that surviving
-  id, so referential integrity holds in the merged file.
+  id, so referential integrity holds in the merged file. The same fold applies
+  to duplicate `observations[]` entries: one `oN`, re-pointed
+  `evidence[].observation_id`s.
 - **The merged file is what gate ① validates.** Gate ① never reads
   `sub_reports/`.
 
@@ -111,20 +124,40 @@ Concatenate the four top-level arrays — `claims`, `sources`, `writing_context`
 
 | Gate | Check | Pass condition |
 |---|---|---|
-| ① | evidence validator (`check_evidence.py`, see `evidence-contract.md`) | output reports `ok: true` |
-| ② | citation renderer (`render_citations.py`) | no **orphan** markers, no **unresolved** markers; **uncited** sources are a warning only |
+| ① | evidence validator (`check_evidence.py`, see `evidence-contract.md`); normal tier: also `--plan` | output reports `ok: true` |
+| ② | citation renderer (`render_citations.py`) | no **orphan** markers, no **unresolved** markers; **uncited** sources/observations are a warning only |
+
+**Gate ① must run with `--plan` on a `normal` run.** Because `plan.json` is a
+required normal-tier artifact, gate ① for a `normal` run is
+`check_evidence.py "$OUTDIR/evidence.json" --plan "$OUTDIR/plan.json"` — this
+is the only gate that checks plan coverage (every declared dimension covered,
+every declared `kqN` answered). A `normal` run whose gate ① omits `--plan` has
+not passed gate ①. `quick` runs have no `plan.json` and omit the flag.
 
 Gate ② vocabulary, matching `render_citations.py` exactly:
 
-- **Orphan** = an inline `[^source_id]` marker whose id is **absent from
-  `sources[]`** → gate ② fails.
+- **Orphan** = an inline marker whose id is **absent from the array it names** —
+  `[^sN]` with no `sources[]` entry, or `[^oN]` with no `observations[]` entry
+  → gate ② fails.
 - **Unresolved** = a marker left un-replaced (empty id, or a residual `[^` in
   the rendered output) → gate ② fails.
-- **Uncited** = a source present in `sources[]` that the report never cites →
-  **warning only**, never a failure.
+- **Uncited** = a source in `sources[]` or an observation in `observations[]`
+  that the report never cites → **warning only**, never a failure.
 
-Run the scripts from the skill's own directory with `python`; use `python3`
-when `python` is unavailable.
+### Gate commands
+
+Run this block **from the skill's own directory** — the script paths below are
+relative to it. Set `OUTDIR` to the run's output directory first, and use
+`python3` when `python` is unavailable.
+
+```bash
+OUTDIR="meld-deepresearch-reports/2026-09-29-my-topic-ab12"
+
+python scripts/check_evidence.py "$OUTDIR/evidence.json"
+python scripts/check_evidence.py "$OUTDIR/evidence.json" --plan "$OUTDIR/plan.json"   # normal tier
+python scripts/render_citations.py --report "$OUTDIR/report.src.md" --evidence "$OUTDIR/evidence.json" --output "$OUTDIR/report.md"
+python scripts/dedupe_sources.py --evidence "$OUTDIR/evidence.json" --output "$OUTDIR/sources.md"
+```
 
 - Gate failure ⇒ **fix once and re-run** (at most one re-run per gate).
 - Second failure ⇒ **stop and report honestly** (failing stage, artifact paths, last error). Do not deliver a report that failed a gate.
@@ -137,20 +170,29 @@ when `python` is unavailable.
 
 ## 11. Artifacts and directories
 
-Default output directory (overridable by the user):
+Default output directory:
 
 ```
 meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/
 ├── report.md
 ├── sources.md
-├── evidence.json                 # merged from sub_reports/ (§9)
+├── evidence.json                 # merged from sub_reports/ (§9): sources[] + observations[]
 ├── citations.json
 ├── plan.json                     # normal tier only
 ├── report.src.md                 # write-stage draft (pre-citation-render)
 └── sub_reports/dN.evidence.json  # per-axis intermediate evidence
 ```
 
-- `{slug}` is a short kebab-case digest of the topic; `{hex4}` is 4 random hex digits for uniqueness.
+- `{slug}` is a short kebab-case digest of the topic; `{hex4}` is 4 random hex digits for uniqueness. **When the user supplies an output directory, it replaces this default naming entirely** — no `{slug}` or `{hex4}` is appended; the run writes to the user's path exactly as given.
+- **First-hand evidence** — commands run, measurements taken, files inspected on
+  the host — is recorded as `observations[]` in `evidence.json` (the entry shape
+  and the `evidence[].observation_id` rule are defined in
+  `evidence-contract.md`). The report cites an observation with `[^oN]`,
+  rendered as `[ON]`. The merged `evidence.json` carries `observations[]`
+  alongside `sources[]`; the merge step in §9 concatenates it too.
+- **Assumptions when the host cannot ask the user** go into `plan.json` for a
+  `normal` run, and into the delivery message for a `quick` run (a `quick` run
+  has no `plan.json`). State them there, never only in the model's context.
 - `sources.md` is produced by `dedupe_sources.py` and is the **standalone,
   de-duplicated source list** — distinct from the report's own `## Sources`
   section (which the citation renderer owns, see `report-template.md`):
