@@ -1,5 +1,7 @@
 # meld-deepresearch
 
+🌐 **English** · [<kbd>中文</kbd>](ZH/README-ZH.md)
+
 A **lightweight, portable Agent Skill** that turns a vague topic into a
 **verifiable, citation-backed research report**.
 
@@ -163,3 +165,7 @@ CI in `.github/workflows/validate.yml`.
 ## License
 
 MIT. See [`LICENSE`](LICENSE).
+
+---
+
+🌐 **English** · [<kbd>中文</kbd>](ZH/README-ZH.md)
