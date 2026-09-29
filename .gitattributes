@@ -11,6 +11,7 @@
 *.yml   text eol=lf
 *.yaml  text eol=lf
 *.sh    text eol=lf
+*.html  text eol=lf
 
 # Windows-native scripts keep CRLF.
 *.bat   text eol=crlf

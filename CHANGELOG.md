@@ -21,6 +21,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `examples/sample-run/` (a complete illustrative run) and `examples/invalid/`
   (negative fixtures for the validator).
 - CI workflow `.github/workflows/validate.yml`.
+- Verification on a real host (M3): the skill was installed into opencode, hot-
+  discovered there and exercised end to end in both tiers (`quick` and
+  `normal`), plus a packaging-level install into a second host
+  (`gh skill install`, claude-code).
+- First-hand evidence (M3): a first-class `observations[]` type for commands
+  run, measurements, files inspected and direct inspection, with validator and
+  renderer support (`[^oN]` markers and an `## Observations` section); the
+  heuristic normative check was relaxed from `E_NORMATIVE` to the non-fatal
+  `W_NORMATIVE` after it misfired on a descriptive paraphrase.
+- Chinese documentation (`ZH/`): `README-ZH.md`, plus a language switch in both
+  READMEs. The Chinese `CHANGELOG` and `SKILL.md` translations are deliberately
+  local-only and ignored by git.
+- GitHub Pages landing page: `docs/index.html` (one self-contained file, no
+  external requests) and `docs/.nojekyll`.
+- The landing page is bilingual (English and Chinese) and ships both a light and
+  a dark theme, each with its own control in the header. English is the default
+  on every first visit — the language is never inferred from the browser — and
+  the page stays fully readable with JavaScript disabled.
 
 ### Notes
 
