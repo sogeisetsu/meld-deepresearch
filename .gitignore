@@ -32,6 +32,10 @@ meld-deepresearch-reports/
 .opencode/
 **/.opencode/
 
+# OpenChamber local state
+.openchamber/
+**/.openchamber/
+
 # Chinese translations kept local only; ZH/README-ZH.md IS published
 ZH/CHANGELOG-ZH.md
 ZH/SKILL-ZH.md
