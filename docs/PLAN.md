@@ -2,7 +2,7 @@
 
 > 本文件是本项目的**权威开发计划**（source of truth）。
 > `AGENTS.md` 只放项目约定与指针；**所有实现细节、里程碑、借鉴来源都在这里**。
-> 计划日期：2026-09-29 ｜ 状态：M0 进行中
+> 计划日期：2026-09-29 ｜ 状态：M1 已完成（M2 未开始）
 
 ---
 
@@ -119,7 +119,7 @@ metadata:
 - `sources[]`：`id` / `url` / `title` / `quality`(`primary`|`secondary`|`tertiary`) / `published_at`
 - `writing_context[]`：`id`(`dN.wM`) / `kind` / `text` / `source_ids[]` / `applies_to[]` / `use`
 - `key_findings[]`：`finding` + `claim_ids[]`（派生综合，指回本文件 claim）
-- 硬规则：`factual` 需 ≥1 `primary|secondary`；`interpretive` 需 ≥2 个**不同** source；禁止规范性 claim
+- 硬规则：`factual` 需 ≥1 `primary|secondary`；`projective` 需 ≥1 任意来源；`interpretive` 需 ≥2 个**不同** source；禁止规范性 claim
 
 ### 5.4 `references/tier-selection.md`
 见 §6.2。
@@ -128,7 +128,7 @@ metadata:
 骨架：`# Title` → `## Executive Summary` → `## Findings`（逐条内联引用）→ `## Contradictions & Counter-evidence` → `## Gaps & Unknowns` → `## Sources`；附质量四维自检；写作规则：表述强度匹配证据强度、禁止规范性 claim。
 
 ### 5.6 `scripts/`（纯 Python 3 标准库）
-- **`check_evidence.py`**：证据契约校验（ID 正则、来源引用完整性、factual 需 ≥1 primary/secondary、interpretive 需 ≥2 独立来源、quote_type 合法、refute 缺失给**警告**）。stdout `{"ok":…,"errors":[…]}`；退出码 0/1/2；支持 `--plan`。
+- **`check_evidence.py`**：证据契约校验（ID 正则、来源引用完整性、factual 需 ≥1 primary/secondary、projective 需 ≥1 任意来源、interpretive 需 ≥2 独立来源、quote_type 合法、refute 缺失给**警告**）。stdout `{"ok":…,"errors":[…],"warnings":[…]}`；退出码 0/1/2；支持 `--plan`。
 - **`render_citations.py`**：`[^source_id]` 脚注 → 编号引用；检出 orphan / 未解析 ID；产出 `report.md` + `citations.json`。
 - **`dedupe_sources.py`**：URL 规范化 + 跨维度去重，产出 `sources.md`。
 - 通用：UTF-8 无 BOM；`python`/`python3` 回退；不联网、不装包。
@@ -151,8 +151,8 @@ metadata:
 | 4 | **Plan** | 请求 + assumptions | quick：内部生成 `kq1..kqn`；normal：生成 dims（含 `scope_ownership` / 来源类别 / `depth` / 时效） | quick：无文件；normal：`plan.json` | 维度必须**可独立启动、检索范围不重叠** |
 | 5 | **Research**（循环） | plan / 请求 | 每维度：Search → URL 池 → Fetch → **读原文** → 评估 → 找缺口 → 再搜（≤3 轮） | `sub_reports/dN.evidence.json` | 达 `depth` 门槛即停 |
 | 6 | **Self-check ①**（硬门） | evidence | 跑 `check_evidence.py` | `{"ok":…}` | 不过 → 按错误一次性修复后重跑（≤1 次） |
-| 7 | **Write** | 全部 evidence | quick/normal **一次成文**，逐条内联引用；禁止新事实 | `sections/s_full.md` | 强度不得超证据 |
-| 8 | **Render ②**（硬门） | `s_full.md` + evidence | 跑 `render_citations.py` | `report.md` + `citations.json` | 有 orphan/unresolved → 修后重跑（≤1 次） |
+| 7 | **Write** | 全部 evidence | quick/normal **一次成文**，逐条内联引用；禁止新事实 | `report.src.md` | 强度不得超证据 |
+| 8 | **Render ②**（硬门） | `report.src.md` + evidence | 跑 `render_citations.py` | `report.md` + `citations.json` | 有 orphan/unresolved → 修后重跑（≤1 次） |
 | 9 | **Sources** | evidence | 跑 `dedupe_sources.py` | `sources.md` | — |
 | 10 | **Deliver** | — | 返回 4 件套路径 + 覆盖度/边界说明 | `report.md` `sources.md` `evidence.json` `citations.json` | 无 |
 
@@ -185,7 +185,7 @@ metadata:
 - 不无限循环。
 
 ### 6.6 失败与重试
-plan / research / writer / render 各上限 **1 次**；仍失败 → 停止，报告失败阶段 + artifact 路径 + 最后一轮错误，**不空转、不假装完成**。
+plan / research / write / render 各上限 **1 次**；仍失败 → 停止，报告失败阶段 + artifact 路径 + 最后一轮错误，**不空转、不假装完成**。
 
 ### 6.7 产物与目录
 - 目录：`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`（可自定义 outdir）。
@@ -299,8 +299,8 @@ plan / research / writer / render 各上限 **1 次**；仍失败 → 停止，�
 
 | 里程碑 | 内容 | 完成判据 |
 |---|---|---|
-| **M0** | 仓库骨架 + `LICENSE`/`NOTICE`/`CHANGELOG.md`/`package.json`/`.gitignore` + `README.md` + 目录树 | 文件齐全；`AGENTS.md` 架构同步 |
-| **M1** | 写 `SKILL.md` + 4 个 `references/` | frontmatter 合规（含 metadata.author）；正文 ≤ ~200 行；纯英文 |
+| **M0** ✅ | 仓库骨架 + `LICENSE`/`NOTICE`/`CHANGELOG.md`/`package.json`/`.gitignore` + `README.md` + 目录树 | 文件齐全；`AGENTS.md` 架构同步 |
+| **M1** ✅ | 写 `SKILL.md` + 4 个 `references/` | frontmatter 合规（含 metadata.author）；正文 ≤ ~200 行；纯英文 |
 | **M2** | 写 3 个脚本 + `examples/sample-run/` + CI | 脚本自测通过；正/反例都验证 |
 | **M3** | opencode 装机实测（`~/.agents/skills/`）+ 第二宿主实测 + 修 | quick 与 normal 各跑通一次 |
 | **M4** | `gh skill publish --dry-run` → 发布 + topics + tag `v0.1.0` | 发布成功、可 `npx skills add` 安装 |
