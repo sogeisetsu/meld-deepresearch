@@ -7,6 +7,7 @@
 ```text
 meld-deepresearch/                    # repository root
 ├── .gitignore                        # ignored paths: OS/editor junk, Python caches, venvs, .env, local run outputs, .opencode/
+├── .gitattributes                    # line-ending policy: LF in repo for text/*.py/*.md, CRLF for Windows scripts, binary marked
 ├── AGENTS.md                         # agent-facing project guide: design philosophy, boundaries, conventions, validation commands
 ├── README.md                         # public overview: positioning, design philosophy, install matrix, usage
 ├── LICENSE                           # MIT license text (Copyright (c) 2026 sogeisetsu)

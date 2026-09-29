@@ -1,0 +1,27 @@
+# Normalize line endings across platforms.
+# Repo stores LF; working trees get the platform-appropriate ending.
+
+# Default: let Git detect text files and normalize them in the repository.
+* text=auto
+
+# Force LF in the repository and the working tree (cross-platform safety).
+*.py    text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.sh    text eol=lf
+
+# Windows-native scripts keep CRLF.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binary assets: never convert.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary
