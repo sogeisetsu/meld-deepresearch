@@ -20,7 +20,8 @@ time series, and the build-time comparison rests on a single machine [2]
 ### Release and packaging
 
 Nimbus 2.0 was published on 2026-03-14 and ships with no runtime dependencies
-[1].
+[1]. The release-notes page answered successfully when checked on 2026-09-29
+[O1].
 
 ### Adoption
 
@@ -52,3 +53,7 @@ writeup [1] [3].
 [2] Nimbus adoption passes 12,000 stars — https://news.example.com/2026/06/nimbus-adoption (secondary, 2026-06-20)
 [3] Build-time comparison: Nimbus and three alternatives — https://benchmarks.example.net/nimbus-vs-alternatives?utm_source=newsletter (secondary, 2026-05-02)
 [4] Nimbus (software) — https://encyclopedia.example.org/wiki/Nimbus_(software) (tertiary, unknown)
+
+## Observations
+
+[O1] checked the release-notes page from the documentation host — Windows 11, curl 8.9.1 (captured 2026-09-29)

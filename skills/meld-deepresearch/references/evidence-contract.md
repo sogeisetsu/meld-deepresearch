@@ -7,16 +7,22 @@ and enum values here are **exact** — the validator matches them literally.
 
 ## Top-level shape
 
-`evidence.json` is one JSON object with four arrays:
+`evidence.json` is one JSON object with five arrays:
 
 | Array | What it holds |
 |---|---|
 | `claims[]` | Atomic statements the report may make, each with its own evidence |
-| `sources[]` | Every source any claim or context refers to, with a quality tier |
+| `sources[]` | Every web source any claim or context refers to, with a quality tier |
+| `observations[]` | First-hand evidence gathered by the run itself (commands, measurements, files, inspections) |
 | `writing_context[]` | Scope, sample, method and availability caveats, kept out of claims |
 | `key_findings[]` | Derived synthesis that points back to claims; adds no new facts |
 
 (`evidence[]` is nested inside each claim; it is not a top-level array.)
+
+`observations[]` is **optional**: a run with no first-hand evidence may omit it
+altogether or pass an empty array, and neither is an error. When it is present
+it must be an array; `claims`, `sources`, `writing_context` and `key_findings`
+are always required.
 
 ## ID conventions
 
@@ -24,9 +30,15 @@ and enum values here are **exact** — the validator matches them literally.
 |---|---|
 | `dN` | Research axis / dimension `N` (1-based, no leading zeros) |
 | `dN.cM` | Claim `M` under axis `N` — e.g. `d2.c1` |
-| `kqN` | Key question `N`, numbered like `dN` (**1-based, no leading zeros**), generated during planning; claims answer it or are `null` |
+| `kqN` | Key question `N` (1-based, no leading zeros), generated during planning; claims answer it or are `null` |
 | `dN.wM` | Writing-context entry `M` under axis `N` |
 | `sN` | Source `N`. Only uniqueness and referential integrity are enforced; any opaque, unique string is accepted |
+| `oN` | Observation `N` (1-based, no leading zeros) — e.g. `o1`, `o12`; never `o0` or `o01` |
+
+**`kqN` is globally unique across the whole run** (C1), exactly like `dN`:
+numbering starts at 1, has no leading zeros, and is shared by every axis. Two
+axes must not each invent their own `kq1` — a key question that two axes both
+need is *one* `kqN` that both answer.
 
 ## Field reference
 
@@ -40,18 +52,77 @@ and enum values here are **exact** — the validator matches them literally.
 | `polarity` | string | yes | `support` \| `refute` \| `neutral` | Which side of the question the claim takes |
 | `topic_tag` | string | yes | non-empty | Free tag grouping claims by topic |
 | `answers_key_question` | string \| null | yes | `kqN` or `null` | Key question this claim answers, if any |
-| `evidence[]` | array | yes | ≥ 1 for `factual` (primary/secondary); ≥ 1 for `projective`; ≥ 2 distinct sources with distinct `url`s for `interpretive` | Supporting snippets; see below |
+| `evidence[]` | array | yes | ≥ 1 evidence item: for `factual` one that resolves to a `primary`/`secondary` source **or** to an observation; for `interpretive` ≥ 2 distinct origins; for `projective` ≥ 1 item | Supporting snippets; see below |
 
 ### `evidence[]` (inside a claim)
 
+Every evidence item points at **exactly one origin**: a web source **or** a
+first-hand observation.
+
 | Field | Type | Required | Allowed values | Meaning |
 |---|---|---|---|---|
-| `source_id` | string | yes | must exist in `sources[]` | Which source this snippet comes from |
-| `snippet` | string | yes | non-empty | Verbatim or closely paraphrased excerpt actually read in the source |
-| `quote_type` | string | yes | `direct` \| `paraphrase` \| `numeric` | How the snippet relates to the source text |
+| `source_id` | string \| null | exactly one of `source_id` / `observation_id` | must exist in `sources[]` | Which source this snippet comes from |
+| `observation_id` | string \| null | exactly one of `source_id` / `observation_id` | must exist in `observations[]` | Which observation this snippet comes from |
+| `snippet` | string | yes | non-empty | Verbatim or closely paraphrased excerpt actually read in the source, or copied from the observation |
+| `quote_type` | string | yes | `direct` \| `paraphrase` \| `numeric` | How the snippet relates to the origin text |
+
+`source_id` and `observation_id` must be **mutually exclusive**: filling in
+both, or neither, is `E_SHAPE`. A JSON `null` counts as "not filled in".
 
 A search-result summary is never evidence: the snippet must come from the
-opened source itself.
+opened source itself (or from the recorded observation).
+
+### `observations[]` (first-hand evidence)
+
+First-hand evidence is a first-class citizen of the contract: anything the run
+itself ran, measured or read on the machine under study is recorded here and
+cited like any source, never smuggled into `writing_context`.
+
+| Field | Type | Required | Allowed values | Meaning |
+|---|---|---|---|---|
+| `id` | string | yes | `oN` — 1-based, no leading zeros (`o1`, `o12`; never `o0`, `o01`), globally unique in the file | Observation id |
+| `kind` | string | yes | `command` \| `measurement` \| `file` \| `inspection` | How the evidence was obtained |
+| `method` | string | yes | non-empty | What was actually done to get it |
+| `command` | string \| null | yes | **non-empty** when `kind: "command"`; otherwise a string or `null` | Reproducible command line |
+| `captured_at` | string | yes | ISO date `YYYY-MM-DD` | When it was captured |
+| `environment` | string \| null | yes | string or `null` | Environment (OS, versions, host) |
+| `snippet` | string | yes | non-empty | The observed output, value or file content |
+
+A malformed entry — not an object, a missing required field (`id`, `kind`,
+`method`, `command`, `captured_at`, `environment` or `snippet`), an empty
+`method` / `snippet`, a non-`YYYY-MM-DD` `captured_at`, a bad or duplicate `oN`
+id, or `kind: "command"` with an empty `command` — is `E_OBS_SHAPE`; an unknown
+`kind` value is `E_ENUM`. A claim's `observation_id` that does not resolve here
+is `E_REF_OBSERVATION`.
+
+Compact valid example — one observation cited by a `factual` claim, with no
+web source backing it (an observation counts as first-hand, so this passes):
+
+```json
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "The installed CLI reports version 2.100.0.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "tooling",
+      "answers_key_question": null,
+      "evidence": [
+        {"observation_id": "o1", "snippet": "gh version 2.100.0 (windows amd64)", "quote_type": "direct"}
+      ]
+    }
+  ],
+  "observations": [
+    {"id": "o1", "kind": "command", "method": "Ran the CLI version command in the repository root.", "command": "gh --version", "captured_at": "2026-09-29", "environment": "Windows 11, gh 2.100.0", "snippet": "gh version 2.100.0 (windows amd64)"}
+  ],
+  "sources": [
+    {"id": "s1", "url": "https://example.org/nimbus/announcements/2-0", "title": "Nimbus 2.0 release notes", "quality": "primary", "published_at": "2026-03-14"}
+  ],
+  "writing_context": [],
+  "key_findings": []
+}
+```
 
 ### `sources[]`
 
@@ -90,61 +161,75 @@ fact absent from the claims it cites.
 
 ## Rules (errors fail the run; warnings do not)
 
-1. **`factual` needs a credible source.** Every claim with `kind: factual`
-   carries at least one `evidence` item whose source has `quality` of
-   `primary` or `secondary`. `tertiary` alone fails.
+1. **`factual` needs first-hand or credible evidence.** Every claim with
+   `kind: factual` carries at least one `evidence` item that resolves either to
+   a source with `quality` of `primary` or `secondary`, **or** to a valid entry
+   in `observations[]` — an observation is first-hand evidence, so it counts as
+   primary-grade for this rule. `tertiary` alone fails.
 2. **`projective` needs a basis.** Every claim with `kind: projective`
-   carries at least one `evidence` item (any quality tier) recording what the
-   projection is based on. A projection with no source is an opinion, and is
-   rejected.
-3. **`interpretive` needs two distinct, non-duplicate sources.** Every claim with
+   carries at least one `evidence` item (source or observation, any quality
+   tier) recording what the projection is based on. A projection with no source
+   is an opinion, and is rejected.
+3. **`interpretive` needs two distinct, non-duplicate origins.** Every claim with
    `kind: interpretive` has `evidence` items pointing at at least two
-   *different* `source_id` values, **and** those `source_id`s must map to
-   *different* `url` strings (compared after `strip()`). Fewer than two distinct
-   resolvable `source_id`s, or two or more `source_id`s that all share one
-   identical `url`, both fail. Note that this is only *source-level* independence:
+   *different origins*, where an origin is either a distinct `source_id` whose
+   `url` is distinct from every other source origin (compared after `strip()`),
+   or a distinct `observation_id`. Fewer than two distinct resolvable origins,
+   or two or more `source_id`s that all share one identical `url` (a duplicate
+   source is one origin, not two), both fail. Note that this is only
+   *source-level* independence:
    origin-level independence (same publisher publishing on different domains) is
    a judgement the gate cannot enforce — see `protocol.md` §5.
-4. **No normative claims — best-effort heuristic.** The skill states what the
-   evidence shows, not what anyone should do. Because this cannot be decided
-   mechanically, the validator only runs a **fixed-phrase heuristic**: it
-   lowercases each claim's `text` and looks for a word-boundary,
-   case-insensitive hit on this exact list —
+4. **No normative claims — best-effort heuristic, WARNING only (C5).** The skill
+   states what the evidence shows, not what anyone should do. Because this
+   cannot be decided mechanically, the validator only runs a
+   **fixed-phrase heuristic**: it lowercases each claim's `text` and looks for a
+   word-boundary, case-insensitive hit on this exact list —
    `should`, `ought to`, `we recommend`, `is recommended`, `are recommended`,
    `best practice`, `advisable`, `must adopt` —
-   reported as `E_NORMATIVE` (an error). A hit is a strong signal but not proof,
-   and a normative claim that avoids every listed phrase will pass; the writer
-   must still keep prescriptions out of `claims[]`.
+   reported as `W_NORMATIVE`, **a warning that never fails the run**.
+   Rationale: the phrase list cannot distinguish a descriptive paraphrase
+   ("the docs recommend X") from a prescription, and a heuristic must not
+   consume a run's single fix chance. The phrase list stays pinned and
+   unchanged; a normative claim that avoids every listed phrase will pass, so
+   the writer must still keep prescriptions out of `claims[]`.
 5. **Referential integrity.** Every `evidence[].source_id` and every
    `writing_context[].source_ids[]` entry resolves to an id present in
-   `sources[]`; every `key_findings[].claim_ids[]` entry resolves to a claim id
+   `sources[]`; every `evidence[].observation_id` resolves to an id present in
+   `observations[]`; every `key_findings[].claim_ids[]` entry resolves to a claim id
    in this file; every `answers_key_question` value matches `kqN`.
    (`writing_context[].applies_to[]` is deliberately **not** part of this rule —
    it is pattern-checked only, see above.)
-6. **Enum membership.** `kind`, `polarity` and `quote_type` values come only
-   from the allowed sets above; ids match their patterns (`dN.cM`, `dN.wM`,
-   `kqN`); ids are unique within their array.
+6. **Enum membership and id patterns.** `kind`, `polarity` and `quote_type`
+   values come only from the allowed sets above (observation `kind` included);
+   ids match their patterns (`dN.cM`, `dN.wM`, `kqN`, `oN`); ids are unique
+   within their array. The shape and uniqueness of observation ids are reported
+   as `E_OBS_SHAPE`.
 7. **Minimum contents.** `claims[]` and `sources[]` must each contain at least
    one entry; an empty `claims` or empty `sources` array is an error (`E_EMPTY`).
    Separately, an empty `key_findings` array is a **warning** (`W_NO_FINDINGS`)
    that does not fail the run. An empty `writing_context` array is legitimate
-   and produces neither.
+   and produces neither, and an empty or absent `observations` array is
+   legitimate too and produces no entry at all.
 8. **Missing `refute` coverage is a WARNING, not an error.** If no claim in the
    file has `polarity: refute`, the validator reports a warning (falsification
    was probably not attempted) but does not fail on it alone.
 
 **Error codes** (`ok: false`, exit 1): `E_SHAPE`, `E_ID_PATTERN`,
-`E_ID_UNIQUE`, `E_ENUM`, `E_REF_SOURCE`, `E_REF_CLAIM`, `E_REF_KQ`,
-`E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`, `E_PROJECTIVE_BASIS`, `E_NORMATIVE`,
-`E_EMPTY` — plus `E_JSON` for unusable input (exit 2), and the `--plan` codes
-`E_PLAN_DIM_UNKNOWN` / `E_PLAN_DIM_UNCOVERED`.
-**Warning codes** (`ok` stays `true`): `W_NO_FINDINGS` (rule 7), `W_NO_REFUTE`
-(rule 8), and `W_KQ_UNANSWERED` when `--plan` is used.
+`E_ID_UNIQUE`, `E_ENUM`, `E_REF_SOURCE`, `E_REF_OBSERVATION`, `E_REF_CLAIM`,
+`E_REF_KQ`, `E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`, `E_PROJECTIVE_BASIS`,
+`E_OBS_SHAPE`, `E_EMPTY` — plus `E_JSON` for unusable input (exit 2), and the
+`--plan` codes `E_PLAN_DIM_UNKNOWN` / `E_PLAN_DIM_UNCOVERED`.
+**Warning codes** (`ok` stays `true`): `W_NORMATIVE` (rule 4), `W_NO_FINDINGS`
+and `W_NO_REFUTE` (rules 7 and 8), and `W_KQ_UNANSWERED` when `--plan` is used.
+There is no `E_NORMATIVE` any more: C5 downgraded rule 4 to `W_NORMATIVE`.
 
-So rules 1–6 plus the `claims`/`sources` half of rule 7 land in `errors[]` and
-stop the run; the `key_findings` half of rule 7 and rule 8 land in `warnings[]`
-while `ok` stays `true`.
-The validator's stdout shape is `{"ok": bool, "errors": [...], "warnings": [...]}`.
+So rules 1–3, 5 and 6 plus the `claims`/`sources` half of rule 7 land in
+`errors[]` and stop the run; rule 4, the `key_findings` half of rule 7 and
+rule 8 land in `warnings[]` while `ok` stays `true`.
+The validator's stdout shape is a single JSON object
+`{"ok": bool, "errors": [...], "warnings": [...]}`, sorted by `code` then
+`where`; `ok` is `true` if and only if `errors` is empty.
 
 ## Source quality tiers
 
@@ -156,6 +241,10 @@ The validator's stdout shape is `{"ok": bool, "errors": [...], "warnings": [...]
 
 `tertiary` sources may support `interpretive` claims (as one of two) but never
 carry a `factual` claim alone.
+
+An observation is **not** a `sources[]` entry: it lives in `observations[]`,
+has no `url`, and is first-hand by construction, so it satisfies `factual`
+(rule 1) on its own and counts as one origin for `interpretive` (rule 3).
 
 ## `writing_context` and `projective` claims
 
@@ -196,6 +285,16 @@ The research plan produced during the Plan phase, consumed by
 key question must be answered). Every other field (`tier`, `name`,
 `scope_ownership`, `source_classes`, `depth`, `time_sensitivity`, and each
 key question's `text`) is human-readable metadata that the validator ignores.
+
+**One source needed by two axes (C7).** The owning axis declares it in its
+`scope_ownership` (e.g. *"owns example.org/announcements/\*"*) so the two
+retrieval scopes still do not overlap; after the per-axis
+`sub_reports/dN.evidence.json` files are merged into one `evidence.json`, the
+other axis's claims reference that **same `source_id`**. A shared source is
+entered once and never duplicated under a second id — merge folds duplicates,
+and two ids for one URL would defeat the origin counting in rule 3. The same
+holds for a key question both axes answer: one `kqN`, shared (see *ID
+conventions*).
 
 ## Valid example
 

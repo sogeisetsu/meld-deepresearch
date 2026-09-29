@@ -74,8 +74,9 @@ The authoritative, annotated file tree lives in
 - One authoritative home per topic, so copies cannot drift silently:
   budgets and stop rules live in `references/protocol.md` §8; the evidence
   schema and its hard rules live in `references/evidence-contract.md`; the gate
-  commands live in `SKILL.md` §9. Other files may summarise them, but a summary
-  must always match its source.
+  commands live in `references/protocol.md` §9 (`SKILL.md` §9 only points
+  there). Other files may summarise them, but a summary must always match its
+  source.
 
 ## Keep the file tree current
 
@@ -93,6 +94,10 @@ Run these from the repository root. Use `python3` if `python` is not available.
 python skills/meld-deepresearch/scripts/check_evidence.py \
   examples/sample-run/evidence.json
 
+# positive: cross-check the sample against its research plan
+python skills/meld-deepresearch/scripts/check_evidence.py \
+  examples/sample-run/evidence.json --plan examples/sample-run/plan.json
+
 # citation rendering (must report no orphan / unresolved)
 python skills/meld-deepresearch/scripts/render_citations.py \
   --report examples/sample-run/report.src.md \
@@ -108,7 +113,8 @@ python skills/meld-deepresearch/scripts/dedupe_sources.py \
 Negative fixtures in `examples/invalid/` must each fail for exactly their own
 reason: `evidence.unknown-source.json` → `E_REF_SOURCE`, `evidence.tertiary-only.json`
 → `E_FACTUAL_SOURCE`, `evidence.single-source-interpretive.json` →
-`E_INTERPRETIVE_TWO` (all exit 1); `evidence.no-refute.json` → `ok: true` with
+`E_INTERPRETIVE_TWO`, `evidence.bad-observation.json` → `E_REF_OBSERVATION`
+(all exit 1); `evidence.no-refute.json` → `ok: true` with
 `W_NO_REFUTE` (exit 0).
 
 CI additionally checks: frontmatter field lengths, English-only `description`,

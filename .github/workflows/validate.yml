@@ -147,6 +147,12 @@ jobs:
           step "check_evidence: valid sample run" 0 "" -- \
             python3 skills/meld-deepresearch/scripts/check_evidence.py examples/sample-run/evidence.json
 
+          step "check_evidence: valid sample run with plan" 0 "" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/sample-run/evidence.json --plan examples/sample-run/plan.json
+
+          step "check_evidence: unresolved observation id" 1 "E_REF_OBSERVATION" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.bad-observation.json
+
           step "check_evidence: unknown source id" 1 "E_REF_SOURCE" -- \
             python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.unknown-source.json
 

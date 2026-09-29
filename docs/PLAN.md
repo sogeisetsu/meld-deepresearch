@@ -2,7 +2,7 @@
 
 > 本文件是本项目的**权威开发计划**（source of truth）。
 > `AGENTS.md` 只放项目约定与指针；**所有实现细节、里程碑、借鉴来源都在这里**。
-> 计划日期：2026-09-29 ｜ 状态：M2 已完成（M3 未开始）
+> 计划日期：2026-09-29 ｜ 状态：M3 实测已完成，修复待定（M4 未开始）
 
 ---
 
@@ -113,13 +113,14 @@ metadata:
 见 §6 的机制细节。
 
 ### 5.3 `references/evidence-contract.md`
-精简自商汤 sn-deep-research：
+精简自商汤 sn-deep-research，并扩展 `observations[]`（见 §5.9）：
 - `claims[]`：`id`(`dN.cM`) / `text` / `kind`(`factual`|`interpretive`|`projective`) / `polarity`(`support`|`refute`|`neutral`) / `topic_tag` / `answers_key_question`(`kqN`|null) / `evidence[]`
-- `evidence[]`：`source_id` / `snippet` / `quote_type`(`direct`|`paraphrase`|`numeric`)
+- `evidence[]`：**恰好** `source_id` 或 `observation_id` 之一 + `snippet` + `quote_type`(`direct`|`paraphrase`|`numeric`)
 - `sources[]`：`id` / `url` / `title` / `quality`(`primary`|`secondary`|`tertiary`) / `published_at`
+- `observations[]`（可选）：`id`(`oN`) / `kind`(`command`|`measurement`|`file`|`inspection`) / `method` / `command` / `captured_at` / `environment` / `snippet`
 - `writing_context[]`：`id`(`dN.wM`) / `kind` / `text` / `source_ids[]` / `applies_to[]` / `use`
 - `key_findings[]`：`finding` + `claim_ids[]`（派生综合，指回本文件 claim）
-- 硬规则：`factual` 需 ≥1 `primary|secondary`；`projective` 需 ≥1 任意来源；`interpretive` 需 ≥2 个**不同** source；禁止规范性 claim
+- 硬规则：`factual` 需 ≥1 `primary|secondary` **来源或观察**；`projective` 需 ≥1 任意来源/观察；`interpretive` 需 ≥2 个**不同来源主体**（不同 `source_id` 且不同 `url`，或不同 `observation_id`）；禁止规范性 claim（**仅警告** `W_NORMATIVE`）
 
 ### 5.4 `references/tier-selection.md`
 见 §6.2。
@@ -139,11 +140,12 @@ python check_evidence.py <evidence.json> [--plan <plan.json>]
 
 - 校验 `evidence-contract.md` 的结构、枚举、ID、引用完整性与硬规则 1–7。
 - stdout：`{"ok": bool, "errors": [...], "warnings": [...]}`；每个条目为 `{"code": "...", "message": "...", "where": "..."}`。
-- 错误码：`E_JSON`(→exit 2) / `E_SHAPE` / `E_EMPTY`(claims 或 sources 为空) / `E_ID_PATTERN` / `E_ID_UNIQUE` / `E_ENUM` / `E_REF_SOURCE` / `E_REF_CLAIM` / `E_REF_KQ` / `E_FACTUAL_SOURCE` / `E_INTERPRETIVE_TWO` / `E_PROJECTIVE_BASIS` / `E_NORMATIVE` / `E_PLAN_DIM_UNKNOWN` / `E_PLAN_DIM_UNCOVERED`。
-- 警告码：`W_NO_REFUTE` / `W_NO_FINDINGS`(key_findings 为空) / `W_KQ_UNANSWERED`。
+- 错误码：`E_JSON`(→exit 2) / `E_SHAPE` / `E_EMPTY`(claims 或 sources 为空) / `E_ID_PATTERN` / `E_ID_UNIQUE` / `E_ENUM` / `E_REF_SOURCE` / `E_REF_OBSERVATION` / `E_REF_CLAIM` / `E_REF_KQ` / `E_OBS_SHAPE` / `E_FACTUAL_SOURCE` / `E_INTERPRETIVE_TWO` / `E_PROJECTIVE_BASIS` / `E_PLAN_DIM_UNKNOWN` / `E_PLAN_DIM_UNCOVERED`。
+- 警告码：`W_NO_REFUTE` / `W_NO_FINDINGS`(key_findings 为空) / `W_NORMATIVE` / `W_KQ_UNANSWERED`。
 - `sources[].url` 只校验"非空且以 `http://` 或 `https://` 开头"；可达性**不**校验（不联网）。
-- `interpretive` 的"两个不同来源"要求两个 `source_id` 的 `url` 字符串也不同（同一 URL 的两个 id 不算两个来源）。
-- `E_NORMATIVE` 是**基于固定短语表的最佳努力启发式**，不是语义判定；短语表以 `evidence-contract.md` 为准。
+- `evidence[]` 每项必须**恰好**填 `source_id` 或 `observation_id` 之一（都填/都不填 → `E_SHAPE`）。
+- `factual` / `interpretive` 的"两个不同来源"以**来源主体**计数：不同 `source_id`（且 `url` 不同）或不同 `observation_id`。
+- `W_NORMATIVE`（原 `E_NORMATIVE`）是**基于固定短语表的最佳努力启发式**，不是语义判定；**只警告、不失败**——启发式不得耗尽整轮唯一一次修复机会（M3 实测教训）；短语表以 `evidence-contract.md` 为准。
 - `applies_to[]` 只做模式校验（`dN` / `dN.cM`），不校验被引用对象是否存在。
 - `--plan` 交叉检查：每条 claim 的轴 `dN` 必须存在于 `plan.json` 的 `dimensions[].id`（否则 `E_PLAN_DIM_UNKNOWN`）；每个 plan 维度必须有 ≥1 条 claim（否则 `E_PLAN_DIM_UNCOVERED`）；plan 声明的 `key_questions[].id` 若无 claim 认领 → `W_KQ_UNANSWERED`。
 
@@ -154,11 +156,12 @@ python render_citations.py --report <report.src.md> --evidence <evidence.json> \
   --output <report.md> [--citations <citations.json>]
 ```
 
-- 按**首次出现顺序**扫描 `[^source_id]` 标记 → 映射为 `1..N`。
-- 正文内联替换为 `[N]`；把文档中 `## Sources` 标题之后的全部内容替换为生成的编号参考文献列表（无该标题则追加）。
-- `citations.json`：`{"ok": bool, "citations": [{"number": 1, "source_id": "s1", "title": "…", "url": "…", "quality": "…", "published_at": "…"}], "orphans": [...], "uncited": [...]}`。
-- stdout 摘要：`{"ok": bool, "citation_count": N, "orphans": [...], "uncited": [...]}`。
-- **orphan**（标记指向 `sources[]` 中不存在的 id）→ `ok:false`、exit 1；**未解析**（渲染后仍残留 `[^` 或空 id 标记）→ 同样 `ok:false`、exit 1；**uncited**（evidence 中有来源但报告中从未引用）→ 仅警告。
+- 按**首次出现顺序**分别对两个标记族编号：`[^sN]` → `[N]`（来源），`[^oN]` → `[ON]`（观察）。两族各自从 1 开始（因此可以同时存在 `[1]` 与 `[O1]`）。
+- 正文内联替换标记；把 `## Sources` 标题之后的全部内容替换为编号来源清单；**当且仅当**引用了观察时，再追加 `## Observations` 段（行格式 `[ON] method — environment (captured YYYY-MM-DD)`，`environment` 为空写 `unknown`）。
+- `citations.json`：`{"ok": bool, "citations": [{"number": 1, "source_id": "s1", "title": "…", "url": "…", "quality": "…", "published_at": "…"}], "observations": [{"number": 1, "observation_id": "o1", "kind": "…", "method": "…", "command": "…", "captured_at": "…", "environment": "…"}], "orphans": [...], "uncited": [...]}`（`observations` 键**始终存在**，无观察时为空数组）。
+- stdout 摘要：`{"ok": bool, "citation_count": N, "observation_count": M, "orphans": [...], "uncited": [...]}`。
+- **orphan**（标记指向 `sources[]` / `observations[]` 中不存在的 id）→ `ok:false`、exit 1；**未解析**（渲染后仍残留 `[^` 或空 id 标记）→ 同样 `ok:false`、exit 1；**uncited**（已声明却从未引用，来源与观察均计）→ 仅警告。
+- 对**不含观察**的输入，`report.md` 输出逐字节不变。
 - 默认 `--citations` 与 `--output` 同目录的 `citations.json`。
 
 **`dedupe_sources.py`**
@@ -198,16 +201,59 @@ python dedupe_sources.py --evidence <evidence.json> --output <sources.md>
 
 ### 5.8 `examples/` 与 CI 校验
 
-- **`examples/sample-run/`**：一份**完整正例**（`report.src.md`、`evidence.json`、`report.md`、`sources.md`、`citations.json`），由脚本**实际生成**。主题为**示例性**内容（占位 URL，如 `example.org`），报告顶部必须注明 `illustrative sample`，避免被误当作真实研究结论。
+- **`examples/sample-run/`**：一份**完整正例**（`report.src.md`、`evidence.json`、`plan.json`、`report.md`、`sources.md`、`citations.json`），由脚本**实际生成**。含 1 条 `observations[]` 第一手证据（`o1`），以覆盖 `[^oN]` → `[ON]` 与 `## Observations`。主题为**示例性**内容（占位 URL，如 `example.org`），报告顶部必须注明 `illustrative sample`，避免被误当作真实研究结论。
 - **`examples/invalid/`**：反例固定件——
   - `evidence.unknown-source.json` → `E_REF_SOURCE`
   - `evidence.tertiary-only.json` → `E_FACTUAL_SOURCE`
   - `evidence.single-source-interpretive.json` → `E_INTERPRETIVE_TWO`
+  - `evidence.bad-observation.json` → `E_REF_OBSERVATION`
   - `evidence.no-refute.json` → 仅 `W_NO_REFUTE`，`ok:true`、exit 0
   - `report.orphan.src.md` → render_citations 检出 orphan、exit 1
 - **`.github/workflows/validate.yml`**：
   1. 规范检查——`name` ≤64 且小写 kebab；`description` ≤1024 且纯 ASCII（无中文）；`license: MIT`；`metadata.author: sogeisetsu`；`skills/` 内不得出现宿主专有工具名（`websearch` / `WebFetch` / `Task` / `AskUserQuestion`）与 POSIX-only 命令（`date +` / `cp -r` / `~/.config`）。
-  2. 脚本自测——正例全部 exit 0；每个反例按**预期错误码**失败（exit 1）；`dedupe_sources.py` 在正例上 exit 0。
+  2. 脚本自测——正例全部 exit 0（含 `check_evidence.py --plan examples/sample-run/plan.json`，以及 render / dedupe 两步）；每个反例按**预期错误码**失败（exit 1）。
+
+### 5.9 `observations[]`（第一手证据，一等公民）+ C1–C8 修复
+
+**动机**：契约原先只认网页来源（`sources[]` 强制 `url`），**第一手证据无处安放**（M3 实测：本机 `gh 2.100.0` 只能绕道塞进 `writing_context`，既无规则可管、渲染器也不认，随时可能静默丢失）。
+
+**`observations[]` 条目**
+
+| 字段 | 类型 | 必填 | 允许值 | 含义 |
+|---|---|---|---|---|
+| `id` | string | 是 | `oN`（1-based、无前导零），全局唯一 | 观察 id |
+| `kind` | string | 是 | `command` \| `measurement` \| `file` \| `inspection` | 获取方式类别 |
+| `method` | string | 是 | 非空 | 做了什么才得到它 |
+| `command` | string \| null | 是 | `kind == command` 时**必须非空**；其余可为 `null` | 可复现的命令 |
+| `captured_at` | string | 是 | `YYYY-MM-DD` | 采集日期 |
+| `environment` | string \| null | 是 | 可为 `null` | 环境（OS、版本等） |
+| `snippet` | string | 是 | 非空 | 观察到的输出或数值 |
+
+**`evidence[]` 条目**：`source_id` 与 `observation_id` **必须恰好填一个**（都填或都不填 → `E_SHAPE`）。
+
+**规则调整（`check_evidence.py`）**
+- `factual`：≥1 条证据解析到 `primary`/`secondary` 来源，**或**解析到合法 observation（观察视为一手）。
+- `interpretive`：≥2 个**不同来源主体**——不同 `source_id`（且 `url` 不同）或不同 `observation_id`。
+- `projective`：≥1 条证据（来源或观察）。
+- 新错误码：`E_REF_OBSERVATION`（`observation_id` 无法解析）、`E_OBS_SHAPE`（observations 条目结构非法）。
+- **C5**：`E_NORMATIVE` **降级为警告 `W_NORMATIVE`** —— 启发式不得失败整轮（M3 实测：它误伤"某文档推荐 X"这类**描述性转述**，并耗尽了唯一一次修复机会）。
+
+**渲染（`render_citations.py`）**
+- `[^sN]` → `[N]`（来源序列，按首次出现编号）；`[^oN]` → `[ON]`（观察序列，按首次出现编号）。
+- `## Sources` 之后重建来源清单；**若引用了任何观察**，再追加 `## Observations` 段，格式 `[ON] method — environment (captured YYYY-MM-DD)`。
+- `orphans` 涵盖两类未解析标记；`uncited` 涵盖未引用的来源与观察（仅 warning）。
+- `citations.json` 增加 `"observations": [...]`。
+
+**C1–C8 修复**
+- **C1** `kqN` **全局唯一**（`evidence-contract.md` 写明）。
+- **C2** normal 档 Gate ① **必须带 `--plan`**（`SKILL.md` §9 与 `protocol.md` §9）。
+- **C3** fetch 预算口径：**每次 fetch 尝试都计入（含失败）**；搜索单独计数，由"每轴 ≤3 轮"约束。
+- **C4** 轮次定义：**一轮 = 一次 search → fetch → evaluate 循环**。
+- **C6** 输出目录：用户指定目录时**整体覆盖**默认 `YYYY-MM-DD-{slug}-{hex4}` 命名。
+- **C7** 跨轴共享来源：在 `plan.json` 的 `scope_ownership` 中**显式声明归属轴**，另一轴在合并后引用同一 `source_id`。
+- **C8** 假设记录位置：非交互时写入 `plan.json`（normal）或交付说明（quick）。
+
+**渐进式披露硬要求**：`SKILL.md` 只在 §7 增加**一条** observation 短说明，并把 §9 的门禁命令**下沉到 `references/protocol.md` §9**（正文改短指针）——确保 `SKILL.md` 正文**不增长**（当前 198 行，已近 ~200 上限）。
 
 ---
 
@@ -363,7 +409,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 ## 9. 验证计划
 
 1. `examples/sample-run/` 放真实产物；CI 跑 `check_evidence.py`（正例 ok / 反例报错）+ `render_citations.py`（orphan 检测）。
-2. 规范校验：`name≤64`、`description≤1024`、小写 kebab ID；`gh skill publish --dry-run`。
+2. 规范校验：`name≤64`、`description≤1024`、小写 kebab ID；`gh skill publish --dry-run`。**（2026-09-29 实测通过：exit 0，仅提示缺 git remote）**
 3. 可移植性 grep：不得出现 `websearch`/`WebFetch`/`Task`/`AskUserQuestion`；不得出现 `date +`/`cp -r`/`~/.config`。
 4. 双宿主实测：`npx skills add sogeisetsu/meld-deepresearch` 装到 opencode + 再一个宿主（Claude Code 或 Codex），各跑一次 quick 与 normal。
 5. Windows 实测 `python`/`python3` 回退与 UTF-8 无 BOM。
@@ -377,7 +423,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 | **M0** ✅ | 仓库骨架 + `LICENSE`/`NOTICE`/`CHANGELOG.md`/`package.json`/`.gitignore` + `README.md` + 目录树 | 文件齐全；`AGENTS.md` 架构同步 |
 | **M1** ✅ | 写 `SKILL.md` + 4 个 `references/` | frontmatter 合规（含 metadata.author）；正文 ≤ ~200 行；纯英文 |
 | **M2** ✅ | 写 3 个脚本 + `examples/sample-run/` + CI | 脚本自测通过；正/反例都验证 |
-| **M3** | opencode 装机实测（`~/.agents/skills/`）+ 第二宿主实测 + 修 | quick 与 normal 各跑通一次 |
+| **M3** ⏳ | opencode 装机实测（`~/.agents/skills/`）+ 第二宿主实测 + 修 | quick 与 normal 各跑通一次 —— **2026-09-29 达成**（quick 5 源 / normal 16 源，三道 gate 全绿，独立复跑确认）；第二宿主降级为打包级（见 §11）；实测发现 C1–C8 与契约缺口**待修**（即 M3 的「+修」部分） |
 | **M4** | `gh skill publish --dry-run` → 发布 + topics + tag `v0.1.0` | 发布成功、可 `npx skills add` 安装 |
 
 **opencode 安装无需改配置**：skill 放到 `~/.agents/skills/meld-deepresearch/`（跨工具路径）或 `~/.config/opencode/skills/` 即被发现。
@@ -389,9 +435,11 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 - 自动触发依赖 `description` 质量，需实测调优（中文提问走语义匹配，预期可行，但需实测）。
 - "skill 委派子代理"在各宿主能力不一（有报告称 Claude Code 子代理不能加载 skill）→ 已降级为**可选**。
 - 硬门脚本在无 Python 的宿主会失效 → 设计为**尽力而为 + 明确跳过提示**。
-- `meld-deepresearch` 在 GitHub 干净，但 **skills.sh 注册表 ID 占用待查**（发布前查一次）。
+- `meld-deepresearch` 在 GitHub 干净，**2026-09-29 用 `gh skill search meld-deepresearch` 复查：零结果、无占用**；`meld` 单独检索则高度歧义（MELD 评分、Property Meld、meld-ts 等），印证**不可缩写为 `meld`**。
 - 腾讯 Hyra 细节主要来自官方页面/媒体，未逐层读其仓库代码。
-- `gh skill publish` 的规范校验口径以发布时实测为准。
+- `gh skill publish` 规范校验口径：**2026-09-29 实测 `--dry-run` exit 0 通过**（仅提示缺 git remote）；真实发布仍以 M4 实测为准。
+- **契约缺口（M3 实测发现）**：`sources[]` 强制要求 `url`，因此**无法记录第一手/本机证据**（如本机工具版本、实测命令输出）。当前只能经 `writing_context`（其 `source_ids` 可为空）绕过。需评估是否放宽 `url` 要求或引入 `local` 来源类型。
+- **第二宿主"运行"级实测缺环境**：本机无 `claude` / `codex` / `cursor` / `gemini` CLI。M3 降级为**打包级**验证——`gh skill install --from-local --agent claude-code --scope user` 已实测投放成功（含 frontmatter 溯源元数据注入）。运行级验证待有宿主后再补。
 
 ---
 

@@ -20,7 +20,8 @@ time series, and the build-time comparison rests on a single machine [^s2]
 ### Release and packaging
 
 Nimbus 2.0 was published on 2026-03-14 and ships with no runtime dependencies
-[^s1].
+[^s1]. The release-notes page answered successfully when checked on 2026-09-29
+[^o1].
 
 ### Adoption
 

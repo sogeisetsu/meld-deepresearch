@@ -20,7 +20,7 @@ Detail lives in `references/` and is loaded only when needed. Every path in
 this file (`references/...`, `scripts/...`) is **relative to this skill's own
 directory** — the directory that contains this `SKILL.md`.
 
-- `references/protocol.md` — search/fetch loop, time-sensitivity, refutation, budgets, stop rules.
+- `references/protocol.md` — search/fetch loop, time-sensitivity, refutation, budgets, gates, stop rules.
 - `references/evidence-contract.md` — the `evidence.json` schema and its hard rules.
 - `references/tier-selection.md` — how to pick `quick` versus `normal`.
 - `references/report-template.md` — report skeleton and the quality self-check.
@@ -70,7 +70,7 @@ Fix three anchors before researching:
 
 - `language` — the language of the final report; **follow the user**.
 - `format` — default `report`.
-- `output_dir` — default `meld-deepresearch-reports/`, one directory per run: `YYYY-MM-DD-{slug}-{hex4}/`.
+- `output_dir` — default `meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`; a user-supplied directory replaces that naming entirely.
 
 ## 4. Clarify before researching
 
@@ -80,8 +80,9 @@ Never ask something the request already answers. For a `normal` run, the draft
 plan (its axes and their scope) may also be offered for confirmation or editing
 before research starts.
 
-If the host cannot ask, write the assumptions down explicitly and continue.
-Never block waiting for an answer.
+If the host cannot ask, record the assumptions explicitly — in `plan.json` for a
+`normal` run, or in the delivery message for a `quick` run — and continue. Never
+block waiting for an answer.
 
 ## 5. Tier selection
 
@@ -98,12 +99,12 @@ procedure, and worked examples.
 |---|---|---|---|
 | 0 | Probe | capability probe (§2) | a blocking capability is missing → stop |
 | 1 | Anchor | fix language, format, output dir (§3) | — |
-| 2 | Clarify | ask 1–3 scope questions, or write assumptions (§4) | — |
+| 2 | Clarify | ask 1–3 scope questions, or record assumptions (§4) | — |
 | 3 | Tier | select `quick` or `normal` (§5) | — |
 | 4 | Plan | `quick`: internal key questions `kq1..kqn`. `normal`: named dimensions with non-overlapping scope, plus `plan.json` | dimensions must be independently startable |
 | 5 | Research | per dimension: search → candidate URL pool → open the originals → evaluate → find gaps → search again, at most 3 rounds | stop at the depth threshold |
-| 6 | Merge | concatenate `claims` / `sources` / `writing_context` / `key_findings` from every `sub_reports/dN.evidence.json` into one `evidence.json` | ids stay unique; duplicate sources collapse to one entry |
-| 7 | Gate ① | run the evidence validator on `evidence.json` | must report `ok` |
+| 6 | Merge | concatenate `claims` / `sources` / `observations` / `writing_context` / `key_findings` from every `sub_reports/dN.evidence.json` into one `evidence.json` | ids stay unique; duplicate sources collapse to one entry |
+| 7 | Gate ① | run the evidence validator on `evidence.json`, with `--plan` for a `normal` run | must report `ok` |
 | 8 | Write | one pass, inline citations, **no new facts** | statement strength must not exceed evidence |
 | 9 | Gate ② | render citations from the draft and the evidence | no orphan, no unresolved reference |
 | 10 | Sources | normalize and de-duplicate URLs into `sources.md` | — |
@@ -115,13 +116,17 @@ The full loop, budgets and stop rules are in `references/protocol.md`.
 
 Non-negotiable, and enforced by the validator:
 
-- Every claim carries at least one piece of evidence pointing at a source id.
-- A `factual` claim needs at least one `primary` or `secondary` source.
-- An `interpretive` claim needs at least two **distinct** sources — distinct ids *and* distinct URLs.
+- Every claim carries at least one piece of evidence: a web source **or** a first-hand observation.
+- A `factual` claim needs a `primary` or `secondary` source, or a recorded observation.
+- An `interpretive` claim needs at least two **distinct** origins — distinct sources (id *and* URL) or distinct observations.
 - A search-result snippet is **never** evidence — open the original page and verify it first.
 - Counter-evidence is searched on purpose: failed cases, dissenting sources, and claims that cannot be verified.
 - Anything unverifiable is labelled `unknown`, never guessed.
 - A run that ends with no `refute` claim at all is suspicious; the validator warns about it.
+
+First-hand evidence — a command you ran, a measurement, a file you inspected — is
+recorded in `observations[]` and cited as `[^oN]`. It is evidence, not a footnote:
+its `method` and `command` must let a reader reproduce it.
 
 The full schema, allowed values, and every hard rule live in
 `references/evidence-contract.md`.
@@ -133,33 +138,21 @@ The full schema, allowed values, and every hard rule live in
 | `quick` | 8 | 5 | 3 |
 | `normal` | 25 | 15 | 3 |
 
-When the budget is exhausted: **stop**, return the best coverage reached so far,
-and list explicitly what was not covered. Never loop indefinitely.
+Every fetch attempt counts against the cap, failures included. When the budget is
+exhausted: **stop**, return the best coverage reached so far, and list explicitly
+what was not covered. Never loop indefinitely.
 
 ## 9. Self-check gate (hard)
 
-Run these from this skill's own directory, after setting `OUTDIR` to the run's
-output directory. Use `python3` if `python` is not available.
-
-```bash
-OUTDIR="meld-deepresearch-reports/2026-09-29-my-topic-ab12"
-
-python scripts/check_evidence.py "$OUTDIR/evidence.json"
-
-python scripts/render_citations.py \
-  --report "$OUTDIR/report.src.md" \
-  --evidence "$OUTDIR/evidence.json" \
-  --output "$OUTDIR/report.md"
-
-python scripts/dedupe_sources.py \
-  --evidence "$OUTDIR/evidence.json" \
-  --output "$OUTDIR/sources.md"
-```
+Before delivering, run the gate commands exactly as listed in
+`references/protocol.md` §9, from this skill's own directory. For a `normal` run,
+gate ① also takes `--plan`.
 
 - Gate ① passes only when the validator reports `ok` (warnings alone do not fail it).
 - Gate ② passes only when nothing is orphaned or unresolved. An **orphan** is a
-  marker whose id is missing from `sources[]`; an **unresolved** marker is one
-  left un-replaced. A source that is never cited is only a warning.
+  marker whose id is missing from `sources[]` or `observations[]`; an
+  **unresolved** marker is one left un-replaced. A source or observation that is
+  never cited is only a warning.
 - If a gate fails: fix once and re-run. If it still fails, **stop and report
   honestly** — do not deliver a failing report.
 - If the host has no command execution, walk the gates by hand and state that
@@ -174,10 +167,10 @@ Write into `output_dir`:
 - `evidence.json` — the structured evidence behind every claim.
 - `citations.json` — the citation map emitted by the renderer.
 
-The report's own `## Sources` section is written by the **renderer**, not by you:
-leave `report.src.md` ending with a `## Sources` heading and nothing after it.
-`sources.md` and the report's `## Sources` cover the same sources in two
-different forms.
+The report's own `## Sources` and `## Observations` sections are written by the
+**renderer**, not by you: leave `report.src.md` ending with a `## Sources`
+heading and nothing after it. `sources.md` and the report's `## Sources` cover
+the same sources in two different forms.
 
 Return the four paths, plus the tier used, the coverage reached, and anything
 left uncovered. If the host cannot write files, return the report body only and
