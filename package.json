@@ -1,0 +1,37 @@
+{
+  "name": "meld-deepresearch",
+  "version": "0.1.0",
+  "description": "A lightweight, portable Agent Skill for verifiable, citation-backed deep research reports.",
+  "license": "MIT",
+  "author": "sogeisetsu",
+  "homepage": "https://github.com/sogeisetsu/meld-deepresearch",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sogeisetsu/meld-deepresearch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sogeisetsu/meld-deepresearch/issues"
+  },
+  "keywords": [
+    "agent-skills",
+    "skills-sh",
+    "deep-research",
+    "research",
+    "opencode",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "files": [
+    "skills",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "python": ">=3.9"
+  },
+  "private": false
+}

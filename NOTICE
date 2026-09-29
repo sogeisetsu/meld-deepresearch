@@ -1,0 +1,48 @@
+meld-deepresearch
+Copyright (c) 2026 sogeisetsu
+
+This project is licensed under the MIT License (see LICENSE).
+
+Third-party references
+----------------------
+
+This project borrows ideas and, where the license permits, text from the
+following open-source projects. Each is used in compliance with its license.
+This file is a good-faith attribution notice, not a legal instrument.
+
+1. SenseNova-Skills — OpenSenseNova (SenseTime)
+   License: MIT
+   URL: https://github.com/OpenSenseNova/SenseNova-Skills
+   Borrowed: evidence contract (claims/evidence/sources, quote_type, source
+   quality tiers, refute obligation, writing_context, key_findings),
+   mechanical validators, Search->URL->Fetch->evaluate loop, time-sensitivity
+   strategy, citation rendering, failure/retry design.
+
+2. Weizhena/Deep-Research-skills — Weizhena
+   License: MIT
+   URL: https://github.com/Weizhena/Deep-Research-skills
+   Borrowed: two-phase outline->deep flow, human-in-the-loop checkpoints,
+   item/field structured research objects.
+
+The following are referenced for methodology and mechanism inspiration only;
+no text is copied:
+
+- OpenAI Deep Research
+- Google Gemini Deep Research
+- Anthropic multi-agent research system
+- Microsoft 365 Copilot Researcher (Critique & Council)
+- Perplexity Deep Research
+- xAI Grok DeepSearch
+- Alibaba-NLP/DeepResearch (Tongyi)
+- bytedance/deer-flow
+- Moonshot Kimi
+- Baidu Qianfan Deep Research
+- Zhipu AutoGLM
+- Tencent Hunyuan Hyra (Hunyuan Research Agent) — https://hy.tencent.com/research/hyra
+- stanford-oval/storm
+- SalesforceAIResearch/enterprise-deep-research
+- assafelovic/gpt-researcher
+- langchain-ai/open_deep_research
+- 199-biotechnologies/claude-deep-research-skill
+
+See docs/PLAN.md section 7 for the full borrow map.
