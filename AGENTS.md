@@ -104,6 +104,15 @@ implementing. Do not duplicate the plan here; keep this file lean.
 
 ## How to work here
 
+- **Work on a branch.** Never develop directly on `main`. Create a short-lived
+  branch for each change or milestone (`feat/...`, `fix/...`, `chore/...`), do
+  the work and validate it there, then merge it back into `main` once it is
+  done. Keep `main` always valid.
+- **Write file contents in English whenever possible.** Docs, code, comments
+  and commit messages default to English, so the project stays readable to an
+  international audience. (Known exception: `docs/PLAN.md` is currently
+  written in Chinese. The *generated research report* follows the end user's
+  language.)
 - Follow the milestones in `docs/PLAN.md` in order.
 - After changing files, read them back and run the validation commands.
 - Keep `SKILL.md` lean; move detail into `references/`.
