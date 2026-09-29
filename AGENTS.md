@@ -71,6 +71,11 @@ The authoritative, annotated file tree lives in
   `citations.json`.
 - Project author: `sogeisetsu`. Use this in `SKILL.md` `metadata.author`, in
   `package.json`, and in the `LICENSE` copyright line.
+- One authoritative home per topic, so copies cannot drift silently:
+  budgets and stop rules live in `references/protocol.md` §8; the evidence
+  schema and its hard rules live in `references/evidence-contract.md`; the gate
+  commands live in `SKILL.md` §9. Other files may summarise them, but a summary
+  must always match its source.
 
 ## Keep the file tree current
 
@@ -81,8 +86,10 @@ comment accurate. Never let the tree drift from reality.
 
 ## Validation
 
+Run these from the repository root. Use `python3` if `python` is not available.
+
 ```bash
-# evidence contract (must be {"ok": true})
+# positive: the curated example must be valid
 python skills/meld-deepresearch/scripts/check_evidence.py \
   examples/sample-run/evidence.json
 
@@ -91,7 +98,18 @@ python skills/meld-deepresearch/scripts/render_citations.py \
   --report examples/sample-run/report.src.md \
   --evidence examples/sample-run/evidence.json \
   --output examples/sample-run/report.md
+
+# standalone source list
+python skills/meld-deepresearch/scripts/dedupe_sources.py \
+  --evidence examples/sample-run/evidence.json \
+  --output examples/sample-run/sources.md
 ```
+
+Negative fixtures in `examples/invalid/` must each fail for exactly their own
+reason: `evidence.unknown-source.json` → `E_REF_SOURCE`, `evidence.tertiary-only.json`
+→ `E_FACTUAL_SOURCE`, `evidence.single-source-interpretive.json` →
+`E_INTERPRETIVE_TWO` (all exit 1); `evidence.no-refute.json` → `ok: true` with
+`W_NO_REFUTE` (exit 0).
 
 CI additionally checks: frontmatter field lengths, English-only `description`,
 and that no host-specific tool names appear anywhere in `skills/`.

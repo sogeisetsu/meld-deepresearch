@@ -1,0 +1,152 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "Nimbus 2.0 was published on 2026-03-14 and ships with no runtime dependencies.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "release",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "Nimbus 2.0 is available today, and its runtime dependency list is empty by design.",
+          "quote_type": "direct"
+        }
+      ]
+    },
+    {
+      "id": "d1.c2",
+      "text": "The project passed 12,000 stars within three months of the 2.0 release.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "adoption",
+      "answers_key_question": "kq2",
+      "evidence": [
+        {
+          "source_id": "s2",
+          "snippet": "As of June 2026 the repository shows about 12,400 stars, up from 4,100 in March.",
+          "quote_type": "numeric"
+        }
+      ]
+    },
+    {
+      "id": "d1.c3",
+      "text": "Growth is explained mainly by build-time wins rather than by marketing activity.",
+      "kind": "interpretive",
+      "polarity": "support",
+      "topic_tag": "adoption",
+      "answers_key_question": "kq2",
+      "evidence": [
+        {
+          "source_id": "s2",
+          "snippet": "Analysts point to install size and build speed, not campaigns, as the driver.",
+          "quote_type": "paraphrase"
+        },
+        {
+          "source_id": "s3",
+          "snippet": "The comparison shows the build step finishing well ahead of the alternatives.",
+          "quote_type": "numeric"
+        },
+        {
+          "source_id": "s4",
+          "snippet": "The entry summarises the project as a zero-dependency build tool.",
+          "quote_type": "paraphrase"
+        }
+      ]
+    },
+    {
+      "id": "d1.c4",
+      "text": "If the current rate holds, the project is projected to pass 20,000 stars by the end of 2026.",
+      "kind": "projective",
+      "polarity": "support",
+      "topic_tag": "adoption",
+      "answers_key_question": "kq3",
+      "evidence": [
+        {
+          "source_id": "s2",
+          "snippet": "Growth of roughly 2,700 stars per month was recorded between March and June.",
+          "quote_type": "numeric"
+        }
+      ]
+    },
+    {
+      "id": "d1.c5",
+      "text": "A widely repeated claim that the 2.0 release removed plugin support is contradicted by the release notes.",
+      "kind": "factual",
+      "polarity": "refute",
+      "topic_tag": "release",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "Plugin support is retained in 2.0; the loader was rewritten but the interface is unchanged.",
+          "quote_type": "direct"
+        },
+        {
+          "source_id": "s3",
+          "snippet": "Community reports of removed plugin support do not match the released notes.",
+          "quote_type": "paraphrase"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "s1",
+      "url": "https://example.org/nimbus/announcements/2-0",
+      "title": "Nimbus 2.0 release notes",
+      "quality": "primary",
+      "published_at": "2026-03-14"
+    },
+    {
+      "id": "s2",
+      "url": "https://news.example.com/2026/06/nimbus-adoption",
+      "title": "Nimbus adoption passes 12,000 stars",
+      "quality": "secondary",
+      "published_at": "2026-06-20"
+    },
+    {
+      "id": "s3",
+      "url": "https://benchmarks.example.net/nimbus-vs-alternatives?utm_source=newsletter",
+      "title": "Build-time comparison: Nimbus and three alternatives",
+      "quality": "secondary",
+      "published_at": "2026-05-02"
+    },
+    {
+      "id": "s4",
+      "url": "https://encyclopedia.example.org/wiki/Nimbus_(software)",
+      "title": "Nimbus (software)",
+      "quality": "tertiary",
+      "published_at": null
+    }
+  ],
+  "writing_context": [
+    {
+      "id": "d1.w1",
+      "kind": "availability",
+      "text": "Star counts are a snapshot; no daily history is publicly archived.",
+      "source_ids": ["s2"],
+      "applies_to": ["d1.c2", "d1.c4"],
+      "use": "Date-stamp every star figure instead of presenting a growth curve."
+    },
+    {
+      "id": "d1.w2",
+      "kind": "method",
+      "text": "The build-time comparison uses a single machine and a warm cache.",
+      "source_ids": ["s3"],
+      "applies_to": ["d1.c3"],
+      "use": "Qualify the comparison as indicative rather than general."
+    }
+  ],
+  "key_findings": [
+    {
+      "finding": "Nimbus grew quickly after 2.0, and the available evidence attributes that growth to build-time improvements rather than promotion.",
+      "claim_ids": ["d1.c1", "d1.c2", "d1.c3"]
+    },
+    {
+      "finding": "A widely repeated claim about removed plugin support is contradicted by the release notes.",
+      "claim_ids": ["d1.c5"]
+    }
+  ]
+}

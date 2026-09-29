@@ -8,8 +8,9 @@ One skill, no framework. It runs on any host that supports the
 Codex, Cursor, GitHub Copilot, Gemini CLI, and more — and it never locks you
 into one vendor.
 
-> **Status:** early development. The repository is being built; the skill itself
-> lands in milestones M1-M2. See [`docs/PLAN.md`](docs/PLAN.md).
+> **Status:** the skill is implemented (`SKILL.md`, `references/`, `scripts/`)
+> and exercised by CI on a curated example; publication is still pending (M4).
+> See [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Why another deep-research skill
 
@@ -108,12 +109,13 @@ probe capabilities
   -> anchor language / format / output dir
   -> clarify (1-3 questions, or write explicit assumptions)
   -> choose tier (quick | normal)
-  -> plan (normal: research axes)
+  -> plan (normal: named research axes)
   -> research loop: search -> URL pool -> fetch -> read -> evaluate -> gaps
-  -> evidence.json
+  -> merge per-axis evidence  ->  evidence.json
   -> self-check (hard gate: evidence validator)
-  -> write report
-  -> render citations (hard gate: no orphan/unresolved)
+  -> write report  ->  report.src.md
+  -> render citations (hard gate: no orphan/unresolved)  ->  report.md + citations.json
+  -> build sources.md (URL normalization + de-duplication)
   -> deliver report.md + sources.md + evidence.json + citations.json
 ```
 
@@ -127,8 +129,9 @@ forever).
 - A host that supports the Agent Skills standard.
 - Network search and fetch capability.
 - File read/write and command execution (for the scripts and artifacts).
-- Python 3.9+ for the validation and rendering scripts (they degrade gracefully
-  if unavailable).
+- Python 3 (standard library only) for the validator, the citation renderer and
+  the source de-duplicator; the run degrades gracefully when those scripts
+  cannot be executed, and says so in its output.
 
 ## References and acknowledgements
 
@@ -146,12 +149,16 @@ The two clearest influences are:
 - Project conventions for agents: [`AGENTS.md`](AGENTS.md)
 - Authoritative plan and milestones: [`docs/PLAN.md`](docs/PLAN.md)
 
-Run the local checks:
+Run the local checks from the repository root:
 
 ```bash
 python skills/meld-deepresearch/scripts/check_evidence.py \
   examples/sample-run/evidence.json
 ```
+
+The full validation set — the positive example plus the negative fixtures in
+`examples/invalid/` — is listed in [`AGENTS.md`](AGENTS.md) and is executed by
+CI in `.github/workflows/validate.yml`.
 
 ## License
 

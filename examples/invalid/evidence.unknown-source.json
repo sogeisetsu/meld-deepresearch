@@ -1,0 +1,36 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "Nimbus 2.0 was published on 2026-03-14 and ships with no runtime dependencies.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "release",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {"source_id": "s9", "snippet": "Release notes dated 2026-03-14 list an empty runtime dependency set.", "quote_type": "direct"},
+        {"source_id": "s1", "snippet": "Nimbus 2.0 is available today, and its runtime dependency list is empty by design.", "quote_type": "direct"}
+      ]
+    },
+    {
+      "id": "d1.c2",
+      "text": "Adoption accelerated after the 2.0 release rather than before it.",
+      "kind": "interpretive",
+      "polarity": "support",
+      "topic_tag": "adoption",
+      "answers_key_question": "kq2",
+      "evidence": [
+        {"source_id": "s1", "snippet": "Downloads tripled in the two weeks following the 2.0 announcement.", "quote_type": "numeric"},
+        {"source_id": "s2", "snippet": "Coverage links the jump in interest to the 2.0 announcement.", "quote_type": "paraphrase"}
+      ]
+    }
+  ],
+  "sources": [
+    {"id": "s1", "url": "https://example.org/nimbus/announcements/2-0", "title": "Nimbus 2.0 release notes", "quality": "primary", "published_at": "2026-03-14"},
+    {"id": "s2", "url": "https://news.example.com/2026/06/nimbus-adoption", "title": "Nimbus adoption report", "quality": "secondary", "published_at": "2026-06-20"}
+  ],
+  "writing_context": [],
+  "key_findings": [
+    {"finding": "Nimbus 2.0 shipped without runtime dependencies and adoption rose after the release.", "claim_ids": ["d1.c1", "d1.c2"]}
+  ]
+}

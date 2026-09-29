@@ -45,4 +45,9 @@ no text is copied:
 - langchain-ai/open_deep_research
 - 199-biotechnologies/claude-deep-research-skill
 
+The four report-quality dimensions used in `references/report-template.md`
+(comprehensiveness, insight, instruction-following, readability) follow the
+public RACE evaluation vocabulary popularised by Baidu Qianfan Deep Research;
+only the generic dimension names are reused, no text.
+
 See docs/PLAN.md section 7 for the full borrow map.

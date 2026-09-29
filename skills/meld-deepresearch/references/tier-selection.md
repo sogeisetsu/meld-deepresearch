@@ -41,8 +41,8 @@ Apply in order; stop at the first decisive answer:
    research line, all answerable from a shared source pool → `quick`;
    otherwise → `normal`.
 6. **Tie-break: still unsure → `quick`.** A quick run that hits its depth
-   threshold early is cheap; the upgrade rule in §2 rescues any quick run that
-   turns out to need more axes mid-flight.
+   threshold early is cheap; the mid-run upgrade rule in §6 rescues any quick
+   run that turns out to need more axes mid-flight.
 
 ## 4. Worked examples
 
@@ -52,7 +52,7 @@ Apply in order; stop at the first decisive answer:
 | 2 | "Compare Postgres and MySQL for a write-heavy workload and recommend one." | `normal` | Entity comparison + synthesis (performance, ecosystem, cost are separate axes). |
 | 3 | "Give me a one-paragraph status of the project in `docs/PLAN.md`." | `quick` | Single source, no search axes; user wants a brief answer. |
 | 4 | "Write a white paper on EU AI Act compliance options for a medical-device startup." | `normal` | Explicitly requests a white paper; regulatory + clinical + commercial axes. |
-| 5 | **Borderline:** "Is Rust suitable for our CLI tool? Consider startup time and binary size, and check whether the recent release changed either." | `normal` | Looks like a yes/no check, but it is ≥ 2 independently searchable axes (startup time, binary size, release changelog) with expected conflict across benchmarks → §2 rule upgrades it; the tie breaks toward `normal` because missing a dimension is costlier than overspending. |
+| 5 | **Borderline:** "Is Rust suitable for our CLI tool? Consider startup time and binary size, and check whether the recent release changed either." | `normal` | A `normal` condition matched outright — ≥ 2 independently searchable axes (startup time, binary size, release changelog), plus expected conflict across benchmarks — so §2 upgrades it. Because a `normal` condition matched, the §3 step-6 tie-break toward `quick` is never invoked; nothing breaks a tie here. |
 | 6 | **Borderline:** "Did the vendor's outage on 2026-03-05 affect EU customers?" | `quick` | Narrow, single-line, single time window, one incident → stays `quick`; it would upgrade only if evidence turned out to be contradictory or the vendor's status page plus third-party reports had to be reconciled across axes. |
 
 ## 5. What the tier changes downstream

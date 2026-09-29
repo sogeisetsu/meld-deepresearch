@@ -1,0 +1,44 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "Nimbus 2.0 was published on 2026-03-14 and ships with no runtime dependencies.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "release",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {"source_id": "s1", "snippet": "Nimbus 2.0 is available today, and its runtime dependency list is empty by design.", "quote_type": "direct"}
+      ]
+    },
+    {
+      "id": "d1.c2",
+      "text": "Growth after the release is explained mainly by build-time improvements rather than by marketing activity.",
+      "kind": "interpretive",
+      "polarity": "support",
+      "topic_tag": "adoption",
+      "answers_key_question": "kq2",
+      "evidence": [
+        {"source_id": "s1", "snippet": "The announcement highlights the zero-dependency design as the core goal.", "quote_type": "direct"},
+        {"source_id": "s2", "snippet": "Analysts point to install size and build speed, not campaigns, as the driver.", "quote_type": "paraphrase"}
+      ]
+    }
+  ],
+  "sources": [
+    {"id": "s1", "url": "https://example.org/nimbus/announcements/2-0", "title": "Nimbus 2.0 release notes", "quality": "primary", "published_at": "2026-03-14"},
+    {"id": "s2", "url": "https://news.example.com/2026/06/nimbus-adoption", "title": "Nimbus adoption report", "quality": "secondary", "published_at": "2026-06-20"}
+  ],
+  "writing_context": [
+    {
+      "id": "d1.w1",
+      "kind": "availability",
+      "text": "Release dates come from the announcement post; no independent registry archives them.",
+      "source_ids": ["s1"],
+      "applies_to": ["d1.c1"],
+      "use": "Date-stamp the release claim and note that it rests on a single record."
+    }
+  ],
+  "key_findings": [
+    {"finding": "Nimbus 2.0 shipped without runtime dependencies, and adoption growth is attributed to build-time improvements.", "claim_ids": ["d1.c1", "d1.c2"]}
+  ]
+}
