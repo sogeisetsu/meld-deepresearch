@@ -1,13 +1,13 @@
 # Evidence Contract — `evidence.json`
 
 The data contract for the structured evidence file. A validator script
-(`scripts/check_evidence.py`, written in a later milestone) enforces every rule
+(`scripts/check_evidence.py`) enforces every rule
 below; a file that fails validation is not delivered. Field names, object names
 and enum values here are **exact** — the validator matches them literally.
 
 ## Top-level shape
 
-`evidence.json` is one JSON object with five arrays:
+`evidence.json` is one JSON object with four arrays:
 
 | Array | What it holds |
 |---|---|
@@ -24,7 +24,7 @@ and enum values here are **exact** — the validator matches them literally.
 |---|---|
 | `dN` | Research axis / dimension `N` (1-based, no leading zeros) |
 | `dN.cM` | Claim `M` under axis `N` — e.g. `d2.c1` |
-| `kqN` | Key question `N`, generated during planning; claims answer or are `null` |
+| `kqN` | Key question `N`, numbered like `dN` (**1-based, no leading zeros**), generated during planning; claims answer it or are `null` |
 | `dN.wM` | Writing-context entry `M` under axis `N` |
 | `sN` | Source `N`. Only uniqueness and referential integrity are enforced; any opaque, unique string is accepted |
 
@@ -40,7 +40,7 @@ and enum values here are **exact** — the validator matches them literally.
 | `polarity` | string | yes | `support` \| `refute` \| `neutral` | Which side of the question the claim takes |
 | `topic_tag` | string | yes | non-empty | Free tag grouping claims by topic |
 | `answers_key_question` | string \| null | yes | `kqN` or `null` | Key question this claim answers, if any |
-| `evidence[]` | array | yes | ≥ 1 for `factual` (primary/secondary); ≥ 1 for `projective`; ≥ 2 distinct sources for `interpretive` | Supporting snippets; see below |
+| `evidence[]` | array | yes | ≥ 1 for `factual` (primary/secondary); ≥ 1 for `projective`; ≥ 2 distinct sources with distinct `url`s for `interpretive` | Supporting snippets; see below |
 
 ### `evidence[]` (inside a claim)
 
@@ -58,7 +58,7 @@ opened source itself.
 | Field | Type | Required | Allowed values | Meaning |
 |---|---|---|---|---|
 | `id` | string | yes | unique | Source id referenced by `evidence[].source_id` |
-| `url` | string | yes | resolvable URL | Where the source was read |
+| `url` | string | yes | well-formed absolute `http(s)` URL; reachability is NOT machine-checked | Where the source was read |
 | `title` | string | yes | non-empty | Source title |
 | `quality` | string | yes | `primary` \| `secondary` \| `tertiary` | Evidence tier (see below) |
 | `published_at` | string \| null | yes | ISO date `YYYY-MM-DD`, or `null` when unknown | Publication date; `null` means unknown, never guessed |
@@ -68,11 +68,15 @@ opened source itself.
 | Field | Type | Required | Allowed values | Meaning |
 |---|---|---|---|---|
 | `id` | string | yes | pattern `dN.wM` | Unique context id |
-| `kind` | string | yes | non-empty tag (`scope`, `sample`, `method`, `availability`, ...) | What kind of caveat this is |
+| `kind` | string | yes | open tag; the validator only checks it is a non-empty string (e.g. `scope`, `sample`, `method`, `availability`) | What kind of caveat this is |
 | `text` | string | yes | non-empty | The caveat itself |
 | `source_ids[]` | array | yes | ids in `sources[]` (may be empty) | Sources the caveat is grounded in |
 | `applies_to[]` | array | yes | `dN` or `dN.cM` ids (may be empty) | Axis or claims the caveat constrains |
 | `use` | string | yes | non-empty | How the writer should use it (e.g. qualify a number) |
+
+`applies_to[]` entries are **pattern-checked only**: each must be `dN` or
+`dN.cM`, and the validator does **not** verify that the referenced axis or claim
+actually exists in this file.
 
 ### `key_findings[]`
 
@@ -84,7 +88,7 @@ opened source itself.
 `key_findings` is a **derived layer**: it may combine claims but introduces no
 fact absent from the claims it cites.
 
-## Hard rules (these can FAIL the run)
+## Rules (errors fail the run; warnings do not)
 
 1. **`factual` needs a credible source.** Every claim with `kind: factual`
    carries at least one `evidence` item whose source has `quality` of
@@ -93,25 +97,53 @@ fact absent from the claims it cites.
    carries at least one `evidence` item (any quality tier) recording what the
    projection is based on. A projection with no source is an opinion, and is
    rejected.
-3. **`interpretive` needs two distinct sources.** Every claim with
+3. **`interpretive` needs two distinct, non-duplicate sources.** Every claim with
    `kind: interpretive` has `evidence` items pointing at at least two
-   *different* `source_id` values.
-4. **No normative claims.** Claims that say what anyone *should* do
-   ("ought to", "must adopt", "we recommend") are forbidden. The skill states
-   what the evidence shows, not what anyone should do.
+   *different* `source_id` values, **and** those `source_id`s must map to
+   *different* `url` strings (compared after `strip()`). Fewer than two distinct
+   resolvable `source_id`s, or two or more `source_id`s that all share one
+   identical `url`, both fail. Note that this is only *source-level* independence:
+   origin-level independence (same publisher publishing on different domains) is
+   a judgement the gate cannot enforce — see `protocol.md` §5.
+4. **No normative claims — best-effort heuristic.** The skill states what the
+   evidence shows, not what anyone should do. Because this cannot be decided
+   mechanically, the validator only runs a **fixed-phrase heuristic**: it
+   lowercases each claim's `text` and looks for a word-boundary,
+   case-insensitive hit on this exact list —
+   `should`, `ought to`, `we recommend`, `is recommended`, `are recommended`,
+   `best practice`, `advisable`, `must adopt` —
+   reported as `E_NORMATIVE` (an error). A hit is a strong signal but not proof,
+   and a normative claim that avoids every listed phrase will pass; the writer
+   must still keep prescriptions out of `claims[]`.
 5. **Referential integrity.** Every `evidence[].source_id` and every
    `writing_context[].source_ids[]` entry resolves to an id present in
    `sources[]`; every `key_findings[].claim_ids[]` entry resolves to a claim id
    in this file; every `answers_key_question` value matches `kqN`.
+   (`writing_context[].applies_to[]` is deliberately **not** part of this rule —
+   it is pattern-checked only, see above.)
 6. **Enum membership.** `kind`, `polarity` and `quote_type` values come only
    from the allowed sets above; ids match their patterns (`dN.cM`, `dN.wM`,
    `kqN`); ids are unique within their array.
-7. **Missing `refute` coverage is a WARNING, not an error.** If no claim in the
+7. **Minimum contents.** `claims[]` and `sources[]` must each contain at least
+   one entry; an empty `claims` or empty `sources` array is an error (`E_EMPTY`).
+   Separately, an empty `key_findings` array is a **warning** (`W_NO_FINDINGS`)
+   that does not fail the run. An empty `writing_context` array is legitimate
+   and produces neither.
+8. **Missing `refute` coverage is a WARNING, not an error.** If no claim in the
    file has `polarity: refute`, the validator reports a warning (falsification
    was probably not attempted) but does not fail on it alone.
 
-Rules 1–6 are errors: the validator returns `{"ok": false, "errors": [...]}`
-and the run stops. Rule 7 is reported in `warnings[]` while `ok` stays `true`.
+**Error codes** (`ok: false`, exit 1): `E_SHAPE`, `E_ID_PATTERN`,
+`E_ID_UNIQUE`, `E_ENUM`, `E_REF_SOURCE`, `E_REF_CLAIM`, `E_REF_KQ`,
+`E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`, `E_PROJECTIVE_BASIS`, `E_NORMATIVE`,
+`E_EMPTY` — plus `E_JSON` for unusable input (exit 2), and the `--plan` codes
+`E_PLAN_DIM_UNKNOWN` / `E_PLAN_DIM_UNCOVERED`.
+**Warning codes** (`ok` stays `true`): `W_NO_FINDINGS` (rule 7), `W_NO_REFUTE`
+(rule 8), and `W_KQ_UNANSWERED` when `--plan` is used.
+
+So rules 1–6 plus the `claims`/`sources` half of rule 7 land in `errors[]` and
+stop the run; the `key_findings` half of rule 7 and rule 8 land in `warnings[]`
+while `ok` stays `true`.
 The validator's stdout shape is `{"ok": bool, "errors": [...], "warnings": [...]}`.
 
 ## Source quality tiers
@@ -135,6 +167,35 @@ Route each caveat into the report through its `use` field.
 `kind: projective` marks a statement as a **projection or forecast, not a fact**.
 Projective claims must read as projections ("X is projected to ..."), must cite
 their source, and are never promoted to `factual` in the report.
+
+## `plan.json`
+
+The research plan produced during the Plan phase, consumed by
+`check_evidence.py --plan`. Its frozen shape is:
+
+```json
+{
+  "tier": "normal",
+  "dimensions": [
+    {
+      "id": "d1",
+      "name": "human readable dimension name",
+      "scope_ownership": "what this axis owns; must not overlap another axis",
+      "source_classes": ["primary", "secondary"],
+      "depth": "free-text stopping threshold description",
+      "time_sensitivity": "window | sensitive | stable",
+      "key_questions": [{"id": "kq1", "text": "the question"}]
+    }
+  ]
+}
+```
+
+`check_evidence.py --plan` reads **only** `dimensions[].id` and
+`dimensions[].key_questions[].id` — those two are the machine-checked contract
+(claim axes must be declared, every dimension must be covered, every declared
+key question must be answered). Every other field (`tier`, `name`,
+`scope_ownership`, `source_classes`, `depth`, `time_sensitivity`, and each
+key question's `text`) is human-readable metadata that the validator ignores.
 
 ## Valid example
 

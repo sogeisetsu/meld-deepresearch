@@ -2,7 +2,7 @@
 
 > 本文件是本项目的**权威开发计划**（source of truth）。
 > `AGENTS.md` 只放项目约定与指针；**所有实现细节、里程碑、借鉴来源都在这里**。
-> 计划日期：2026-09-29 ｜ 状态：M1 已完成（M2 未开始）
+> 计划日期：2026-09-29 ｜ 状态：M2 已完成（M3 未开始）
 
 ---
 
@@ -128,13 +128,86 @@ metadata:
 骨架：`# Title` → `## Executive Summary` → `## Findings`（逐条内联引用）→ `## Contradictions & Counter-evidence` → `## Gaps & Unknowns` → `## Sources`；附质量四维自检；写作规则：表述强度匹配证据强度、禁止规范性 claim。
 
 ### 5.6 `scripts/`（纯 Python 3 标准库）
-- **`check_evidence.py`**：证据契约校验（ID 正则、来源引用完整性、factual 需 ≥1 primary/secondary、projective 需 ≥1 任意来源、interpretive 需 ≥2 独立来源、quote_type 合法、refute 缺失给**警告**）。stdout `{"ok":…,"errors":[…],"warnings":[…]}`；退出码 0/1/2；支持 `--plan`。
-- **`render_citations.py`**：`[^source_id]` 脚注 → 编号引用；检出 orphan / 未解析 ID；产出 `report.md` + `citations.json`。
-- **`dedupe_sources.py`**：URL 规范化 + 跨维度去重，产出 `sources.md`。
-- 通用：UTF-8 无 BOM；`python`/`python3` 回退；不联网、不装包。
+
+**通用约定**：UTF-8 无 BOM；`python` / `python3` 均可；不联网、不装包；stdout 输出单个 JSON 对象；退出码 `0`（通过）/ `1`（校验失败）/ `2`（输入错误：文件不存在、JSON 非法、参数用法错误）。
+
+**`check_evidence.py`**
+
+```bash
+python check_evidence.py <evidence.json> [--plan <plan.json>]
+```
+
+- 校验 `evidence-contract.md` 的结构、枚举、ID、引用完整性与硬规则 1–7。
+- stdout：`{"ok": bool, "errors": [...], "warnings": [...]}`；每个条目为 `{"code": "...", "message": "...", "where": "..."}`。
+- 错误码：`E_JSON`(→exit 2) / `E_SHAPE` / `E_EMPTY`(claims 或 sources 为空) / `E_ID_PATTERN` / `E_ID_UNIQUE` / `E_ENUM` / `E_REF_SOURCE` / `E_REF_CLAIM` / `E_REF_KQ` / `E_FACTUAL_SOURCE` / `E_INTERPRETIVE_TWO` / `E_PROJECTIVE_BASIS` / `E_NORMATIVE` / `E_PLAN_DIM_UNKNOWN` / `E_PLAN_DIM_UNCOVERED`。
+- 警告码：`W_NO_REFUTE` / `W_NO_FINDINGS`(key_findings 为空) / `W_KQ_UNANSWERED`。
+- `sources[].url` 只校验"非空且以 `http://` 或 `https://` 开头"；可达性**不**校验（不联网）。
+- `interpretive` 的"两个不同来源"要求两个 `source_id` 的 `url` 字符串也不同（同一 URL 的两个 id 不算两个来源）。
+- `E_NORMATIVE` 是**基于固定短语表的最佳努力启发式**，不是语义判定；短语表以 `evidence-contract.md` 为准。
+- `applies_to[]` 只做模式校验（`dN` / `dN.cM`），不校验被引用对象是否存在。
+- `--plan` 交叉检查：每条 claim 的轴 `dN` 必须存在于 `plan.json` 的 `dimensions[].id`（否则 `E_PLAN_DIM_UNKNOWN`）；每个 plan 维度必须有 ≥1 条 claim（否则 `E_PLAN_DIM_UNCOVERED`）；plan 声明的 `key_questions[].id` 若无 claim 认领 → `W_KQ_UNANSWERED`。
+
+**`render_citations.py`**
+
+```bash
+python render_citations.py --report <report.src.md> --evidence <evidence.json> \
+  --output <report.md> [--citations <citations.json>]
+```
+
+- 按**首次出现顺序**扫描 `[^source_id]` 标记 → 映射为 `1..N`。
+- 正文内联替换为 `[N]`；把文档中 `## Sources` 标题之后的全部内容替换为生成的编号参考文献列表（无该标题则追加）。
+- `citations.json`：`{"ok": bool, "citations": [{"number": 1, "source_id": "s1", "title": "…", "url": "…", "quality": "…", "published_at": "…"}], "orphans": [...], "uncited": [...]}`。
+- stdout 摘要：`{"ok": bool, "citation_count": N, "orphans": [...], "uncited": [...]}`。
+- **orphan**（标记指向 `sources[]` 中不存在的 id）→ `ok:false`、exit 1；**未解析**（渲染后仍残留 `[^` 或空 id 标记）→ 同样 `ok:false`、exit 1；**uncited**（evidence 中有来源但报告中从未引用）→ 仅警告。
+- 默认 `--citations` 与 `--output` 同目录的 `citations.json`。
+
+**`dedupe_sources.py`**
+
+```bash
+python dedupe_sources.py --evidence <evidence.json> --output <sources.md>
+```
+
+- URL 规范化：去首尾空白 → scheme/host 小写 → 去 `#fragment` → 去追踪参数（`utm_*`、`gclid`、`fbclid`、`ref`、`ref_src`）→ 去默认端口（http:80 / https:443）→ 去路径末尾单个 `/`（根路径除外）。
+- 去重键 = 「剩余 query 参数排序后」的规范化 URL；展示保留首次出现的原始 URL；重复来源合并并记录被合并的 id。
+- `sources.md`：按 `quality`（primary→secondary→tertiary）再按 `id` 排序的表格（id / title / quality / published_at / URL）。
+- stdout：`{"ok": bool, "sources": N, "duplicates_merged": M}`。
+
+**`plan.json`（normal 档计划文件）**
+
+```json
+{
+  "tier": "normal",
+  "dimensions": [
+    {
+      "id": "d1",
+      "name": "…",
+      "scope_ownership": "…",
+      "source_classes": ["primary", "secondary"],
+      "depth": "…",
+      "time_sensitivity": "window | sensitive | stable",
+      "key_questions": [{"id": "kq1", "text": "…"}]
+    }
+  ]
+}
+```
+
+- `check_evidence.py --plan` 只依赖 `dimensions[].id` 与 `dimensions[].key_questions[].id`；其余字段为人类可读元数据，校验器忽略。
 
 ### 5.7 元文件
 `package.json`、`README.md`（含 6 宿主安装矩阵 + 致谢）、`NOTICE`、`CHANGELOG.md`、`.gitignore`、`.github/workflows/validate.yml`。
+
+### 5.8 `examples/` 与 CI 校验
+
+- **`examples/sample-run/`**：一份**完整正例**（`report.src.md`、`evidence.json`、`report.md`、`sources.md`、`citations.json`），由脚本**实际生成**。主题为**示例性**内容（占位 URL，如 `example.org`），报告顶部必须注明 `illustrative sample`，避免被误当作真实研究结论。
+- **`examples/invalid/`**：反例固定件——
+  - `evidence.unknown-source.json` → `E_REF_SOURCE`
+  - `evidence.tertiary-only.json` → `E_FACTUAL_SOURCE`
+  - `evidence.single-source-interpretive.json` → `E_INTERPRETIVE_TWO`
+  - `evidence.no-refute.json` → 仅 `W_NO_REFUTE`，`ok:true`、exit 0
+  - `report.orphan.src.md` → render_citations 检出 orphan、exit 1
+- **`.github/workflows/validate.yml`**：
+  1. 规范检查——`name` ≤64 且小写 kebab；`description` ≤1024 且纯 ASCII（无中文）；`license: MIT`；`metadata.author: sogeisetsu`；`skills/` 内不得出现宿主专有工具名（`websearch` / `WebFetch` / `Task` / `AskUserQuestion`）与 POSIX-only 命令（`date +` / `cp -r` / `~/.config`）。
+  2. 脚本自测——正例全部 exit 0；每个反例按**预期错误码**失败（exit 1）；`dedupe_sources.py` 在正例上 exit 0。
 
 ---
 
@@ -150,11 +223,12 @@ metadata:
 | 3 | **Tier select** | 请求 + assumptions | 按 §6.2 规则打分 | `tier = quick \| normal` | 命中任一 normal 条件即升档；用户可覆盖 |
 | 4 | **Plan** | 请求 + assumptions | quick：内部生成 `kq1..kqn`；normal：生成 dims（含 `scope_ownership` / 来源类别 / `depth` / 时效） | quick：无文件；normal：`plan.json` | 维度必须**可独立启动、检索范围不重叠** |
 | 5 | **Research**（循环） | plan / 请求 | 每维度：Search → URL 池 → Fetch → **读原文** → 评估 → 找缺口 → 再搜（≤3 轮） | `sub_reports/dN.evidence.json` | 达 `depth` 门槛即停 |
-| 6 | **Self-check ①**（硬门） | evidence | 跑 `check_evidence.py` | `{"ok":…}` | 不过 → 按错误一次性修复后重跑（≤1 次） |
-| 7 | **Write** | 全部 evidence | quick/normal **一次成文**，逐条内联引用；禁止新事实 | `report.src.md` | 强度不得超证据 |
-| 8 | **Render ②**（硬门） | `report.src.md` + evidence | 跑 `render_citations.py` | `report.md` + `citations.json` | 有 orphan/unresolved → 修后重跑（≤1 次） |
-| 9 | **Sources** | evidence | 跑 `dedupe_sources.py` | `sources.md` | — |
-| 10 | **Deliver** | — | 返回 4 件套路径 + 覆盖度/边界说明 | `report.md` `sources.md` `evidence.json` `citations.json` | 无 |
+| 6 | **Merge** | `sub_reports/dN.evidence.json` | 合并四个顶层数组（`claims` / `sources` / `writing_context` / `key_findings`）为单一 `evidence.json` | `evidence.json` | 合并后 id 仍唯一；重复来源折叠为一条 |
+| 7 | **Self-check ①**（硬门） | evidence | 跑 `check_evidence.py` | `{"ok":…}` | 不过 → 按错误一次性修复后重跑（≤1 次） |
+| 8 | **Write** | 全部 evidence | quick/normal **一次成文**，逐条内联引用；禁止新事实 | `report.src.md` | 强度不得超证据 |
+| 9 | **Render ②**（硬门） | `report.src.md` + evidence | 跑 `render_citations.py` | `report.md` + `citations.json` | 有 orphan/unresolved → 修后重跑（≤1 次） |
+| 10 | **Sources** | evidence | 跑 `dedupe_sources.py` | `sources.md` | — |
+| 11 | **Deliver** | — | 返回 4 件套路径 + 覆盖度/边界说明 | `report.md` `sources.md` `evidence.json` `citations.json` | 无 |
 
 ### 6.2 自动选档规则（tier-selection）
 
@@ -189,7 +263,8 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 
 ### 6.7 产物与目录
 - 目录：`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`（可自定义 outdir）。
-- 文件：`report.md`、`sources.md`、`evidence.json`、`citations.json`。
+- 交付物：`report.md`、`sources.md`、`evidence.json`、`citations.json`。
+- 中间产物：`plan.json`（normal 档）、`report.src.md`（成文草稿）、`sub_reports/dN.evidence.json`（分轴证据）。
 - 宿主无写盘能力时：**只返回正文**，并说明未落盘。
 
 ---
@@ -301,7 +376,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 |---|---|---|
 | **M0** ✅ | 仓库骨架 + `LICENSE`/`NOTICE`/`CHANGELOG.md`/`package.json`/`.gitignore` + `README.md` + 目录树 | 文件齐全；`AGENTS.md` 架构同步 |
 | **M1** ✅ | 写 `SKILL.md` + 4 个 `references/` | frontmatter 合规（含 metadata.author）；正文 ≤ ~200 行；纯英文 |
-| **M2** | 写 3 个脚本 + `examples/sample-run/` + CI | 脚本自测通过；正/反例都验证 |
+| **M2** ✅ | 写 3 个脚本 + `examples/sample-run/` + CI | 脚本自测通过；正/反例都验证 |
 | **M3** | opencode 装机实测（`~/.agents/skills/`）+ 第二宿主实测 + 修 | quick 与 normal 各跑通一次 |
 | **M4** | `gh skill publish --dry-run` → 发布 + topics + tag `v0.1.0` | 发布成功、可 `npx skills add` 安装 |
 

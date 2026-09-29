@@ -1,0 +1,188 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: spec and scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Spec check
+        run: |
+          python3 - <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          problems = []
+
+          def check_frontmatter():
+              path = Path("skills/meld-deepresearch/SKILL.md")
+              text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+              m = re.match(r"\A---\n(.*?)\n---\n", text, re.S)
+              if not m:
+                  problems.append("SKILL.md: frontmatter block not found")
+                  return
+              fm = m.group(1)
+
+              name_m = re.search(r"^name:[ \t]*(.+?)[ \t]*$", fm, re.M)
+              if not name_m:
+                  problems.append("SKILL.md frontmatter: 'name' is missing")
+              else:
+                  name = name_m.group(1)
+                  if len(name) > 64:
+                      problems.append("SKILL.md name is %d chars (max 64)" % len(name))
+                  if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name):
+                      problems.append("SKILL.md name %r is not lowercase kebab-case" % name)
+
+              desc_m = re.search(r"^description:[ \t]*(.+?)[ \t]*$", fm, re.M)
+              if not desc_m:
+                  problems.append("SKILL.md frontmatter: 'description' is missing")
+              else:
+                  desc = desc_m.group(1)
+                  if len(desc) >= 2 and desc[0] in "\"'" and desc[-1] == desc[0]:
+                      desc = desc[1:-1]
+                  if len(desc) > 1024:
+                      problems.append("SKILL.md description is %d chars (max 1024)" % len(desc))
+                  if not desc.isascii():
+                      problems.append("SKILL.md description must be ASCII-only English")
+
+              lic_m = re.search(r"^license:[ \t]*(.+?)[ \t]*$", fm, re.M)
+              if not lic_m or lic_m.group(1) != "MIT":
+                  problems.append("SKILL.md license must be MIT, found %r" % (lic_m.group(1) if lic_m else "<missing>"))
+
+              meta_m = re.search(r"^metadata:[ \t]*\n((?:[ \t]+\S.*\n?)+)", fm, re.M)
+              if not meta_m:
+                  problems.append("SKILL.md frontmatter: 'metadata' block is missing")
+              else:
+                  author_m = re.search(r"^[ \t]+author:[ \t]*(.+?)[ \t]*$", meta_m.group(1), re.M)
+                  author = author_m.group(1) if author_m else "<missing>"
+                  if author != "sogeisetsu":
+                      problems.append("SKILL.md metadata.author must be sogeisetsu, found %r" % author)
+
+          check_frontmatter()
+
+          forbidden_tools = ["websearch", "WebFetch", "AskUserQuestion"]
+          task_word = re.compile(r"\bTask\b")
+          posix_only = ["date +", "cp -r", "~/.config"]
+
+          for path in sorted(Path("skills").rglob("*")):
+              if not path.is_file():
+                  continue
+              body = path.read_text(encoding="utf-8", errors="replace")
+              for token in forbidden_tools:
+                  if token in body:
+                      problems.append("%s: host-specific tool name %r is forbidden" % (path, token))
+              if task_word.search(body):
+                  problems.append("%s: host-specific tool name 'Task' is forbidden" % path)
+              for token in posix_only:
+                  if token in body:
+                      problems.append("%s: POSIX-only shell snippet %r is forbidden" % (path, token))
+
+          if problems:
+              for p in problems:
+                  print("FAIL: %s" % p)
+              sys.exit(1)
+          print("spec check passed")
+          PY
+
+      - name: Script self-test
+        run: |
+          set -uo pipefail
+          set +e
+          status=0
+          tmp="$(mktemp -d)"
+
+          # step <label> <want_exit> <want_pattern> -- <command...>
+          step() {
+            local label="$1"
+            local want_rc="$2"
+            local want_pat="$3"
+            shift 3
+            if [ "${1:-}" = "--" ]; then
+              shift
+            fi
+            echo "-- ${label}"
+            local out rc
+            out="$("$@" 2>&1)"
+            rc=$?
+            if [ "${rc}" -ne "${want_rc}" ]; then
+              echo "FAIL [${label}]: expected exit code ${want_rc}, got ${rc}"
+              printf '%s\n' "${out}"
+              status=1
+              return
+            fi
+            if [ -n "${want_pat}" ] && ! printf '%s\n' "${out}" | grep -Eq "${want_pat}"; then
+              echo "FAIL [${label}]: stdout did not contain expected pattern ${want_pat}"
+              printf '%s\n' "${out}"
+              status=1
+              return
+            fi
+            echo "PASS [${label}]"
+          }
+
+          # assert_file <label> <path>
+          assert_file() {
+            if [ ! -s "$2" ]; then
+              echo "FAIL [$1]: expected non-empty output file missing: $2"
+              status=1
+            fi
+          }
+
+          step "check_evidence: valid sample run" 0 "" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/sample-run/evidence.json
+
+          step "check_evidence: unknown source id" 1 "E_REF_SOURCE" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.unknown-source.json
+
+          step "check_evidence: factual backed only by tertiary source" 1 "E_FACTUAL_SOURCE" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.tertiary-only.json
+
+          step "check_evidence: interpretive citing a single source" 1 "E_INTERPRETIVE_TWO" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.single-source-interpretive.json
+
+          step "check_evidence: no refute claim warns but passes" 0 "W_NO_REFUTE" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.no-refute.json
+
+          step "render_citations: valid sample report" 0 "" -- \
+            python3 skills/meld-deepresearch/scripts/render_citations.py \
+              --report examples/sample-run/report.src.md \
+              --evidence examples/sample-run/evidence.json \
+              --output "${tmp}/report.md" \
+              --citations "${tmp}/citations.json"
+          assert_file "render_citations: valid sample report" "${tmp}/report.md"
+          assert_file "render_citations: valid sample report" "${tmp}/citations.json"
+
+          step "render_citations: orphan marker fails" 1 "" -- \
+            python3 skills/meld-deepresearch/scripts/render_citations.py \
+              --report examples/invalid/report.orphan.src.md \
+              --evidence examples/invalid/evidence.no-refute.json \
+              --output "${tmp}/orphan.md" \
+              --citations "${tmp}/orphan.citations.json"
+
+          step "dedupe_sources: valid sample evidence" 0 "" -- \
+            python3 skills/meld-deepresearch/scripts/dedupe_sources.py \
+              --evidence examples/sample-run/evidence.json \
+              --output "${tmp}/sources.md"
+          assert_file "dedupe_sources: valid sample evidence" "${tmp}/sources.md"
+
+          if [ "${status}" -ne 0 ]; then
+            echo "One or more self-test steps failed."
+            exit 1
+          fi
+          echo "All self-test steps passed."

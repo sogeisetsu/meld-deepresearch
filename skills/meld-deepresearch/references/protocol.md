@@ -9,10 +9,11 @@ Execution rules for `meld-deepresearch`. `SKILL.md` decides *whether* to run and
 | Probe / anchor / clarify / tier select | see `SKILL.md` | in-memory anchors, `assumptions` |
 | Plan | quick: `kq1..kqn` in memory; normal: named dimensions | normal only: `plan.json` |
 | **Research (this file, §2–§7)** | per-axis loop | `sub_reports/dN.evidence.json` |
-| Gate ① | evidence validator | `{"ok": true}` |
+| **Merge (this file, §9)** | concatenate the four top-level arrays from every axis file | `evidence.json` |
+| Gate ① | evidence validator on the **merged** `evidence.json` | `{"ok": true}` |
 | Write | one-shot draft, inline citations, no new facts | `report.src.md` |
 | Gate ② | citation renderer | `report.md`, `citations.json` |
-| Deliver | 4 artifacts + coverage note | see §8 |
+| Deliver | 4 artifacts + coverage note | see §11 |
 
 ## 2. The per-axis research loop
 
@@ -86,19 +87,51 @@ The next round's queries target this gap list first. Any gap still open when the
 - **When the budget is exhausted: STOP.** Return the best coverage achieved so far and **explicitly list what was not covered** (per-axis gaps from §7). Never loop forever, never take "just one more round" past the cap.
 - If the source floor cannot be reached inside the fetch budget, report the shortfall honestly instead of padding with snippet-only or duplicate sources.
 
-## 9. Hard gates
+## 9. Merge and hard gates
+
+### Merge (after every axis, before gate ①)
+
+Concatenate the four top-level arrays — `claims`, `sources`, `writing_context`,
+`key_findings` — from every `sub_reports/dN.evidence.json` into a single
+`<output_dir>/evidence.json`:
+
+- **Ids stay unique after merging.** The prefix discipline already makes this
+  true: claims are `dN.cM` and writing contexts are `dN.wM` (axis-scoped), and
+  sources are `sN` taken from one run-wide counter, never a per-axis one. A
+  collision found anyway is re-keyed before gate ①; the validator rejects
+  duplicate ids.
+- **A source appearing in more than one axis file becomes one `sources[]`
+  entry with a single id.** Re-point every `evidence[].source_id` and
+  `writing_context[].source_ids[]` that named a duplicate id at that surviving
+  id, so referential integrity holds in the merged file.
+- **The merged file is what gate ① validates.** Gate ① never reads
+  `sub_reports/`.
+
+### The two gates
 
 | Gate | Check | Pass condition |
 |---|---|---|
 | ① | evidence validator (`check_evidence.py`, see `evidence-contract.md`) | output reports `ok: true` |
-| ② | citation renderer (`render_citations.py`) | no orphan citations, no unresolved reference IDs |
+| ② | citation renderer (`render_citations.py`) | no **orphan** markers, no **unresolved** markers; **uncited** sources are a warning only |
+
+Gate ② vocabulary, matching `render_citations.py` exactly:
+
+- **Orphan** = an inline `[^source_id]` marker whose id is **absent from
+  `sources[]`** → gate ② fails.
+- **Unresolved** = a marker left un-replaced (empty id, or a residual `[^` in
+  the rendered output) → gate ② fails.
+- **Uncited** = a source present in `sources[]` that the report never cites →
+  **warning only**, never a failure.
+
+Run the scripts from the skill's own directory with `python`; use `python3`
+when `python` is unavailable.
 
 - Gate failure ⇒ **fix once and re-run** (at most one re-run per gate).
 - Second failure ⇒ **stop and report honestly** (failing stage, artifact paths, last error). Do not deliver a report that failed a gate.
 
 ## 10. Failure and retry
 
-- Stages with a retry budget of **1** each: plan, research, write, render.
+- Stages with a retry budget of **1** each: plan, research, merge, write, render.
 - Retry once with a corrected approach. If it fails again, stop and report the failing stage, the artifact paths on disk, and the last error message.
 - Never spin, never fake completion, never claim deliverables that do not exist.
 
@@ -110,7 +143,7 @@ Default output directory (overridable by the user):
 meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/
 ├── report.md
 ├── sources.md
-├── evidence.json
+├── evidence.json                 # merged from sub_reports/ (§9)
 ├── citations.json
 ├── plan.json                     # normal tier only
 ├── report.src.md                 # write-stage draft (pre-citation-render)
@@ -118,6 +151,13 @@ meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/
 ```
 
 - `{slug}` is a short kebab-case digest of the topic; `{hex4}` is 4 random hex digits for uniqueness.
+- `sources.md` is produced by `dedupe_sources.py` and is the **standalone,
+  de-duplicated source list** — distinct from the report's own `## Sources`
+  section (which the citation renderer owns, see `report-template.md`):
+
+  `python scripts/dedupe_sources.py --evidence <output_dir>/evidence.json --output <output_dir>/sources.md`
+
+  Use `python3` when `python` is unavailable.
 - If the host lacks file-write capability: return **the report body only** in the response and state plainly that nothing was persisted.
 
 ## 12. Files are the source of truth
@@ -128,4 +168,4 @@ Raw retrieval results and structured evidence are written to disk; the model's c
 
 - Default: **inline execution** — the same agent runs every axis.
 - If the host provides a subagent capability, axes **MAY** be delegated for context isolation. The delegated unit receives the axis scope and returns its result **through an absolute file path** (its `sub_reports/dN.evidence.json`).
-- Delegation is never required and never assumed. Probe for it; if absent, run inline. Delegated results still pass through gates ① and ② unchanged.
+- Delegation is never required and never assumed. Probe for it; if absent, run inline. Delegated results still go through the merge in §9 and then through gates ① and ② unchanged.

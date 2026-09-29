@@ -19,26 +19,25 @@ meld-deepresearch/                    # repository root
 │   └── FILE_TREE.md                  # this file: annotated file tree + update rule
 ├── skills/                           # skill packages (this repo ships exactly one)
 │   └── meld-deepresearch/            # the skill directory (contents listed in the note below)
-├── examples/                         # example outputs, used by CI
-│   └── sample-run/                   # planned (M2): one real end-to-end run (report.md, sources.md, evidence.json, citations.json)
+├── examples/                         # example artifacts, used by CI
+│   ├── sample-run/                   # one complete illustrative run: report.src.md, report.md, sources.md, evidence.json, citations.json
+│   └── invalid/                      # negative fixtures: four broken evidence.json files + one orphan-citation draft
 └── .github/                          # GitHub configuration
-    └── workflows/                    # planned (M2): CI workflows (validate.yml: spec check + script self-test)
+    └── workflows/                    # CI: validate.yml (spec check + end-to-end script self-test)
 ```
 
 **Note — contents of `skills/meld-deepresearch/` (level 3; summarized here to
-keep the tree at depth 2).** `SKILL.md` and all four `references/` files exist
-(M1). `scripts/` is still **planned** (M2) and currently holds only a
-`.gitkeep` placeholder:
+keep the tree at depth 2).** All entries exist:
 
 ```text
 skills/meld-deepresearch/
 ├── SKILL.md                          # the entry point: frontmatter (name/description/license/metadata) + workflow
 ├── references/                       # progressive-disclosure detail, loaded on demand by the model
-│   ├── protocol.md                   # search/fetch loop, time-sensitivity, refute obligation, budgets, stop rules
-│   ├── evidence-contract.md          # claims / evidence / sources / writing_context / key_findings schema and hard rules
-│   ├── tier-selection.md             # auto quick-vs-normal decision rules with examples
-│   └── report-template.md            # report skeleton + quality self-check checklist
-└── scripts/                          # planned (M2): Python 3 stdlib only, no dependencies
+│   ├── protocol.md                   # per-axis loop, mandatory refutation, time-sensitivity, merge step, budgets, gates, artifacts
+│   ├── evidence-contract.md          # claims / evidence / sources / writing_context / key_findings schema, plan.json, hard rules
+│   ├── tier-selection.md             # auto quick-vs-normal decision rules with worked examples
+│   └── report-template.md            # report skeleton, citation mechanism, quality self-check
+└── scripts/                          # Python 3 stdlib only, no dependencies
     ├── check_evidence.py             # hard gate: validate evidence.json against the evidence contract
     ├── render_citations.py           # footnotes -> numbered citations; emits report.md + citations.json
     └── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md

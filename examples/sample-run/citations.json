@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "citations": [
+    {
+      "number": 1,
+      "source_id": "s1",
+      "title": "Nimbus 2.0 release notes",
+      "url": "https://example.org/nimbus/announcements/2-0",
+      "quality": "primary",
+      "published_at": "2026-03-14"
+    },
+    {
+      "number": 2,
+      "source_id": "s2",
+      "title": "Nimbus adoption passes 12,000 stars",
+      "url": "https://news.example.com/2026/06/nimbus-adoption",
+      "quality": "secondary",
+      "published_at": "2026-06-20"
+    },
+    {
+      "number": 3,
+      "source_id": "s3",
+      "title": "Build-time comparison: Nimbus and three alternatives",
+      "url": "https://benchmarks.example.net/nimbus-vs-alternatives?utm_source=newsletter",
+      "quality": "secondary",
+      "published_at": "2026-05-02"
+    },
+    {
+      "number": 4,
+      "source_id": "s4",
+      "title": "Nimbus (software)",
+      "url": "https://encyclopedia.example.org/wiki/Nimbus_(software)",
+      "quality": "tertiary",
+      "published_at": null
+    }
+  ],
+  "orphans": [],
+  "uncited": []
+}

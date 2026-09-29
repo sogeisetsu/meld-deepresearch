@@ -1,0 +1,654 @@
+#!/usr/bin/env python3
+"""Validate an evidence.json file against the meld-deepresearch evidence contract.
+
+Usage
+-----
+    python  check_evidence.py <evidence.json> [--plan <plan.json>]
+    python3 check_evidence.py <evidence.json> [--plan <plan.json>]
+
+Output
+------
+stdout receives exactly one JSON object:
+
+    {"ok": bool, "errors": [...], "warnings": [...]}
+
+Every entry is {"code": "...", "message": "...", "where": "..."} where ``where``
+is a JSON-path-like locator such as ``claims[2].evidence[0].source_id`` or
+``sources[1]``. Both lists are sorted by code then by ``where``, so CI output is
+stable across runs. ``ok`` is true only when ``errors`` is empty; warnings never
+flip it.
+
+Exit codes
+----------
+    0   validation passed (ok: true; warnings may still be present)
+    1   validation failed (ok: false)
+    2   bad input: missing or unreadable file, invalid JSON, wrong CLI usage.
+        Reported as {"ok": false, "errors": [{"code": "E_JSON", ...}]}.
+
+Error codes
+-----------
+E_JSON (always exit 2, including CLI usage errors) / E_SHAPE / E_ID_PATTERN /
+E_ID_UNIQUE / E_ENUM / E_REF_SOURCE / E_REF_CLAIM / E_REF_KQ /
+E_FACTUAL_SOURCE / E_INTERPRETIVE_TWO / E_PROJECTIVE_BASIS / E_NORMATIVE /
+E_EMPTY / E_PLAN_DIM_UNKNOWN / E_PLAN_DIM_UNCOVERED.
+
+Warning codes
+-------------
+W_NO_FINDINGS / W_NO_REFUTE / W_KQ_UNANSWERED (warnings keep ok: true).
+
+Normative detection (E_NORMATIVE) is a documented best-effort heuristic: the
+claim's ``text`` is lowercased and matched word-boundary / case-insensitively
+against this fixed phrase list, which mirrors evidence-contract.md rule 4 byte
+for byte: "should", "ought to", "we recommend", "is recommended",
+"are recommended", "best practice", "advisable", "must adopt".
+
+Standard library only: no third-party imports, no network, no shell calls, no
+temporary files. Reads UTF-8 (a BOM is tolerated) and prints ASCII-safe JSON.
+"""
+
+import argparse
+import json
+import re
+import sys
+
+CLAIM_ID_RE = re.compile(r"^d\d+\.c\d+$")
+CONTEXT_ID_RE = re.compile(r"^d\d+\.w\d+$")
+APPLIES_TO_RE = re.compile(r"^d\d+(?:\.c\d+)?$")
+KEY_QUESTION_RE = re.compile(r"^kq\d+$")
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[Tt ].+$")
+# F3: reachability is NOT machine-checked; only the absolute http(s) shape is.
+URL_RE = re.compile(r"^https?://\S+$")
+
+KINDS = ("factual", "interpretive", "projective")
+POLARITIES = ("support", "refute", "neutral")
+QUOTE_TYPES = ("direct", "paraphrase", "numeric")
+QUALITIES = ("primary", "secondary", "tertiary")
+CREDIBLE_QUALITIES = ("primary", "secondary")
+
+TOP_LEVEL_KEYS = ("claims", "sources", "writing_context", "key_findings")
+NON_EMPTY_KEYS = ("claims", "sources")
+SOURCE_KEYS = ("id", "url", "title", "quality", "published_at")
+CLAIM_KEYS = ("id", "text", "kind", "polarity", "topic_tag",
+              "answers_key_question", "evidence")
+EVIDENCE_KEYS = ("source_id", "snippet", "quote_type")
+CONTEXT_KEYS = ("id", "kind", "text", "source_ids", "applies_to", "use")
+FINDING_KEYS = ("finding", "claim_ids")
+
+# F6: fixed phrase list for the "no normative claims" heuristic. Keep this in
+# sync with evidence-contract.md rule 4 — word boundaries, case folded first.
+NORMATIVE_PHRASES = (
+    "should",
+    "ought to",
+    "we recommend",
+    "is recommended",
+    "are recommended",
+    "best practice",
+    "advisable",
+    "must adopt",
+)
+NORMATIVE_RE = re.compile(r"\b(?:%s)\b" % "|".join(
+    re.escape(phrase) for phrase in NORMATIVE_PHRASES))
+
+
+def _entry(code, message, where):
+    return {"code": code, "message": message, "where": where}
+
+
+def _emit(ok, errors, warnings):
+    """Print exactly one ASCII-safe JSON object on stdout."""
+    errors = sorted(errors, key=lambda item: (item["code"], item["where"]))
+    warnings = sorted(warnings, key=lambda item: (item["code"], item["where"]))
+    payload = {"ok": ok, "errors": errors, "warnings": warnings}
+    sys.stdout.write(json.dumps(payload, ensure_ascii=True) + "\n")
+    sys.stdout.flush()
+
+
+def _fail_input(message, where="$"):
+    """Bad input: report E_JSON and exit 2."""
+    _emit(False, [_entry("E_JSON", message, where)], [])
+    raise SystemExit(2)
+
+
+def _load_json(path):
+    try:
+        with open(path, "r", encoding="utf-8-sig") as handle:
+            text = handle.read()
+    except (OSError, UnicodeError) as exc:
+        _fail_input("cannot read %s: %s" % (path, exc), where=path)
+        raise SystemExit(2)  # unreachable; _fail_input always raises
+    try:
+        return json.loads(text)
+    except ValueError as exc:
+        _fail_input("invalid JSON in %s: %s" % (path, exc), where=path)
+        raise SystemExit(2)  # unreachable; _fail_input always raises
+
+
+def _non_empty(value):
+    return isinstance(value, str) and value.strip() != ""
+
+
+def _check_keys(obj, keys, where, errors):
+    for key in keys:
+        if key not in obj:
+            errors.append(_entry(
+                "E_SHAPE", "missing required field '%s'" % key,
+                "%s.%s" % (where, key)))
+
+
+def _validate_sources(doc, errors):
+    """Validate sources[]; return {source_id: {"quality", "url"}} metadata."""
+    meta = {}
+    sources = doc.get("sources")
+    if not isinstance(sources, list):
+        return meta
+    seen = set()
+    for index, source in enumerate(sources):
+        where = "sources[%d]" % index
+        if not isinstance(source, dict):
+            errors.append(_entry("E_SHAPE", "source must be an object", where))
+            continue
+        _check_keys(source, SOURCE_KEYS, where, errors)
+        source_id = source.get("id")
+        if "id" in source:
+            if not _non_empty(source_id):
+                errors.append(_entry(
+                    "E_SHAPE", "'id' must be a non-empty string",
+                    where + ".id"))
+            else:
+                if source_id in seen:
+                    errors.append(_entry(
+                        "E_ID_UNIQUE", "duplicate source id '%s'" % source_id,
+                        where + ".id"))
+                seen.add(source_id)
+                meta[source_id] = {
+                    "quality": source.get("quality"),
+                    "url": source.get("url"),
+                }
+        # F3: only the absolute http(s) shape is checked; reachability is not.
+        if "url" in source:
+            url = source.get("url")
+            if not (isinstance(url, str) and URL_RE.match(url.strip())):
+                errors.append(_entry(
+                    "E_SHAPE",
+                    "'url' must be a well-formed absolute http(s) URL "
+                    "(reachability is not machine-checked)",
+                    where + ".url"))
+        if "title" in source and not _non_empty(source.get("title")):
+            errors.append(_entry(
+                "E_SHAPE", "'title' must be a non-empty string",
+                where + ".title"))
+        if "quality" in source:
+            quality = source.get("quality")
+            if quality not in QUALITIES:
+                errors.append(_entry(
+                    "E_ENUM",
+                    "'quality' must be one of %s" % "|".join(QUALITIES),
+                    where + ".quality"))
+        if "published_at" in source:
+            published = source.get("published_at")
+            if published is not None and not (
+                    isinstance(published, str)
+                    and (DATE_RE.match(published) or DATETIME_RE.match(published))):
+                errors.append(_entry(
+                    "E_SHAPE",
+                    "'published_at' must be an ISO date (YYYY-MM-DD) or null",
+                    where + ".published_at"))
+    return meta
+
+
+def _validate_evidence(claim_where, evidence, source_meta, errors):
+    """Validate claims[].evidence[].
+
+    Returns (evidence_ok, distinct_source_ids, distinct_urls, credible).
+    ``distinct_*`` only count entries that resolve into ``source_meta``.
+    """
+    distinct_ids = set()
+    distinct_urls = set()
+    credible = False
+    if not isinstance(evidence, list):
+        errors.append(_entry(
+            "E_SHAPE", "'evidence' must be an array", claim_where + ".evidence"))
+        return False, distinct_ids, distinct_urls, credible
+    for index, item in enumerate(evidence):
+        where = "%s.evidence[%d]" % (claim_where, index)
+        if not isinstance(item, dict):
+            errors.append(_entry("E_SHAPE", "evidence item must be an object",
+                                 where))
+            continue
+        _check_keys(item, EVIDENCE_KEYS, where, errors)
+        if "source_id" in item:
+            source_id = item.get("source_id")
+            if not _non_empty(source_id):
+                errors.append(_entry(
+                    "E_SHAPE", "'source_id' must be a non-empty string",
+                    where + ".source_id"))
+            elif source_id not in source_meta:
+                errors.append(_entry(
+                    "E_REF_SOURCE",
+                    "source_id '%s' does not resolve to an entry in sources[]"
+                    % source_id, where + ".source_id"))
+            else:
+                distinct_ids.add(source_id)
+                record = source_meta[source_id]
+                if record.get("quality") in CREDIBLE_QUALITIES:
+                    credible = True
+                url = record.get("url")
+                if isinstance(url, str) and url.strip():
+                    distinct_urls.add(url.strip())
+        if "snippet" in item and not _non_empty(item.get("snippet")):
+            errors.append(_entry(
+                "E_SHAPE", "'snippet' must be a non-empty string",
+                where + ".snippet"))
+        if "quote_type" in item:
+            quote_type = item.get("quote_type")
+            if quote_type not in QUOTE_TYPES:
+                errors.append(_entry(
+                    "E_ENUM",
+                    "'quote_type' must be one of %s" % "|".join(QUOTE_TYPES),
+                    where + ".quote_type"))
+    return True, distinct_ids, distinct_urls, credible
+
+
+def _validate_claims(doc, source_meta, errors, warnings):
+    """Validate claims[]; return (claim_ids, axes, answered_kqs, has_refute)."""
+    claim_ids = set()
+    seen = set()
+    axes = []
+    answered = set()
+    has_refute = False
+
+    claims = doc.get("claims")
+    if not isinstance(claims, list):
+        return claim_ids, axes, answered, has_refute
+
+    for index, claim in enumerate(claims):
+        where = "claims[%d]" % index
+        if not isinstance(claim, dict):
+            errors.append(_entry("E_SHAPE", "claim must be an object", where))
+            continue
+        _check_keys(claim, CLAIM_KEYS, where, errors)
+
+        claim_id = claim.get("id")
+        if "id" in claim:
+            if not _non_empty(claim_id):
+                errors.append(_entry(
+                    "E_SHAPE", "'id' must be a non-empty string",
+                    where + ".id"))
+            elif not CLAIM_ID_RE.match(claim_id):
+                errors.append(_entry(
+                    "E_ID_PATTERN",
+                    "'id' must match dN.cM (e.g. d1.c2)", where + ".id"))
+            else:
+                if claim_id in seen:
+                    errors.append(_entry(
+                        "E_ID_UNIQUE", "duplicate claim id '%s'" % claim_id,
+                        where + ".id"))
+                seen.add(claim_id)
+                claim_ids.add(claim_id)
+                axes.append((index, claim_id.split(".")[0]))
+
+        text = claim.get("text")
+        if "text" in claim and not _non_empty(text):
+            errors.append(_entry(
+                "E_SHAPE", "'text' must be a non-empty string",
+                where + ".text"))
+        if "topic_tag" in claim and not _non_empty(claim.get("topic_tag")):
+            errors.append(_entry(
+                "E_SHAPE", "'topic_tag' must be a non-empty string",
+                where + ".topic_tag"))
+
+        kind = claim.get("kind")
+        if "kind" in claim and kind not in KINDS:
+            errors.append(_entry(
+                "E_ENUM", "'kind' must be one of %s" % "|".join(KINDS),
+                where + ".kind"))
+
+        polarity = claim.get("polarity")
+        if "polarity" in claim:
+            if polarity not in POLARITIES:
+                errors.append(_entry(
+                    "E_ENUM",
+                    "'polarity' must be one of %s" % "|".join(POLARITIES),
+                    where + ".polarity"))
+            elif polarity == "refute":
+                has_refute = True
+
+        if "answers_key_question" in claim:
+            key_question = claim.get("answers_key_question")
+            if key_question is not None:
+                if not (isinstance(key_question, str)
+                        and KEY_QUESTION_RE.match(key_question)):
+                    errors.append(_entry(
+                        "E_REF_KQ",
+                        "'answers_key_question' must be null or match kqN",
+                        where + ".answers_key_question"))
+                else:
+                    answered.add(key_question)
+
+        evidence_ok = False
+        distinct_ids = set()
+        distinct_urls = set()
+        credible = False
+        if "evidence" in claim:
+            evidence_ok, distinct_ids, distinct_urls, credible = \
+                _validate_evidence(where, claim.get("evidence"), source_meta,
+                                   errors)
+
+        if kind == "factual" and evidence_ok and not credible:
+            errors.append(_entry(
+                "E_FACTUAL_SOURCE",
+                "factual claim needs at least one evidence item backed by a "
+                "primary or secondary source", where))
+        elif kind == "projective" and evidence_ok:
+            evidence = claim.get("evidence")
+            if not isinstance(evidence, list) or len(evidence) < 1:
+                errors.append(_entry(
+                    "E_PROJECTIVE_BASIS",
+                    "projective claim needs at least one evidence item "
+                    "recording its basis", where))
+        elif kind == "interpretive" and evidence_ok:
+            # F5: two distinct source_ids AND distinct (stripped) urls.
+            if len(distinct_ids) < 2:
+                errors.append(_entry(
+                    "E_INTERPRETIVE_TWO",
+                    "interpretive claim needs evidence from at least two "
+                    "distinct source_ids (found %d)" % len(distinct_ids),
+                    where))
+            elif len(distinct_urls) < 2:
+                errors.append(_entry(
+                    "E_INTERPRETIVE_TWO",
+                    "interpretive claim needs distinct urls, but its %d "
+                    "distinct source_ids all share the url %r" % (
+                        len(distinct_ids),
+                        min(distinct_urls) if distinct_urls else ""),
+                    where))
+
+        if isinstance(text, str):
+            match = NORMATIVE_RE.search(text.lower())
+            if match:
+                errors.append(_entry(
+                    "E_NORMATIVE",
+                    "claim text is normative (matched %r); state what the "
+                    "evidence shows, not what anyone should do" % match.group(0),
+                    where))
+
+    return claim_ids, axes, answered, has_refute
+
+
+def _validate_writing_context(doc, source_ids, errors):
+    contexts = doc.get("writing_context")
+    if not isinstance(contexts, list):
+        return
+    seen = set()
+    for index, context in enumerate(contexts):
+        where = "writing_context[%d]" % index
+        if not isinstance(context, dict):
+            errors.append(_entry("E_SHAPE", "writing context must be an object",
+                                 where))
+            continue
+        _check_keys(context, CONTEXT_KEYS, where, errors)
+
+        context_id = context.get("id")
+        if "id" in context:
+            if not _non_empty(context_id):
+                errors.append(_entry(
+                    "E_SHAPE", "'id' must be a non-empty string",
+                    where + ".id"))
+            elif not CONTEXT_ID_RE.match(context_id):
+                errors.append(_entry(
+                    "E_ID_PATTERN",
+                    "'id' must match dN.wM (e.g. d1.w1)", where + ".id"))
+            else:
+                if context_id in seen:
+                    errors.append(_entry(
+                        "E_ID_UNIQUE",
+                        "duplicate writing context id '%s'" % context_id,
+                        where + ".id"))
+                seen.add(context_id)
+
+        for field in ("kind", "text", "use"):
+            if field in context and not _non_empty(context.get(field)):
+                errors.append(_entry(
+                    "E_SHAPE", "'%s' must be a non-empty string" % field,
+                    "%s.%s" % (where, field)))
+
+        if "source_ids" in context:
+            source_ids_value = context.get("source_ids")
+            if not isinstance(source_ids_value, list):
+                errors.append(_entry(
+                    "E_SHAPE", "'source_ids' must be an array",
+                    where + ".source_ids"))
+            else:
+                for offset, item in enumerate(source_ids_value):
+                    item_where = "%s.source_ids[%d]" % (where, offset)
+                    if not _non_empty(item):
+                        errors.append(_entry(
+                            "E_SHAPE",
+                            "source id must be a non-empty string", item_where))
+                    elif item not in source_ids:
+                        errors.append(_entry(
+                            "E_REF_SOURCE",
+                            "source_id '%s' does not resolve to an entry in "
+                            "sources[]" % item, item_where))
+
+        if "applies_to" in context:
+            applies_to = context.get("applies_to")
+            if not isinstance(applies_to, list):
+                errors.append(_entry(
+                    "E_SHAPE", "'applies_to' must be an array",
+                    where + ".applies_to"))
+            else:
+                for offset, item in enumerate(applies_to):
+                    item_where = "%s.applies_to[%d]" % (where, offset)
+                    if not _non_empty(item):
+                        errors.append(_entry(
+                            "E_SHAPE",
+                            "applies_to entry must be a non-empty string",
+                            item_where))
+                    elif not APPLIES_TO_RE.match(item):
+                        errors.append(_entry(
+                            "E_ID_PATTERN",
+                            "applies_to entry must be dN or dN.cM", item_where))
+
+
+def _validate_key_findings(doc, claim_ids, errors):
+    findings = doc.get("key_findings")
+    if not isinstance(findings, list):
+        return
+    for index, finding in enumerate(findings):
+        where = "key_findings[%d]" % index
+        if not isinstance(finding, dict):
+            errors.append(_entry("E_SHAPE", "key finding must be an object",
+                                 where))
+            continue
+        _check_keys(finding, FINDING_KEYS, where, errors)
+        if "finding" in finding and not _non_empty(finding.get("finding")):
+            errors.append(_entry(
+                "E_SHAPE", "'finding' must be a non-empty string",
+                where + ".finding"))
+        if "claim_ids" in finding:
+            referenced = finding.get("claim_ids")
+            if not isinstance(referenced, list):
+                errors.append(_entry(
+                    "E_SHAPE", "'claim_ids' must be an array",
+                    where + ".claim_ids"))
+                continue
+            if len(referenced) < 1:
+                errors.append(_entry(
+                    "E_SHAPE",
+                    "'claim_ids' must reference at least one claim",
+                    where + ".claim_ids"))
+                continue
+            for offset, item in enumerate(referenced):
+                item_where = "%s.claim_ids[%d]" % (where, offset)
+                if not _non_empty(item):
+                    errors.append(_entry(
+                        "E_SHAPE", "claim id must be a non-empty string",
+                        item_where))
+                elif item not in claim_ids:
+                    errors.append(_entry(
+                        "E_REF_CLAIM",
+                        "claim id '%s' does not resolve to a claim in this "
+                        "file" % item, item_where))
+
+
+def _cross_check_plan(plan, axes, answered, errors, warnings):
+    if not isinstance(plan, dict):
+        errors.append(_entry("E_SHAPE", "plan must be a JSON object", "$"))
+        return
+    dimensions = plan.get("dimensions")
+    if not isinstance(dimensions, list):
+        errors.append(_entry(
+            "E_SHAPE", "plan must contain a 'dimensions' array", "dimensions"))
+        return
+
+    dimension_ids = []
+    key_questions = []
+    for index, dimension in enumerate(dimensions):
+        where = "dimensions[%d]" % index
+        if not isinstance(dimension, dict):
+            errors.append(_entry("E_SHAPE", "dimension must be an object",
+                                 where))
+            continue
+        dimension_id = dimension.get("id")
+        if not _non_empty(dimension_id):
+            errors.append(_entry(
+                "E_SHAPE", "dimension 'id' must be a non-empty string",
+                where + ".id"))
+        else:
+            dimension_ids.append(dimension_id)
+        if "key_questions" in dimension:
+            questions = dimension.get("key_questions")
+            if not isinstance(questions, list):
+                errors.append(_entry(
+                    "E_SHAPE", "'key_questions' must be an array",
+                    where + ".key_questions"))
+                continue
+            for offset, question in enumerate(questions):
+                question_where = "%s.key_questions[%d]" % (where, offset)
+                if not isinstance(question, dict):
+                    errors.append(_entry(
+                        "E_SHAPE", "key question must be an object",
+                        question_where))
+                    continue
+                question_id = question.get("id")
+                if not _non_empty(question_id):
+                    errors.append(_entry(
+                        "E_SHAPE",
+                        "key question 'id' must be a non-empty string",
+                        question_where + ".id"))
+                else:
+                    key_questions.append((question_where, question_id))
+
+    declared = set(dimension_ids)
+    for claim_index, axis in axes:
+        if axis not in declared:
+            errors.append(_entry(
+                "E_PLAN_DIM_UNKNOWN",
+                "claim axis '%s' is not a dimension declared by the plan"
+                % axis, "claims[%d].id" % claim_index))
+
+    covered = set(axis for _, axis in axes)
+    for index, dimension_id in enumerate(dimension_ids):
+        if dimension_id not in covered:
+            errors.append(_entry(
+                "E_PLAN_DIM_UNCOVERED",
+                "plan dimension '%s' has no claim in this file" % dimension_id,
+                "dimensions[%d]" % index))
+
+    for question_where, question_id in key_questions:
+        if question_id not in answered:
+            warnings.append(_entry(
+                "W_KQ_UNANSWERED",
+                "plan key question '%s' is not answered by any claim"
+                % question_id, question_where))
+
+
+def validate(doc, plan):
+    errors = []
+    warnings = []
+
+    if not isinstance(doc, dict):
+        errors.append(_entry("E_SHAPE", "top level must be a JSON object", "$"))
+        return errors, warnings
+
+    for key in TOP_LEVEL_KEYS:
+        if key not in doc:
+            errors.append(_entry(
+                "E_SHAPE", "missing required top-level array '%s'" % key, key))
+        elif not isinstance(doc[key], list):
+            errors.append(_entry(
+                "E_SHAPE", "'%s' must be an array" % key, key))
+
+    # F2: claims[] and sources[] must be non-empty; key_findings[] may be
+    # empty but that is reported as a warning only. writing_context[] may be
+    # legitimately empty.
+    for key in NON_EMPTY_KEYS:
+        value = doc.get(key)
+        if isinstance(value, list) and len(value) == 0:
+            errors.append(_entry(
+                "E_EMPTY",
+                "'%s' must contain at least one entry" % key, key))
+    findings = doc.get("key_findings")
+    if isinstance(findings, list) and len(findings) == 0:
+        warnings.append(_entry(
+            "W_NO_FINDINGS",
+            "no key_findings recorded; the report has no derived synthesis",
+            "key_findings"))
+
+    source_meta = _validate_sources(doc, errors)
+    claim_ids, axes, answered, has_refute = _validate_claims(
+        doc, source_meta, errors, warnings)
+    _validate_writing_context(doc, set(source_meta), errors)
+    _validate_key_findings(doc, claim_ids, errors)
+
+    if not has_refute:
+        warnings.append(_entry(
+            "W_NO_REFUTE",
+            "no claim has polarity 'refute'; active falsification was probably "
+            "not attempted", "claims"))
+
+    if plan is not None:
+        _cross_check_plan(plan, axes, answered, errors, warnings)
+
+    return errors, warnings
+
+
+class _ArgumentParser(argparse.ArgumentParser):
+    """argparse that reports bad CLI usage as JSON on stdout and exits 2."""
+
+    def error(self, message):
+        _fail_input("bad command-line usage: %s" % message, where="$")
+
+
+def _build_parser():
+    parser = _ArgumentParser(
+        prog="check_evidence.py",
+        description="Validate evidence.json against the meld-deepresearch "
+                    "evidence contract.")
+    parser.add_argument(
+        "evidence", metavar="EVIDENCE_JSON",
+        help="path to the evidence.json file to validate")
+    parser.add_argument(
+        "--plan", metavar="PLAN_JSON", default=None,
+        help="optional plan.json: cross-check claim axes, plan dimensions and "
+             "declared key questions")
+    return parser
+
+
+def main(argv=None):
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    doc = _load_json(args.evidence)
+    plan = _load_json(args.plan) if args.plan is not None else None
+
+    errors, warnings = validate(doc, plan)
+    ok = not errors
+    _emit(ok, errors, warnings)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

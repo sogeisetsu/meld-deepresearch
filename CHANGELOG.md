@@ -13,8 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NOTICE`, `.gitignore`, `package.json`.
 - `AGENTS.md` (project conventions) and `docs/PLAN.md` (authoritative
   development plan, with design philosophy and borrow map).
+- The skill (M1): `skills/meld-deepresearch/SKILL.md` plus `references/protocol.md`,
+  `references/evidence-contract.md`, `references/tier-selection.md` and
+  `references/report-template.md`.
+- Validation scripts (M2), Python 3 standard library only:
+  `check_evidence.py`, `render_citations.py`, `dedupe_sources.py`.
+- `examples/sample-run/` (a complete illustrative run) and `examples/invalid/`
+  (negative fixtures for the validator).
+- CI workflow `.github/workflows/validate.yml`.
 
 ### Notes
 
-- The skill itself (`skills/meld-deepresearch/`) is not yet implemented; see
+- The skill is at version `0.1.0`; publication (M4) is still pending. See
   `docs/PLAN.md` milestones M1-M4.
