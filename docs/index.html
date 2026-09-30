@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>meld-deepresearch &#8212; a verifiable, citation-backed research skill</title>
 <meta name="description" content="A lightweight, portable Agent Skill that turns a vague topic into a verifiable, citation-backed research report. One skill, no framework, zero runtime dependencies.">
+<link rel="canonical" href="https://sogeisetsu.github.io/meld-deepresearch/">
+<!-- Social preview. The card lives next to this file as docs/og.png and is
+     served from the site root, so crawlers get the absolute URL. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="meld-deepresearch">
+<meta property="og:title" content="meld-deepresearch &#8212; a verifiable, citation-backed research skill">
+<meta property="og:description" content="One portable Agent Skill that turns a vague topic into a research report you can check, claim by claim. No framework, zero runtime dependencies, MIT.">
+<meta property="og:url" content="https://sogeisetsu.github.io/meld-deepresearch/">
+<meta property="og:image" content="https://sogeisetsu.github.io/meld-deepresearch/og.png">
+<meta property="og:image:alt" content="The meld-deepresearch wordmark above the line: turn a vague topic into a verifiable, citation-backed research report.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="meld-deepresearch &#8212; a verifiable, citation-backed research skill">
+<meta name="twitter:description" content="One portable Agent Skill that turns a vague topic into a research report you can check, claim by claim. No framework, zero runtime dependencies, MIT.">
+<meta name="twitter:image" content="https://sogeisetsu.github.io/meld-deepresearch/og.png">
 <meta name="color-scheme" content="light dark">
 <!-- One tint, kept in sync by the theme script; the theme is an explicit choice,
      so it must not be tied to the OS media query. -->
@@ -26,19 +40,17 @@
   --hairline-strong:#c3b9a2;
   --accent:#9d2f1c;
   --accent-soft:#f4e1d9;
+  --on-accent:#fdfbf6;
   --grid-dot:rgba(23,22,26,.09);
   --blur-bg:rgba(244,240,230,.86);
   --card-shadow:0 20px 42px -34px rgba(23,22,26,.6);
 
-  /* the "ink band" keeps a fixed dark identity in both themes */
-  --band-bg:#16151a;
-  --band-raised:#201f28;
-  --band-ink:#f4f1e9;
-  --band-ink-soft:#b6b1a6;
-  --band-hairline:#37363f;
-  --band-accent:#f08a63;
-  --band-accent-soft:#2b1d17;
-  --band-code:#0e0d12;
+  /* Code keeps a fixed dark identity in both themes: a dark block inside a
+     warm panel reads as "this is a command", not as a second theme. */
+  --code-bg:#151419;
+  --code-ink:#f4f1e9;
+  --code-hairline:#39373f;
+  --code-accent:#f08a63;
 
   --font-display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
   --font-sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -46,13 +58,23 @@
   /* CJK faces, appended after the Latin stack so Latin glyphs keep their own
      metrics and only Han characters fall through to a Chinese face. */
   --font-cjk:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Noto Sans SC","Source Han Sans SC","Heiti SC","WenQuanYi Micro Hei",sans-serif;
-  /* CJK display face: a real Chinese serif where the platform ships one, else the
-     sans stack above -- never a Latin serif trying to draw Han characters. */
-  --font-display-cjk:"Source Han Serif SC","Noto Serif SC","Songti SC",var(--font-sans),var(--font-cjk);
+  /* CJK display face: a real Chinese serif where the platform ships one -- the
+     Source Han / Noto Serif CJK pair on Linux and modern phones, Songti/STSong
+     and SimSun on macOS and Windows -- never a Latin serif drawing Han glyphs. */
+  --font-display-cjk:"Source Han Serif CN","Source Han Serif SC","Noto Serif CJK SC","Noto Serif SC","Songti SC",STSong,SimSun,var(--font-sans),var(--font-cjk);
 
   --radius:4px;
   --measure:74rem;
   --theme-color:#f4f0e6;
+  /* Reveals never go below this: the entrance is a lift with a short fade, so
+     content is always legible even before its animation has run. */
+  --reveal-min:.3;
+
+  /* layout */
+  --topbar-h:3.5rem;   /* the sticky bar; hero and anchors are measured against it */
+  --gutter:3.25rem;    /* the rail channel inside .flow */
+  --rail-x:1rem;       /* where the rail runs, from the content edge */
+  --badge:2rem;        /* the round act marker sitting on the rail */
 }
 
 /* Dark palette. Applied when the reader explicitly chose dark, and also when no
@@ -70,11 +92,10 @@
     --hairline-strong:#44444f;
     --accent:#e8835f;
     --accent-soft:#33201a;
+    --on-accent:#121215;
     --grid-dot:rgba(234,230,220,.075);
     --blur-bg:rgba(18,18,21,.88);
     --card-shadow:0 20px 42px -32px rgba(0,0,0,.95);
-    --band-bg:#1a1a21;
-    --band-raised:#23222c;
     --theme-color:#121215;
   }
 }
@@ -89,16 +110,69 @@
   --hairline-strong:#44444f;
   --accent:#e8835f;
   --accent-soft:#33201a;
+  --on-accent:#121215;
   --grid-dot:rgba(234,230,220,.075);
   --blur-bg:rgba(18,18,21,.88);
   --card-shadow:0 20px 42px -32px rgba(0,0,0,.95);
-  --band-bg:#1a1a21;
-  --band-raised:#23222c;
   --theme-color:#121215;
 }
 
 /* ============================================================
-   2. Base
+   2. Scroll-linked motion
+   Two numbers carry every scroll effect on this page.
+
+   --sp  this element's own progress through the viewport: 0 the moment it
+         enters from the bottom, 1 once it has left through the top. It drives
+         content visibility, so it is written by the script on every frame in
+         every browser -- a stale or missing sample must never be able to hide a
+         paragraph. Its registered initial value is 1, so with no script at all
+         (or under reduced motion) the page is simply complete and still, and a
+         fresh load at a deep hash is corrected by a settle pass before paint.
+   --hp  how far the page has been scrolled away from the top, 0 to 1 over the
+         first viewport -- the hero only. This one is decorative: browsers with
+         scroll-driven animations write it from CSS, the script writes it
+         elsewhere, and an unsampled value can only leave the hero slightly
+         faded, never hidden.
+
+   Consumers are written once, against these two numbers, so both engines
+   produce the same picture. `.sp` marks the carriers; it needs no rules of its
+   own beyond what `--sp` reaches. */
+@property --sp{syntax:"<number>";inherits:true;initial-value:1}
+@property --hp{syntax:"<number>";inherits:true;initial-value:0}
+
+@keyframes hero-drift{from{--hp:0}to{--hp:1}}
+@keyframes prog-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* Decorative only -- no content depends on either of these sampling on time. */
+@supports (animation-timeline: view()){
+  .hero{
+    animation:hero-drift linear both;
+    animation-timeline:scroll(root block);
+    animation-range:0 100vh;
+  }
+}
+@media (prefers-reduced-motion: no-preference){
+  @supports (animation-timeline: view()){
+    .progress{
+      animation:prog-grow linear both;
+      animation-timeline:scroll(root block);
+    }
+  }
+}
+
+/* The one reveal. --rate and --late shape when it lands; --lift how far it
+   travels. The ramp saturates at --sp .31, so anything in the top two thirds of
+   the screen is already fully readable, and nothing is ever fainter than
+   --reveal-min: the entrance is a lift with a short fade, never content
+   appearing out of nothing. */
+.up{
+  --e:clamp(0, calc(var(--sp) * var(--rate, 3.6) - var(--late, .12)), 1);
+  opacity:calc(var(--reveal-min) + (1 - var(--reveal-min)) * var(--e));
+  transform:translate(0, calc((1 - var(--e)) * var(--lift, 16px)));
+}
+
+/* ============================================================
+   3. Base
    ============================================================ */
 *,*::before,*::after{box-sizing:border-box}
 
@@ -118,7 +192,19 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 
-h1,h2,h3{
+/* One slow accent glow behind the whole page, drifting with reading progress.
+   Painted above the canvas background and below every in-flow box. */
+body::before{
+  content:"";
+  position:fixed;
+  inset:-20% -12%;
+  z-index:-1;
+  pointer-events:none;
+  background:radial-gradient(34% 22% at 76% 4%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 72%);
+  transform:translate(0, calc(var(--docp, 0) * -5vh));
+}
+
+h1,h2,h3,h4{
   margin:0;
   font-family:var(--font-display);
   font-weight:600;
@@ -167,9 +253,10 @@ code{
   text-transform:uppercase;
   color:var(--accent);
 }
+.num{font-variant-numeric:tabular-nums}
 
 /* ============================================================
-   3. Top bar
+   4. Top bar
    ============================================================ */
 .topbar{
   position:sticky;
@@ -183,65 +270,95 @@ code{
 .topbar-inner{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  gap:1rem;
-  min-height:3.5rem;
+  flex-wrap:nowrap;
+  gap:clamp(.45rem,1.3vw,1rem);
+  min-height:var(--topbar-h);
 }
 .brand{
   display:inline-flex;
   align-items:center;
-  gap:.55rem;
+  gap:.5rem;
+  margin-right:auto;
+  min-height:44px;
   font-family:var(--font-mono);
-  font-size:.8rem;
+  font-size:.82rem;
   font-weight:600;
   color:var(--ink);
   white-space:nowrap;
 }
 .brand:hover{color:var(--accent);text-decoration:none}
-.brand-mark{
-  width:.55rem;height:.55rem;
-  border-radius:50%;
+/* Same cropped mark, sized to sit with the mono label's cap height. */
+.brand-mark{display:block;width:auto;height:.8em;flex:0 0 auto}
+
+/* Reading progress. The animation drives it where scroll timelines exist;
+   the script writes --docp where they do not. */
+.progress{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-1px;
+  height:2px;
   background:var(--accent);
-  box-shadow:0 0 0 3px var(--accent-soft);
+  transform:scaleX(var(--docp, 0));
+  transform-origin:0 50%;
 }
+
+/* The current section, in the bar. Fixed width on desktop so the nav beside it
+   never shifts as the name changes. */
+.now{
+  display:none;
+  flex:0 0 auto;
+  width:11.5rem;
+  min-width:0;
+  overflow:hidden;
+  text-align:right;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+
 .nav-list{
   display:flex;
   align-items:center;
   justify-content:flex-end;
-  flex-wrap:wrap;
-  gap:.15rem;
+  gap:.1rem;
+  flex:0 0 auto;
 }
 .nav-list a{
   display:inline-block;
-  padding:.35rem .6rem;
+  padding:.4rem .6rem;
   border-radius:var(--radius);
   font-size:.85rem;
   font-weight:500;
   color:var(--ink-soft);
+  white-space:nowrap;
 }
 .nav-list a:hover{color:var(--ink);background:var(--bg-sunken);text-decoration:none}
+.nav-list a[aria-current="true"]{color:var(--ink);background:var(--bg-sunken)}
 .nav-list .nav-cta{
   border:1px solid var(--hairline-strong);
   color:var(--ink);
   font-family:var(--font-mono);
   font-size:.76rem;
 }
-.nav-list .nav-cta:hover{
+.nav-list .nav-cta:hover,
+.nav-list .nav-cta[aria-current="true"]{
   border-color:var(--accent);
   color:var(--accent);
   background:transparent;
 }
-@media (max-width:760px){
-  .nav-list li:not(:last-child){display:none}
-}
 
 /* ============================================================
-   4. Hero
+   5. Hero
    ============================================================ */
 .hero{
   position:relative;
   overflow:hidden;
-  padding-block:clamp(3rem,8vw,6.25rem) clamp(2.75rem,6vw,5rem);
+  padding-block:clamp(2.5rem,7vw,5rem) clamp(2.5rem,6vw,4.5rem);
 }
 .hero::before{
   content:"";
@@ -250,40 +367,79 @@ code{
   z-index:0;
   background-image:radial-gradient(var(--grid-dot) 1px,transparent 1px);
   background-size:22px 22px;
-  -webkit-mask-image:radial-gradient(85% 72% at 10% 0%,#000 8%,transparent 78%);
-  mask-image:radial-gradient(85% 72% at 10% 0%,#000 8%,transparent 78%);
+  background-position:0 calc(var(--hp) * 90px);
+  -webkit-mask-image:radial-gradient(90% 76% at 10% 0%,#000 6%,transparent 80%);
+  mask-image:radial-gradient(90% 76% at 10% 0%,#000 6%,transparent 80%);
 }
 .hero-inner{
   position:relative;
   z-index:1;
   display:grid;
-  gap:clamp(2.25rem,5vw,3.25rem);
+  gap:clamp(2rem,4.5vw,3rem);
+  opacity:calc(1 - var(--hp) * .5);
+  transform:scale(calc(1 - var(--hp) * .022));
+  transform-origin:50% 30%;
 }
 @media (min-width:900px){
   .hero-inner{
-    grid-template-columns:minmax(0,1.6fr) minmax(15rem,.85fr);
+    grid-template-columns:minmax(0,1.55fr) minmax(15rem,.85fr);
     align-items:end;
     gap:clamp(2.5rem,5vw,4.5rem);
   }
 }
+.hero-main{transform:translate(0, calc(var(--hp) * 34px))}
+.hero-rail{transform:translate(0, calc(var(--hp) * 8px))}
 
-.eyebrow{
+/* --- wordmark --- */
+.wordmark{
   display:flex;
-  align-items:center;
-  gap:.7rem;
+  align-items:baseline;
+  gap:clamp(.45rem,1.1vw,.8rem);
+  font-family:var(--font-display);
+  font-size:clamp(1.5rem,.9rem + 2.4vw,2.6rem);
+  font-weight:600;
+  line-height:1;
+  letter-spacing:-.028em;
+  color:var(--ink);
+  white-space:nowrap;
+}
+/* The mark is the M from the favicon, cropped in its own viewBox to the ink it
+   actually draws, so its box and its optical size are the same thing. At .74em
+   that is the display face's cap height, and baseline alignment puts its feet
+   on the wordmark's baseline -- a lockup, not a stray glyph. */
+.wm-mark{
+  height:.74em;
+  width:auto;
+  flex:0 0 auto;
+  color:var(--accent);
+}
+.wm-tail{color:var(--ink-soft)}
+.wm-dash{color:var(--accent);font-weight:400}
+
+/* --- identity badges under the wordmark --- */
+.badges{
+  display:flex;
+  flex-wrap:wrap;
+  row-gap:.3rem;
+  margin-top:1.15rem;
   font-family:var(--font-mono);
   font-size:.7rem;
-  letter-spacing:.16em;
+  letter-spacing:.1em;
   text-transform:uppercase;
   color:var(--ink-soft);
 }
-.eyebrow::before{content:"";flex:0 0 2.4rem;height:1px;background:var(--accent)}
+.badges li::after{
+  content:"\00b7";
+  padding-inline:.55rem;
+  color:var(--hairline-strong);
+}
+.badges li:last-child::after{content:none}
 
 .hero h1{
-  margin-top:1.15rem;
+  margin-top:1.4rem;
   max-width:25ch;
-  font-size:clamp(2.05rem,1rem + 4.7vw,4.1rem);
-  line-height:1.04;
+  font-size:clamp(1.95rem,.9rem + 4.4vw,3.85rem);
+  line-height:1.05;
   letter-spacing:-.022em;
 }
 /* Emphasis behind a phrase in each hero. A background, not an inset box-shadow:
@@ -308,7 +464,7 @@ code{
 }
 
 .lede{
-  margin-top:1.35rem;
+  margin-top:1.3rem;
   max-width:52ch;
   font-family:var(--font-display);
   font-size:clamp(1.04rem,.5vw + .94rem,1.28rem);
@@ -316,11 +472,12 @@ code{
   color:var(--ink-soft);
 }
 
-.actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:2rem}
+.actions{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.9rem}
 .btn{
   display:inline-flex;
   align-items:center;
   gap:.45rem;
+  min-height:44px;
   padding:.72rem 1.1rem;
   border:1px solid transparent;
   border-radius:var(--radius);
@@ -381,12 +538,33 @@ code{
 }
 
 /* ============================================================
-   5. Sections
+   6. Sections
+   One section = one screen on desktop: the content is centred in a full-height
+   band, so a section never ends in a stretch of dead space with the next
+   section's title peeking in above it.
    ============================================================ */
 .section{
-  padding-block:clamp(3rem,6.5vw,5.5rem);
+  padding-block:clamp(2.75rem,6vh,4.5rem);
   border-top:1px solid var(--hairline);
 }
+@media (min-width:900px){
+  .section{
+    min-height:100vh;
+    min-height:100svh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    scroll-margin-top:var(--topbar-h);
+  }
+  .hero{
+    min-height:calc(100vh - var(--topbar-h));
+    min-height:calc(100svh - var(--topbar-h));
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+}
+
 .sec-title{
   display:flex;
   align-items:center;
@@ -401,8 +579,16 @@ code{
   letter-spacing:.1em;
   color:var(--accent);
   transform:translateY(-.45em);
+  opacity:clamp(0, calc(var(--sp, 1) * 3.6 - 1.5), 1);
 }
-.sec-rule{flex:1 1 3rem;height:1px;min-width:1.5rem;background:var(--hairline)}
+.sec-rule{
+  flex:1 1 3rem;
+  height:1px;
+  min-width:1.5rem;
+  background:var(--hairline);
+  transform-origin:left center;
+  transform:scaleX(clamp(0, calc(var(--sp, 1) * 2.4 - .15), 1));
+}
 .sec-lede{
   margin-top:1.1rem;
   max-width:62ch;
@@ -451,32 +637,153 @@ code{
 .phil h3{font-size:1.1rem}
 .phil p{max-width:54ch;font-size:.92rem;color:var(--ink-soft)}
 
-/* --- pipeline --- */
-.flow{
+/* --- mid-path comparison --- */
+.compare{
+  display:grid;
+  gap:1px;
+  margin-top:clamp(1.75rem,3vw,2.5rem);
+  background:var(--hairline);
+  border:1px solid var(--hairline);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+@media (min-width:840px){.compare{grid-template-columns:repeat(3,1fr)}}
+.compare-col{
+  display:grid;
+  gap:.5rem;
+  align-content:start;
+  padding:clamp(1.15rem,2.2vw,1.7rem);
+  background:var(--bg-raised);
+}
+.compare-col--this{background:var(--bg);box-shadow:inset 2px 0 0 var(--accent)}
+.compare-tag{
+  font-family:var(--font-mono);
+  font-size:.64rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.compare-col--this .compare-tag{color:var(--accent)}
+.compare-col h3{font-size:1.08rem}
+.compare-col p{max-width:46ch;font-size:.9rem;color:var(--ink-soft)}
+.compare-note{
+  margin-top:clamp(1.25rem,2.5vw,1.75rem);
+  max-width:70ch;
+  font-size:.92rem;
+  color:var(--ink-soft);
+}
+.compare-links{
   display:flex;
   flex-wrap:wrap;
-  align-items:stretch;
-  gap:.85rem .1rem;
-  margin-top:clamp(1.75rem,3vw,2.5rem);
+  gap:.4rem 1.5rem;
+  margin-top:1rem;
+  font-family:var(--font-mono);
+  font-size:.76rem;
 }
-.flow li{display:flex;align-items:stretch}
-.flow li + li::before{
-  content:"\2192";
-  align-self:center;
-  margin-inline:.45rem;
-  color:var(--hairline-strong);
-  font-size:.95rem;
+
+/* --- pipeline: three acts on one rail --- */
+.flow{
+  position:relative;
+  display:grid;
+  gap:clamp(.9rem,2vw,1.5rem);
+  margin-top:clamp(1.75rem,3vw,2.5rem);
+  padding-left:var(--gutter);
+  --rail:clamp(0, calc(var(--sp) * 1.35 - .05), 1);
+}
+@media (min-width:900px){.flow{--gutter:3.75rem}}
+.flow::before,
+.flow::after{
+  content:"";
+  position:absolute;
+  top:.9rem;
+  bottom:.9rem;
+  left:var(--rail-x);
+  width:1px;
+}
+.flow::before{background:var(--hairline)}
+.flow::after{
+  width:2px;
+  margin-left:-.5px;
+  border-radius:2px;
+  background:var(--accent);
+  transform-origin:top center;
+  transform:scaleY(var(--rail, 1));
+}
+
+.act{
+  position:relative;
+  display:grid;
+  gap:.75rem;
+}
+.act-head{
+  position:relative;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:.1rem .8rem;
+  align-items:baseline;
+}
+/* The roundel sits on the rail, in the flow's left channel. */
+.act-badge{
+  position:absolute;
+  left:calc(var(--rail-x) - var(--gutter) - var(--badge) / 2);
+  top:.05rem;
+  display:grid;
+  place-items:center;
+  width:var(--badge);
+  height:var(--badge);
+  border:1px solid var(--hairline-strong);
+  border-radius:50%;
+  background:var(--bg);
+  font-family:var(--font-mono);
+  font-size:.74rem;
+  color:var(--ink-soft);
+  transform:scale(calc(.9 + var(--e, 1) * .1));
+  border-color:color-mix(in oklab, var(--hairline-strong), var(--accent) calc(var(--e, 1) * 100%));
+  background-color:color-mix(in oklab, var(--bg), var(--accent-soft) calc(var(--e, 1) * 100%));
+  color:color-mix(in oklab, var(--ink-soft), var(--accent) calc(var(--e, 1) * 100%));
+}
+.act-title{font-size:clamp(1rem,.4vw + .95rem,1.24rem)}
+.act-count{
+  grid-column:2;
+  grid-row:1;
+  font-family:var(--font-mono);
+  font-size:.64rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.act-note{
+  grid-column:1/-1;
+  max-width:62ch;
+  font-size:.87rem;
+  color:var(--ink-soft);
+}
+.act{--rate:3.4;--late:.95}
+.act-count{opacity:clamp(0, calc(var(--sp, 1) * 3.4 - .95), 1)}
+
+.steps{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr));
+  gap:.6rem;
 }
 .step{
   display:grid;
   gap:.15rem;
-  width:12rem;
-  max-width:100%;
-  padding:.6rem .78rem;
+  align-content:start;
+  min-width:0;
+  padding:.55rem .7rem;
   border:1px solid var(--hairline);
   border-radius:var(--radius);
   background:var(--bg-raised);
+  --e:clamp(0, calc(var(--sp, 1) * 3.6 - .5 - var(--d, 0)), 1);
+  opacity:calc(var(--reveal-min) + (1 - var(--reveal-min)) * var(--e));
+  transform:translate(0, calc((1 - var(--e)) * 12px));
 }
+.steps > .step:nth-child(2){--d:.06}
+.steps > .step:nth-child(3){--d:.12}
+.steps > .step:nth-child(4){--d:.18}
+.steps > .step:nth-child(5){--d:.24}
 .step-name{
   display:flex;
   align-items:baseline;
@@ -488,17 +795,64 @@ code{
 }
 .step-n{font-size:.66rem;font-weight:500;letter-spacing:.06em;color:var(--ink-soft)}
 .step-note{font-size:.72rem;line-height:1.45;color:var(--ink-soft)}
-.step.is-gate{border-color:var(--accent);background:var(--accent-soft)}
-.step.is-gate .step-name,
-.step.is-gate .step-note,
-.step.is-gate .step-n{color:var(--accent)}
-.step.is-gate .step-note{opacity:.9}
-@media (max-width:600px){
-  .flow{flex-direction:column;align-items:stretch;gap:.3rem}
-  .flow li{flex-direction:column;align-items:flex-start}
-  .flow li + li::before{content:"\2193";margin:.15rem 0 .15rem 1rem}
-  .step{width:100%}
+
+/* Gates are bars, not cards: they span the whole grid they sit in. */
+.gate{
+  position:relative;
+  grid-column:1/-1;
+  --d:calc(var(--sp) * 2 - 1);
+  --ad:max(var(--d), calc(-1 * var(--d)));
+  --pulse:clamp(0, calc(1 - var(--ad) * 4), 1);
 }
+.gate::before{
+  content:"";
+  position:absolute;
+  left:calc(var(--rail-x) - var(--gutter));
+  top:50%;
+  width:.6rem;
+  height:.6rem;
+  border:1.5px solid var(--accent);
+  background:var(--bg);
+  transform:translate(-50%,-50%) rotate(45deg);
+}
+.gate .step{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  gap:.2rem 1rem;
+  width:100%;
+  padding:.7rem .85rem;
+  border-color:var(--accent);
+  border-left-width:3px;
+  background:var(--accent-soft);
+  opacity:1;
+  transform:scale(calc(1 + var(--pulse, 0) * .008));
+  box-shadow:0 0 calc(var(--pulse, 0) * 20px) calc(var(--pulse, 0) * 2px) color-mix(in oklab, var(--accent) 28%, transparent);
+}
+.gate .step-note{
+  display:flex;
+  flex:1 1 auto;
+  align-items:center;
+  justify-content:flex-end;
+  gap:1rem;
+  min-width:0;
+  text-align:right;
+}
+/* The note hangs at the far end of the bar and a dashed rule runs out to meet
+   it, so the gate reads as one line rather than two labels with a hole between
+   them. */
+.gate .step-note::before{
+  content:"";
+  flex:1 1 2rem;
+  min-width:1.25rem;
+  height:1px;
+  background-image:repeating-linear-gradient(90deg,var(--accent) 0 5px,transparent 5px 11px);
+  opacity:.42;
+}
+.gate .step-name,
+.gate .step-note,
+.gate .step-n{color:var(--accent)}
+.gate .step-note{opacity:.92}
 .gate-note{
   margin-top:clamp(1.5rem,2.5vw,2rem);
   max-width:68ch;
@@ -570,7 +924,7 @@ code{
 }
 .table-scroll th:first-child,
 .table-scroll td:first-child{text-align:left;padding-left:0}
-.table-scroll td{font-family:var(--font-mono);color:var(--ink)}
+.table-scroll td{font-family:var(--font-mono);color:var(--ink);font-variant-numeric:tabular-nums}
 .table-scroll tbody tr:last-child th,
 .table-scroll tbody tr:last-child td{border-bottom:0}
 
@@ -589,9 +943,17 @@ code{
   border:1px solid var(--hairline);
   border-radius:var(--radius);
   background:var(--bg-raised);
-  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+  transition:border-color .18s ease,box-shadow .18s ease;
 }
-.card:hover{transform:translateY(-3px);border-color:var(--hairline-strong);box-shadow:var(--card-shadow)}
+.card:hover{border-color:var(--hairline-strong);box-shadow:var(--card-shadow)}
+.cards > .card:nth-child(2){--d:.08}
+.cards > .card:nth-child(3){--d:.16}
+.cards > .card:nth-child(4){--d:.24}
+.card{
+  --e:clamp(0, calc(var(--sp, 1) * 3.6 - .5 - var(--d, 0)), 1);
+  opacity:calc(var(--reveal-min) + (1 - var(--reveal-min)) * var(--e));
+  transform:translate(0, calc((1 - var(--e)) * 18px));
+}
 .card-title{
   display:flex;
   align-items:center;
@@ -612,21 +974,104 @@ code{
 .cards + .fine{margin-top:clamp(1.5rem,2.5vw,2rem)}
 
 /* ============================================================
-   6. Ink band (install)
+   7. Credits
    ============================================================ */
-.section--band{
-  --bg:var(--band-bg);
-  --bg-raised:var(--band-raised);
-  --bg-sunken:var(--band-code);
-  --ink:var(--band-ink);
-  --ink-soft:var(--band-ink-soft);
-  --hairline:var(--band-hairline);
-  --hairline-strong:var(--band-hairline);
-  --accent:var(--band-accent);
-  --accent-soft:var(--band-accent-soft);
-  background:var(--band-bg);
-  color:var(--band-ink);
-  border-top:1px solid var(--band-hairline);
+.marquee{
+  position:relative;
+  overflow:hidden;
+  margin-top:clamp(1.5rem,3vw,2.25rem);
+  padding-block:.7rem;
+  border-block:1px solid var(--hairline);
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+}
+.marquee-track{
+  display:flex;
+  width:max-content;
+  will-change:transform;
+}
+.marquee-row{display:flex;align-items:center;white-space:nowrap}
+.marquee-item{
+  display:inline-flex;
+  align-items:center;
+  gap:1.4rem;
+  padding-right:1.4rem;
+  font-family:var(--font-mono);
+  font-size:.76rem;
+  color:var(--ink-soft);
+}
+.marquee-item::after{content:"\00b7";color:var(--hairline-strong)}
+
+.credits{
+  display:grid;
+  gap:clamp(1.5rem,3vw,2.25rem);
+  margin-top:clamp(1.75rem,3vw,2.5rem);
+}
+.tier{display:grid;gap:.9rem}
+.tier-label{
+  display:flex;
+  align-items:center;
+  gap:.8rem;
+  font-family:var(--font-mono);
+  font-size:.68rem;
+  font-weight:500;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.tier-label::after{content:"";flex:1 1 auto;height:1px;background:var(--hairline)}
+.borrow-list{display:grid;gap:1rem}
+@media (min-width:840px){.borrow-list{grid-template-columns:1fr 1fr}}
+.borrow{
+  display:grid;
+  gap:.45rem;
+  align-content:start;
+  padding:clamp(1.05rem,2.2vw,1.5rem);
+  border:1px solid var(--hairline);
+  border-left:2px solid var(--accent);
+  border-radius:var(--radius);
+  background:var(--bg-raised);
+}
+.borrow .lic{
+  font-family:var(--font-mono);
+  font-size:.62rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+}
+.borrow-name{font-family:var(--font-mono);font-size:.92rem;font-weight:600}
+.borrow p{font-size:.89rem;color:var(--ink-soft);max-width:56ch}
+
+.wall{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));
+  gap:.4rem;
+}
+.wall li{
+  display:flex;
+  align-items:baseline;
+  min-width:0;
+  padding:.5rem .7rem;
+  border:1px solid var(--hairline);
+  border-radius:var(--radius);
+  background:var(--bg-raised);
+  font-size:.84rem;
+  line-height:1.4;
+}
+.wall a{color:var(--ink)}
+.wall a:hover{color:var(--accent);border-color:var(--accent);text-decoration:none}
+.wall a{display:block;width:100%}
+.wall span{color:var(--ink-soft)}
+
+/* ============================================================
+   8. Install
+   The section follows the theme -- a soft accent tint and a top accent rule,
+   no forced dark band. Only the command blocks stay dark.
+   ============================================================ */
+.section--install{
+  border-top:2px solid var(--accent);
+  background:var(--bg-raised);
+  background:color-mix(in oklab, var(--accent) 7%, var(--bg-raised));
 }
 .install-card{
   display:grid;
@@ -641,8 +1086,8 @@ code{
   position:relative;
   margin:0;
   padding:.8rem .9rem .8rem 1.85rem;
-  background:var(--band-code);
-  border:1px solid var(--hairline);
+  background:var(--code-bg);
+  border:1px solid var(--code-hairline);
   border-radius:3px;
   white-space:pre-wrap;
   overflow-wrap:anywhere;
@@ -654,13 +1099,13 @@ code{
   top:.8rem;
   font-family:var(--font-mono);
   font-size:.8rem;
-  color:var(--accent);
+  color:var(--code-accent);
 }
 .install-card pre code{
   padding:0;
   background:none;
   font-size:.82rem;
-  color:var(--band-ink);
+  color:var(--code-ink);
 }
 .chips{display:flex;flex-wrap:wrap;gap:.4rem}
 .chip{
@@ -675,10 +1120,12 @@ code{
 .panel .chips{margin-top:.9rem}
 
 /* ============================================================
-   7. Footer
+   9. Footer
+   Given room on purpose: it closes the page, and the last section's scroll
+   effects need something below them to finish against.
    ============================================================ */
 .footer{
-  padding-block:clamp(2rem,4vw,3rem);
+  padding-block:clamp(3rem,9vh,6rem);
   border-top:1px solid var(--hairline);
 }
 .footer-inner{display:grid;gap:1.25rem}
@@ -706,113 +1153,88 @@ code{
 }
 
 /* ============================================================
-   8. Motion
+   10. Controls
    ============================================================ */
-@keyframes rise{
-  from{opacity:0;transform:translateY(16px)}
-  to{opacity:1;transform:none}
-}
-
-@media (prefers-reduced-motion: no-preference){
-  .rise{animation:rise .75s cubic-bezier(.22,.72,.18,1) both}
-  .hero-main .rise:nth-child(1){animation-delay:.05s}
-  .hero-main .rise:nth-child(2){animation-delay:.13s}
-  .hero-main .rise:nth-child(3){animation-delay:.21s}
-  .hero-main .rise:nth-child(4){animation-delay:.29s}
-  .hero-rail.rise{animation-delay:.38s}
-
-  /* Scroll-driven reveals, no JavaScript. Browsers without
-     animation-timeline simply leave the content visible. */
-  @supports (animation-timeline: view()){
-    .reveal{
-      animation:rise 1s linear both;
-      animation-timeline:view();
-      animation-range:entry 15% cover 25%;
-    }
-  }
-}
-
-@media (prefers-reduced-motion: reduce){
-  html{scroll-behavior:auto}
-  *,*::before,*::after{
-    animation-duration:.01ms !important;
-    animation-delay:0ms !important;
-    animation-iteration-count:1 !important;
-    transition-duration:.01ms !important;
-  }
-  .btn:hover,
-  .card:hover{transform:none}
-}
-/* ============================================================
-   Theme + language controls
-   ============================================================ */
-.no-js .tools{display:none}          /* a control that cannot work is not offered */
+.no-js .tools{display:none}   /* a control that cannot work is not offered */
+.no-js .now{display:none}
 :root[data-theme="light"]{color-scheme:light}
 :root[data-theme="dark"]{color-scheme:dark}
 
-.topbar-inner{display:flex;align-items:center;gap:clamp(.55rem,1.6vw,1.25rem)}
-.brand{margin-right:auto}
-
 .tools{display:flex;align-items:center;gap:.45rem;flex:0 0 auto}
 
+/* --- theme: one round button, one icon at a time --- */
 .ctl{
   -webkit-appearance:none;appearance:none;
-  display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
-  min-width:44px;min-height:44px;padding:0 .5rem;
-  font:inherit;font-size:.84rem;font-weight:600;letter-spacing:.01em;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:44px;height:44px;flex:0 0 auto;padding:0;
   color:var(--ink-soft);background:var(--bg-raised);
-  border:1px solid var(--hairline-strong);border-radius:var(--radius);
+  border:1px solid var(--hairline-strong);border-radius:50%;
   cursor:pointer;
-  transition:color .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease;
+  transition:color .2s ease,background-color .2s ease,border-color .2s ease,box-shadow .2s ease;
 }
-.ctl:hover{color:var(--ink);border-color:var(--hairline-strong);box-shadow:var(--card-shadow)}
+.ctl:hover{color:var(--accent);border-color:var(--accent);box-shadow:var(--card-shadow)}
 .ctl:active{transform:translateY(1px)}
-.ctl svg{width:17px;height:17px;display:block;flex:0 0 auto}
-
-/* the theme button shows the mode a click will move to */
-.icon-sun,.icon-moon{display:none}
-:root[data-theme="dark"] .icon-sun{display:block}
-:root:not([data-theme="dark"]) .icon-moon{display:block}
-
-.seg{
-  display:inline-flex;align-items:stretch;gap:2px;padding:2px;
-  background:var(--bg-sunken);border:1px solid var(--hairline-strong);border-radius:var(--radius);
+.ctl-icons{position:relative;display:block;width:1.25rem;height:1.25rem}
+.ico{
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  transition:opacity .3s ease,transform .38s cubic-bezier(.22,.72,.18,1);
 }
+/* The icon shows the mode a click moves to: moon in light, sun in dark. */
+.ico--moon{opacity:1;transform:none}
+.ico--sun{opacity:0;transform:rotate(-80deg) scale(.4)}
+:root[data-theme="dark"] .ico--moon{opacity:0;transform:rotate(80deg) scale(.4)}
+:root[data-theme="dark"] .ico--sun{opacity:1;transform:none}
+
+/* --- language: a pill with a sliding indicator --- */
+.seg{
+  position:relative;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  width:8.6rem;
+  padding:2px;
+  background:var(--bg-sunken);
+  border:1px solid var(--hairline-strong);
+  border-radius:999px;
+}
+.seg-slider{
+  position:absolute;
+  top:2px;
+  left:2px;
+  bottom:2px;
+  width:calc(50% - 2px);
+  border-radius:999px;
+  background:var(--accent);
+  transition:transform .3s cubic-bezier(.22,.72,.18,1);
+}
+:root[data-lang="zh-Hans"] .seg-slider{transform:translateX(100%)}
 .seg button{
   -webkit-appearance:none;appearance:none;
-  min-width:54px;min-height:38px;padding:0 .55rem;
-  font:inherit;font-size:.82rem;font-weight:600;line-height:1;
-  color:var(--ink-soft);background:transparent;border:0;border-radius:3px;cursor:pointer;
-  transition:color .18s ease,background-color .18s ease;
+  position:relative;
+  z-index:1;
+  display:flex;align-items:center;justify-content:center;
+  min-height:44px;
+  padding:0 .3rem;
+  font:inherit;
+  font-size:.82rem;
+  font-weight:600;
+  line-height:1;
+  color:var(--ink-soft);
+  background:none;border:0;border-radius:999px;
+  cursor:pointer;
+  transition:color .25s ease;
 }
 .seg button:hover{color:var(--ink)}
-.seg button[aria-pressed="true"]{color:var(--bg-raised);background:var(--accent)}
+.seg button[aria-pressed="true"],
+.seg button[aria-pressed="true"]:hover{color:var(--on-accent)}
 .seg button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .seg .seg-cjk{font-family:var(--font-cjk)}
 
-@media (max-width:760px){
-  .topbar-inner{gap:.4rem;flex-wrap:wrap}
-  .tools{gap:.3rem}
-  .seg button{min-width:46px;min-height:36px;padding:0 .4rem}
-  .ctl{min-width:44px;padding:0 .4rem}
-}
-
-/* Small screens: the repository link is still reachable from the hero and the
-   footer, so it leaves the bar to make room for the two controls. The wordmark
-   stays until the very narrowest phones, where the mark alone carries it -- and
-   the brand link keeps a 44px tap area either way. */
-@media (max-width:600px){
-  .nav-list{display:none}
-  .topbar-inner{gap:.3rem}
-  .brand{display:inline-flex;align-items:center;min-height:44px}
-}
-@media (max-width:379px){
-  .brand-text{display:none}
-  .brand{min-width:44px;justify-content:center}
-}
-
 /* ============================================================
-   Language blocks
+   11. Language blocks
    Only the block matching html[data-lang] renders. That attribute is written
    statically as "en" in the source, so with JavaScript switched off entirely
    the English page is still exactly what a reader gets.
@@ -821,12 +1243,8 @@ code{
 :root[data-lang="en"] [data-lang-block="en"],
 :root[data-lang="zh-Hans"] [data-lang-block="zh-Hans"]{display:block}
 
-@media print{
-  [data-lang-block]{display:block}
-}
-
 /* ============================================================
-   Chinese typography
+   12. Chinese typography
    Han characters need their own face, leading and measure. A Latin serif asked
    to draw them is the usual give-away, so the Chinese block switches faces.
    ============================================================ */
@@ -846,23 +1264,108 @@ code{
 :root[data-lang="zh-Hans"] .lede,
 :root[data-lang="zh-Hans"] .sec-lede{line-height:1.9}
 :root[data-lang="zh-Hans"] .kicker,
-:root[data-lang="zh-Hans"] .eyebrow{letter-spacing:.05em}
+:root[data-lang="zh-Hans"] .badges,
+:root[data-lang="zh-Hans"] .now,
+:root[data-lang="zh-Hans"] .tier-label,
+:root[data-lang="zh-Hans"] .compare-tag,
+:root[data-lang="zh-Hans"] .act-count,
+:root[data-lang="zh-Hans"] .marquee-item{letter-spacing:.04em}
 :root[data-lang="zh-Hans"] code,
 :root[data-lang="zh-Hans"] pre,
 :root[data-lang="zh-Hans"] .path-line{font-family:var(--font-mono)}
+:root[data-lang="zh-Hans"] .wall li{line-height:1.5}
 
 /* ============================================================
-   Theme transition and small polish
+   13. Theme transition and small polish
    ============================================================ */
 @media (prefers-reduced-motion: no-preference){
-  body,.ctl,.seg,.card,.panel,.install-card,.topbar,.footer,code,pre,.chip,.btn{
+  body,.ctl,.seg,.card,.panel,.install-card,.topbar,.footer,code,pre,.chip,.btn,.borrow,.wall li,.step,.compare-col{
     transition:background-color .25s ease,color .25s ease,border-color .25s ease;
   }
 }
 
 a:focus-visible{outline-color:var(--accent)}
-.split > *{min-width:0}
 .table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+svg{overflow:visible}
+
+/* ============================================================
+   14. Reduced motion
+   Everything scroll-linked settles into its final, fully visible state: --sp
+   keeps its registered initial value of 1 and --hp keeps 0, so no consumer has
+   anything left to animate.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{
+    animation-duration:.01ms !important;
+    animation-delay:0ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+  .sp,.hero,.marquee-track{animation:none !important}
+  .sec-rule{transform:none}
+  .sec-num{opacity:1}
+  .btn:hover,.ctl:hover{transform:none}
+}
+
+/* ============================================================
+   15. Responsive bar
+   The bar never wraps and never overflows. Written mobile first, so each step
+   up only adds a thing once the room for it actually exists: the section name
+   first, then the links, then the name beside the links, then the repository
+   link -- which is also in the hero and the footer, so nothing is ever lost.
+   ============================================================ */
+.nav-list{display:none}
+.brand{margin-right:0}
+.now{
+  display:block;
+  flex:1 1 auto;
+  width:auto;
+  max-width:none;
+  text-align:left;
+}
+.seg{width:7.4rem}
+
+@media (min-width:880px){          /* room for six links */
+  .nav-list{display:flex}
+  .nav-list .nav-cta{display:none}
+  .brand{margin-right:auto}
+  .now{display:none}
+}
+@media (min-width:1080px){         /* room for the current section beside them */
+  .now{display:block;flex:0 0 auto;width:11.5rem;text-align:right}
+}
+@media (min-width:1170px){         /* room for the repository link too */
+  .nav-list .nav-cta{display:inline-block}
+}
+@media (max-width:600px){
+  .brand-text{display:none}
+  .brand{min-width:44px;justify-content:center;gap:0}
+  .brand-mark{height:1.1em}
+  .tools{gap:.35rem}
+}
+@media (max-width:420px){
+  .seg{width:6.6rem}
+}
+
+/* ============================================================
+   16. Print
+   Only the language the reader is actually looking at is printed: the
+   non-matching block keeps its display:none from the rule above. Everything
+   scroll-linked is forced back to its final state.
+   ============================================================ */
+@media print{
+  body::before,.hero::before,.marquee{display:none}
+  .topbar{position:static}
+  .progress,.tools,.now,.skip-link{display:none}
+  .section,.hero{min-height:0;display:block}
+  .hero-inner,.hero-main,.hero-rail{transform:none;opacity:1}
+  .sp,.up,.step,.card,.sec-num,.act-count{opacity:1 !important;transform:none !important}
+  .sec-rule{transform:none}
+  .gate .step{box-shadow:none;transform:none}
+  .card,.panel,.step,.phil li,.borrow,.install-card,.compare-col{break-inside:avoid}
+  .marquee-track{transform:none !important}
+}
 </style>
 <script>
 /* Resolve the language and the theme before the first frame is painted, so a
@@ -908,46 +1411,64 @@ a:focus-visible{outline-color:var(--accent)}
 <header class="topbar" id="top">
   <div class="wrap topbar-inner">
     <a class="brand" href="#top">
-      <span class="brand-mark" aria-hidden="true"></span>
+      <svg class="brand-mark" viewBox="7.4 8.4 17.2 16.2" aria-hidden="true"><path d="M9 23V10l7 6.5L23 10v13" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span class="brand-text">meld-deepresearch</span>
     </a>
+    <p class="now" aria-hidden="true"></p>
     <nav aria-label="Sections">
       <ul class="nav-list" role="list">
         <li><a href="#philosophy">Philosophy</a></li>
+        <li><a href="#why">Why</a></li>
         <li><a href="#pipeline">Pipeline</a></li>
         <li><a href="#deliverables">Deliverables</a></li>
         <li><a href="#install">Install</a></li>
+        <li><a href="#credits">Credits</a></li>
         <li><a class="nav-cta" href="https://github.com/sogeisetsu/meld-deepresearch">GitHub<span aria-hidden="true"> &#8599;</span></a></li>
       </ul>
     </nav>
     <div class="tools">
       <div class="seg" role="group" aria-label="Report language">
+        <span class="seg-slider" aria-hidden="true"></span>
         <button type="button" data-lang-set="en" aria-pressed="true">EN</button>
         <button type="button" data-lang-set="zh-Hans" aria-pressed="false" class="seg-cjk">&#20013;&#25991;</button>
       </div>
       <button type="button" class="ctl" data-theme-toggle aria-pressed="false" aria-label="Switch to dark theme" title="Switch to dark theme">
-        <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.2A8.7 8.7 0 1 1 10.8 3.1a6.8 6.8 0 0 0 10.1 10.1Z"/></svg>
-        <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></svg>
+        <span class="ctl-icons" aria-hidden="true">
+          <svg class="ico ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.2A8.7 8.7 0 1 1 10.8 3.1a6.8 6.8 0 0 0 10.1 10.1Z"/></svg>
+          <svg class="ico ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></svg>
+        </span>
       </button>
     </div>
   </div>
+  <span class="progress" aria-hidden="true"></span>
 </header>
 
 <main id="main">
 
-  <section class="hero" aria-labelledby="hero-title">
+  <section class="hero" data-now="Overview" data-now-short="Overview" aria-labelledby="hero-title">
     <div class="wrap hero-inner">
       <div class="hero-main">
-        <p class="eyebrow rise">Agent Skill &#183; v0.1.0 &#183; MIT</p>
-        <h1 id="hero-title" class="rise">Turn a vague topic into a <span class="hl">verifiable, citation-backed</span> research report.</h1>
-        <p class="lede rise">One portable skill &#8212; not a multi-agent framework. It runs on any host that supports the Agent Skills open standard: opencode, Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and more.</p>
-        <div class="actions rise">
+        <p class="wordmark">
+          <svg class="wm-mark" viewBox="7.4 8.4 17.2 16.2" aria-hidden="true"><path d="M9 23V10l7 6.5L23 10v13" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>meld<span class="wm-dash">-</span><span class="wm-tail">deepresearch</span></span>
+        </p>
+
+        <ul class="badges" role="list">
+          <li>Agent Skills standard</li>
+          <li>zero runtime deps</li>
+          <li>MIT</li>
+          <li><span class="num" data-count-to="6">6</span> hosts</li>
+        </ul>
+
+        <h1 id="hero-title">Turn a vague topic into a <span class="hl">verifiable, citation-backed</span> research report.</h1>
+        <p class="lede">One portable skill &#8212; not a multi-agent framework. It runs on any host that supports the Agent Skills open standard: opencode, Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and more.</p>
+        <div class="actions">
           <a class="btn btn--primary" href="#install">Install the skill</a>
           <a class="btn btn--ghost" href="https://github.com/sogeisetsu/meld-deepresearch">Read the repository<span aria-hidden="true"> &#8599;</span></a>
         </div>
       </div>
 
-      <aside class="hero-rail rise" aria-label="Key facts">
+      <aside class="hero-rail" aria-label="Key facts">
         <p class="kicker">At a glance</p>
         <dl class="spec">
           <div class="spec-row">
@@ -966,60 +1487,56 @@ a:focus-visible{outline-color:var(--accent)}
             <dt>Tiers</dt>
             <dd>quick / normal, auto-selected</dd>
           </div>
-          <div class="spec-row">
-            <dt>License</dt>
-            <dd>MIT</dd>
-          </div>
         </dl>
         <p class="status">
           <span class="status-tag">Status</span>
-          The skill is implemented and exercised by CI on a curated example; publication is still pending (M4).
+          v0.1.0 &#183; the skill is implemented and exercised by CI on a curated example; publication is still pending (M4).
         </p>
       </aside>
     </div>
   </section>
 
-  <section class="section" id="philosophy" aria-labelledby="philosophy-title">
+  <section class="section" id="philosophy" data-now="Design philosophy" data-now-short="Philosophy" data-num="01" aria-labelledby="philosophy-title">
     <div class="wrap">
-      <h2 class="sec-title" id="philosophy-title">
+      <h2 class="sec-title sp up" id="philosophy-title">
         <span class="sec-num" aria-hidden="true">01</span>
         <span>Design philosophy</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede reveal">Quality comes from traceable evidence and active falsification &#8212; not from more agents. Seven rules keep every run honest.</p>
+      <p class="sec-lede sp up">Quality comes from traceable evidence and active falsification &#8212; not from more agents. Seven rules keep every run honest.</p>
 
       <ol class="phil" role="list">
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">01</span>
           <h3>Discipline over orchestration</h3>
           <p>Quality comes from traceable evidence and active falsification, not from more agents.</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">02</span>
           <h3>One skill, zero runtime dependencies</h3>
           <p>One portable skill, no framework. The scripts are Python standard library only, and no host-specific tool names are hardcoded.</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">03</span>
           <h3>Files are the source of truth</h3>
           <p>Research artifacts are written to disk; the model context keeps only conclusions.</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">04</span>
           <h3>Mechanical gates over good intentions</h3>
           <p>A validator enforces the evidence rules and can fail the run.</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">05</span>
           <h3>Two tiers, not three</h3>
           <p><code>quick</code> and <code>normal</code>, chosen automatically from the question. No heavy orchestration.</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">06</span>
           <h3>Verifiability over polish</h3>
           <p>Every claim is clickable; anything unverified is labelled <code>unknown</code>.</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">07</span>
           <h3>Falsification is mandatory</h3>
           <p>Counter-evidence and contradictions are actively searched, never assumed absent.</p>
@@ -1028,34 +1545,106 @@ a:focus-visible{outline-color:var(--accent)}
     </div>
   </section>
 
-  <section class="section" id="pipeline" aria-labelledby="pipeline-title">
+  <section class="section" id="why" data-now="Why this exists" data-now-short="Why" data-num="02" aria-labelledby="why-title">
     <div class="wrap">
-      <h2 class="sec-title" id="pipeline-title">
+      <h2 class="sec-title sp up" id="why-title">
         <span class="sec-num" aria-hidden="true">02</span>
+        <span>Why another research skill</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede sp up">Most deep-research tooling is either a heavy multi-agent framework or a thin prompt. This skill takes the middle path.</p>
+
+      <ul class="compare" role="list">
+        <li class="compare-col sp up">
+          <p class="compare-tag">Heavy multi-agent frameworks</p>
+          <h3>Split across many agents</h3>
+          <p>The work is handed to many specialised agents, with a layer of orchestration holding them together.</p>
+        </li>
+        <li class="compare-col sp up">
+          <p class="compare-tag">Thin single prompts</p>
+          <h3>One prompt, nothing checked</h3>
+          <p>A single prompt asks a model for a research report. Nothing verifies what comes back.</p>
+        </li>
+        <li class="compare-col compare-col--this sp up">
+          <p class="compare-tag">This project &#183; the middle path</p>
+          <h3>One skill, evidence on disk</h3>
+          <p>Evidence is written to disk, a validator can fail the run, anything unverified is labelled <code>unknown</code>, and counter-evidence is searched on purpose.</p>
+        </li>
+      </ul>
+
+      <p class="compare-note sp up">It borrows the best ideas from both open-source and big-tech deep research &#8212; evidence contracts, source quality tiers, refute obligations, budget-aware stopping, multi-perspective questioning &#8212; and distils them into a single, self-contained skill.</p>
+      <p class="compare-links">
+        <a href="#philosophy">The seven rules in full</a>
+        <a href="#credits">Who the ideas came from</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="pipeline" data-now="How it works" data-now-short="Pipeline" data-num="03" aria-labelledby="pipeline-title">
+    <div class="wrap">
+      <h2 class="sec-title sp up" id="pipeline-title">
+        <span class="sec-num" aria-hidden="true">03</span>
         <span>How it works</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede reveal">Twelve stages, two hard gates. Raw retrieval and structured evidence go to disk; the context keeps only conclusions.</p>
+      <p class="sec-lede sp up">Twelve stages, two hard gates. Raw retrieval and structured evidence go to disk; the context keeps only conclusions.</p>
 
-      <ol class="flow reveal">
-        <li><span class="step"><span class="step-name"><span class="step-n">01</span>probe</span><span class="step-note">capability check</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">02</span>anchor</span><span class="step-note">language &#183; format &#183; output dir</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">03</span>clarify</span><span class="step-note">1&#8211;3 scope questions</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">04</span>tier</span><span class="step-note">quick | normal</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">05</span>plan</span><span class="step-note">named research axes</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">06</span>research</span><span class="step-note">search &#8594; open &#8594; evaluate</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">07</span>merge</span><span class="step-note">one evidence.json</span></span></li>
-        <li><span class="step is-gate"><span class="step-name"><span class="step-n">08</span>Gate &#9312;</span><span class="step-note">validator must report ok</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">09</span>write</span><span class="step-note">inline citations, no new facts</span></span></li>
-        <li><span class="step is-gate"><span class="step-name"><span class="step-n">10</span>Gate &#9313;</span><span class="step-note">no orphan, no unresolved</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">11</span>sources</span><span class="step-note">normalize + de-duplicate</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">12</span>deliver</span><span class="step-note">4 artifacts + coverage &amp; gaps</span></span></li>
+      <ol class="flow sp" role="list">
+        <li class="act sp">
+          <div class="act-head">
+            <span class="act-badge" aria-hidden="true">1</span>
+            <h3 class="act-title">Plan</h3>
+            <p class="act-count"><span class="num" data-count-to="5">5</span> stages</p>
+            <p class="act-note">Work out what is being asked, what the host can do, and how deep to go.</p>
+          </div>
+          <ol class="steps" role="list">
+            <li class="step"><span class="step-name"><span class="step-n">01</span>probe</span><span class="step-note">capability check</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">02</span>anchor</span><span class="step-note">language &#183; format &#183; output dir</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">03</span>clarify</span><span class="step-note">1&#8211;3 scope questions</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">04</span>tier</span><span class="step-note">quick | normal</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">05</span>plan</span><span class="step-note">named research axes</span></li>
+          </ol>
+        </li>
+
+        <li class="act sp">
+          <div class="act-head">
+            <span class="act-badge" aria-hidden="true">2</span>
+            <h3 class="act-title">Research</h3>
+            <p class="act-count"><span class="num" data-count-to="2">2</span> stages</p>
+            <p class="act-note">Search, open the original pages, read them, and merge the evidence into one file.</p>
+          </div>
+          <ol class="steps" role="list">
+            <li class="step"><span class="step-name"><span class="step-n">06</span>research</span><span class="step-note">search &#8594; open &#8594; evaluate</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">07</span>merge</span><span class="step-note">one evidence.json</span></li>
+          </ol>
+        </li>
+
+        <li class="gate sp">
+          <span class="step is-gate"><span class="step-name"><span class="step-n">08</span>Gate &#9312;</span><span class="step-note">validator must report ok</span></span>
+        </li>
+
+        <li class="act sp">
+          <div class="act-head">
+            <span class="act-badge" aria-hidden="true">3</span>
+            <h3 class="act-title">Verify &amp; write</h3>
+            <p class="act-count"><span class="num" data-count-to="3">3</span> stages</p>
+            <p class="act-note">Write the report from that evidence, render the citations, and deliver the four artifacts.</p>
+          </div>
+          <ol class="steps" role="list">
+            <li class="step"><span class="step-name"><span class="step-n">09</span>write</span><span class="step-note">inline citations, no new facts</span></li>
+            <li class="gate sp">
+              <span class="step is-gate"><span class="step-name"><span class="step-n">10</span>Gate &#9313;</span><span class="step-note">no orphan, no unresolved</span></span>
+            </li>
+            <li class="step"><span class="step-name"><span class="step-n">11</span>sources</span><span class="step-note">normalize + de-duplicate</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">12</span>deliver</span><span class="step-note">4 artifacts + coverage &amp; gaps</span></li>
+          </ol>
+        </li>
       </ol>
 
-      <p class="gate-note reveal">Gate &#9312; runs the evidence validator: the run only continues when it reports <code>ok</code>. Gate &#9313; renders the citations and fails on any orphan or unresolved reference. When a gate cannot pass, the run stops and reports that honestly instead of delivering a broken report.</p>
+      <p class="gate-note sp up">Gate &#9312; runs the evidence validator: the run only continues when it reports <code>ok</code>. Gate &#9313; renders the citations and fails on any orphan or unresolved reference. When a gate cannot pass, the run stops and reports that honestly instead of delivering a broken report.</p>
 
       <div class="split">
-        <div class="panel reveal">
+        <div class="panel sp up">
           <h3>Key rules</h3>
           <ul class="rules" role="list">
             <li>Search before fetching. A result snippet is never evidence.</li>
@@ -1065,7 +1654,7 @@ a:focus-visible{outline-color:var(--accent)}
             <li>Stop at the budget and return the best coverage found rather than looping forever.</li>
           </ul>
         </div>
-        <div class="panel reveal">
+        <div class="panel sp up">
           <h3 id="budget-title">Budget and stop conditions</h3>
           <div class="table-scroll">
             <table aria-labelledby="budget-title">
@@ -1099,55 +1688,55 @@ a:focus-visible{outline-color:var(--accent)}
     </div>
   </section>
 
-  <section class="section" id="deliverables" aria-labelledby="deliverables-title">
+  <section class="section" id="deliverables" data-now="Deliverables" data-now-short="Files" data-num="04" aria-labelledby="deliverables-title">
     <div class="wrap">
-      <h2 class="sec-title" id="deliverables-title">
-        <span class="sec-num" aria-hidden="true">03</span>
+      <h2 class="sec-title sp up" id="deliverables-title">
+        <span class="sec-num" aria-hidden="true">04</span>
         <span>Deliverables</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede reveal">Every run writes four artifacts into one directory.</p>
-      <p class="path-line reveal">meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/</p>
+      <p class="sec-lede sp up">Every run writes four artifacts into one directory.</p>
+      <p class="path-line sp up">meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/</p>
 
       <ul class="cards" role="list">
-        <li class="card reveal">
+        <li class="card sp up">
           <h3 class="card-title">report.md</h3>
           <p>The final report, with inline numbered citations.</p>
         </li>
-        <li class="card reveal">
+        <li class="card sp up">
           <h3 class="card-title">sources.md</h3>
           <p>The de-duplicated source list.</p>
         </li>
-        <li class="card reveal">
+        <li class="card sp up">
           <h3 class="card-title">evidence.json</h3>
           <p>Structured claims, evidence, sources, and boundaries.</p>
         </li>
-        <li class="card reveal">
+        <li class="card sp up">
           <h3 class="card-title">citations.json</h3>
           <p>The citation map used to render the report.</p>
         </li>
       </ul>
 
-      <p class="fine reveal">The report's own <code>## Sources</code> section is written by the renderer, not by the model, and citations are never hand-numbered. If the host has no filesystem access, the report is returned inline and the run states that nothing was persisted.</p>
+      <p class="fine sp up">The report's own <code>## Sources</code> section is written by the renderer, not by the model, and citations are never hand-numbered. If the host has no filesystem access, the report is returned inline and the run states that nothing was persisted.</p>
     </div>
   </section>
 
-  <section class="section section--band" id="install" aria-labelledby="install-title">
+  <section class="section section--install" id="install" data-now="Install" data-now-short="Install" data-num="05" aria-labelledby="install-title">
     <div class="wrap">
-      <h2 class="sec-title" id="install-title">
-        <span class="sec-num" aria-hidden="true">04</span>
+      <h2 class="sec-title sp up" id="install-title">
+        <span class="sec-num" aria-hidden="true">05</span>
         <span>Install</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede reveal">The skill is a directory containing <code>SKILL.md</code>, <code>references/</code> and <code>scripts/</code>. Install it with either one-liner.</p>
+      <p class="sec-lede sp up">The skill is a directory containing <code>SKILL.md</code>, <code>references/</code> and <code>scripts/</code>. Install it with either one-liner.</p>
 
       <div class="split">
-        <div class="install-card reveal">
+        <div class="install-card sp up">
           <p class="kicker">skills.sh / Vercel skills CLI</p>
           <pre><code>npx skills add sogeisetsu/meld-deepresearch</code></pre>
           <p class="fine">Installs into the hosts that the skills CLI supports.</p>
         </div>
-        <div class="install-card reveal">
+        <div class="install-card sp up">
           <p class="kicker">GitHub CLI v2.90.0+</p>
           <pre><code>gh skill install sogeisetsu/meld-deepresearch meld-deepresearch</code></pre>
           <p class="fine">Works across Copilot, Claude Code, Cursor, Codex and Gemini.</p>
@@ -1155,7 +1744,7 @@ a:focus-visible{outline-color:var(--accent)}
       </div>
 
       <div class="split">
-        <div class="panel reveal">
+        <div class="panel sp up">
           <h3>Manual install</h3>
           <p>Copy <code>skills/meld-deepresearch/</code> into your host's skills directory. The cross-tool path <code>~/.agents/skills/</code> is recognized by several hosts. No configuration is required: the skill uses the host's model, and you do not configure a model for it.</p>
           <ul class="chips" role="list">
@@ -1167,7 +1756,7 @@ a:focus-visible{outline-color:var(--accent)}
             <li class="chip">Gemini CLI</li>
           </ul>
         </div>
-        <div class="panel reveal">
+        <div class="panel sp up">
           <h3>Requirements</h3>
           <ul class="rules" role="list">
             <li>A host that supports the Agent Skills open standard.</li>
@@ -1175,6 +1764,107 @@ a:focus-visible{outline-color:var(--accent)}
             <li>File read/write and command execution, for the scripts and the artifacts.</li>
             <li>Python 3, standard library only, for the validator, the citation renderer and the source de-duplicator. The run degrades gracefully when those scripts cannot be executed, and says so in its output.</li>
           </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="credits" data-now="Credits" data-now-short="Credits" data-num="06" aria-labelledby="credits-title">
+    <div class="wrap">
+      <h2 class="sec-title sp up" id="credits-title">
+        <span class="sec-num" aria-hidden="true">06</span>
+        <span>Standing on the shoulders of many</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede sp up">This skill borrowed mechanisms, and in two cases text, from other projects. The two tiers below are kept apart on purpose: one is reuse under a licence, the other is inspiration only.</p>
+
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee-track">
+          <ul class="marquee-row">
+            <li class="marquee-item">SenseNova-Skills</li>
+            <li class="marquee-item">Deep-Research-skills</li>
+            <li class="marquee-item">OpenAI Deep Research</li>
+            <li class="marquee-item">Google Gemini Deep Research</li>
+            <li class="marquee-item">Anthropic multi-agent research</li>
+            <li class="marquee-item">Microsoft 365 Copilot Researcher</li>
+            <li class="marquee-item">Perplexity Deep Research</li>
+            <li class="marquee-item">xAI Grok DeepSearch</li>
+            <li class="marquee-item">Alibaba-NLP/DeepResearch</li>
+            <li class="marquee-item">bytedance/deer-flow</li>
+            <li class="marquee-item">Moonshot Kimi</li>
+            <li class="marquee-item">Baidu Qianfan Deep Research</li>
+            <li class="marquee-item">Zhipu AutoGLM</li>
+            <li class="marquee-item">Tencent Hunyuan Hyra</li>
+            <li class="marquee-item">stanford-oval/storm</li>
+            <li class="marquee-item">SalesforceAIResearch/enterprise-deep-research</li>
+            <li class="marquee-item">assafelovic/gpt-researcher</li>
+            <li class="marquee-item">langchain-ai/open_deep_research</li>
+            <li class="marquee-item">199-biotechnologies/claude-deep-research-skill</li>
+          </ul>
+          <ul class="marquee-row">
+            <li class="marquee-item">SenseNova-Skills</li>
+            <li class="marquee-item">Deep-Research-skills</li>
+            <li class="marquee-item">OpenAI Deep Research</li>
+            <li class="marquee-item">Google Gemini Deep Research</li>
+            <li class="marquee-item">Anthropic multi-agent research</li>
+            <li class="marquee-item">Microsoft 365 Copilot Researcher</li>
+            <li class="marquee-item">Perplexity Deep Research</li>
+            <li class="marquee-item">xAI Grok DeepSearch</li>
+            <li class="marquee-item">Alibaba-NLP/DeepResearch</li>
+            <li class="marquee-item">bytedance/deer-flow</li>
+            <li class="marquee-item">Moonshot Kimi</li>
+            <li class="marquee-item">Baidu Qianfan Deep Research</li>
+            <li class="marquee-item">Zhipu AutoGLM</li>
+            <li class="marquee-item">Tencent Hunyuan Hyra</li>
+            <li class="marquee-item">stanford-oval/storm</li>
+            <li class="marquee-item">SalesforceAIResearch/enterprise-deep-research</li>
+            <li class="marquee-item">assafelovic/gpt-researcher</li>
+            <li class="marquee-item">langchain-ai/open_deep_research</li>
+            <li class="marquee-item">199-biotechnologies/claude-deep-research-skill</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="credits">
+        <div class="tier">
+          <h3 class="tier-label">Borrowed text and mechanism &#183; MIT</h3>
+          <div class="borrow-list">
+            <article class="borrow sp up">
+              <p class="lic">MIT</p>
+              <p class="borrow-name"><a href="https://github.com/OpenSenseNova/SenseNova-Skills">SenseNova-Skills</a></p>
+              <p>The evidence contract &#8212; claims, evidence, sources, quote types, source quality tiers, the refute obligation &#8212; along with the mechanical validators, citation rendering, the search &#8594; URL &#8594; fetch &#8594; evaluate loop, the time-sensitivity strategy, and the failure and retry design.</p>
+            </article>
+            <article class="borrow sp up">
+              <p class="lic">MIT</p>
+              <p class="borrow-name"><a href="https://github.com/Weizhena/Deep-Research-skills">Deep-Research-skills</a></p>
+              <p>The two-phase outline-to-deep flow, the human-in-the-loop checkpoints, and the item-and-field structured research objects.</p>
+            </article>
+          </div>
+          <p class="fine sp up">Both are MIT, so their text may be reused with attribution. Everything borrowed is recorded in <a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/NOTICE">NOTICE</a>.</p>
+        </div>
+
+        <div class="tier">
+          <h3 class="tier-label">Methodology inspiration only &#183; no text reused</h3>
+          <ul class="wall" role="list">
+            <li><span>OpenAI Deep Research</span></li>
+            <li><span>Google Gemini Deep Research</span></li>
+            <li><span>Anthropic multi-agent research system</span></li>
+            <li><span>Microsoft 365 Copilot Researcher</span></li>
+            <li><span>Perplexity Deep Research</span></li>
+            <li><span>xAI Grok DeepSearch</span></li>
+            <li><a href="https://github.com/Alibaba-NLP/DeepResearch">Alibaba-NLP/DeepResearch</a></li>
+            <li><a href="https://github.com/bytedance/deer-flow">bytedance/deer-flow</a></li>
+            <li><span>Moonshot Kimi</span></li>
+            <li><span>Baidu Qianfan Deep Research</span></li>
+            <li><span>Zhipu AutoGLM</span></li>
+            <li><a href="https://hy.tencent.com/research/hyra">Tencent Hunyuan Hyra</a></li>
+            <li><a href="https://github.com/stanford-oval/storm">stanford-oval/storm</a></li>
+            <li><a href="https://github.com/SalesforceAIResearch/enterprise-deep-research">SalesforceAIResearch/enterprise-deep-research</a></li>
+            <li><a href="https://github.com/assafelovic/gpt-researcher">assafelovic/gpt-researcher</a></li>
+            <li><a href="https://github.com/langchain-ai/open_deep_research">langchain-ai/open_deep_research</a></li>
+            <li><a href="https://github.com/199-biotechnologies/claude-deep-research-skill">199-biotechnologies/claude-deep-research-skill</a></li>
+          </ul>
+          <p class="fine sp up">The full borrow map is in <a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/docs/PLAN.md">docs/PLAN.md</a>, section 7. The attribution list is in <a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/NOTICE">NOTICE</a>.</p>
         </div>
       </div>
     </div>
@@ -1192,6 +1882,7 @@ a:focus-visible{outline-color:var(--accent)}
       <ul class="footer-links" role="list">
         <li><a href="https://github.com/sogeisetsu/meld-deepresearch">GitHub repository<span aria-hidden="true"> &#8599;</span></a></li>
         <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/ZH/README-ZH.md">Chinese README<span aria-hidden="true"> &#8599;</span></a></li>
+        <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/NOTICE">NOTICE<span aria-hidden="true"> &#8599;</span></a></li>
         <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/LICENSE">MIT license<span aria-hidden="true"> &#8599;</span></a></li>
       </ul>
     </nav>
@@ -1207,46 +1898,64 @@ a:focus-visible{outline-color:var(--accent)}
 <header class="topbar" id="top-zh">
   <div class="wrap topbar-inner">
     <a class="brand" href="#top-zh">
-      <span class="brand-mark" aria-hidden="true"></span>
+      <svg class="brand-mark" viewBox="7.4 8.4 17.2 16.2" aria-hidden="true"><path d="M9 23V10l7 6.5L23 10v13" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span class="brand-text">meld-deepresearch</span>
     </a>
+    <p class="now" aria-hidden="true"></p>
     <nav aria-label="页面导航">
       <ul class="nav-list" role="list">
-        <li><a href="#philosophy-zh">设计理念</a></li>
-        <li><a href="#pipeline-zh">工作流程</a></li>
-        <li><a href="#deliverables-zh">交付产物</a></li>
+        <li><a href="#philosophy-zh">理念</a></li>
+        <li><a href="#why-zh">定位</a></li>
+        <li><a href="#pipeline-zh">流程</a></li>
+        <li><a href="#deliverables-zh">产物</a></li>
         <li><a href="#install-zh">安装</a></li>
+        <li><a href="#credits-zh">借鉴</a></li>
         <li><a class="nav-cta" href="https://github.com/sogeisetsu/meld-deepresearch">GitHub<span aria-hidden="true"> &#8599;</span></a></li>
       </ul>
     </nav>
     <div class="tools">
       <div class="seg" role="group" aria-label="报告语言">
+        <span class="seg-slider" aria-hidden="true"></span>
         <button type="button" data-lang-set="en" aria-pressed="false">EN</button>
         <button type="button" data-lang-set="zh-Hans" aria-pressed="true" class="seg-cjk">&#20013;&#25991;</button>
       </div>
       <button type="button" class="ctl" data-theme-toggle aria-pressed="false" aria-label="切换到深色模式" title="切换到深色模式">
-        <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.2A8.7 8.7 0 1 1 10.8 3.1a6.8 6.8 0 0 0 10.1 10.1Z"/></svg>
-        <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></svg>
+        <span class="ctl-icons" aria-hidden="true">
+          <svg class="ico ico--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.2A8.7 8.7 0 1 1 10.8 3.1a6.8 6.8 0 0 0 10.1 10.1Z"/></svg>
+          <svg class="ico ico--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4 17 7M7 17l-1.6 1.6"/></svg>
+        </span>
       </button>
     </div>
   </div>
+  <span class="progress" aria-hidden="true"></span>
 </header>
 
 <main id="main-zh">
 
-  <section class="hero" aria-labelledby="hero-title-zh">
+  <section class="hero" data-now="概览" data-now-short="概览" aria-labelledby="hero-title-zh">
     <div class="wrap hero-inner">
       <div class="hero-main">
-        <p class="eyebrow rise">Agent Skill &#183; v0.1.0 &#183; MIT</p>
-        <h1 id="hero-title-zh" class="rise">把含糊的话题，变成一份<span class="hl">可核查、每句话都有引用</span>的研究报告。</h1>
-        <p class="lede rise">一个可移植的 skill，而不是多智能体框架。任何支持 Agent Skills 开放标准的主机都能直接加载：opencode、Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等。</p>
-        <div class="actions rise">
+        <p class="wordmark">
+          <svg class="wm-mark" viewBox="7.4 8.4 17.2 16.2" aria-hidden="true"><path d="M9 23V10l7 6.5L23 10v13" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>meld<span class="wm-dash">-</span><span class="wm-tail">deepresearch</span></span>
+        </p>
+
+        <ul class="badges" role="list">
+          <li>Agent Skills 标准</li>
+          <li>零运行时依赖</li>
+          <li>MIT</li>
+          <li><span class="num" data-count-to="6">6</span> 个宿主</li>
+        </ul>
+
+        <h1 id="hero-title-zh">把含糊的话题，变成一份<span class="hl">可核查、每句话都有引用</span>的研究报告。</h1>
+        <p class="lede">一个可移植的 skill，而不是多智能体框架。任何支持 Agent Skills 开放标准的主机都能直接加载：opencode、Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等。</p>
+        <div class="actions">
           <a class="btn btn--primary" href="#install-zh">安装这个 skill</a>
           <a class="btn btn--ghost" href="https://github.com/sogeisetsu/meld-deepresearch">查看仓库<span aria-hidden="true"> &#8599;</span></a>
         </div>
       </div>
 
-      <aside class="hero-rail rise" aria-label="关键信息">
+      <aside class="hero-rail" aria-label="关键信息">
         <p class="kicker">速览</p>
         <dl class="spec">
           <div class="spec-row">
@@ -1265,60 +1974,56 @@ a:focus-visible{outline-color:var(--accent)}
             <dt>档位</dt>
             <dd>quick / normal，自动选择</dd>
           </div>
-          <div class="spec-row">
-            <dt>许可证</dt>
-            <dd>MIT</dd>
-          </div>
         </dl>
         <p class="status">
           <span class="status-tag">状态</span>
-          skill 已实现，并在 CI 上用一份精选示例全程跑通；正式发布（M4）尚未进行。
+          v0.1.0 &#183; skill 已实现，并在 CI 上用一份精选示例全程跑通；正式发布（M4）尚未进行。
         </p>
       </aside>
     </div>
   </section>
 
-  <section class="section" id="philosophy-zh" aria-labelledby="philosophy-title-zh">
+  <section class="section" id="philosophy-zh" data-now="设计理念" data-now-short="理念" data-num="01" aria-labelledby="philosophy-title-zh">
     <div class="wrap">
-      <h2 class="sec-title" id="philosophy-title-zh">
+      <h2 class="sec-title sp up" id="philosophy-title-zh">
         <span class="sec-num" aria-hidden="true">01</span>
         <span>设计理念</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede reveal">质量来自可追溯的证据和主动证伪，而不是更多的智能体。七条规则让每一次运行都经得起检查。</p>
+      <p class="sec-lede sp up">质量来自可追溯的证据和主动证伪，而不是更多的智能体。七条规则让每一次运行都经得起检查。</p>
 
       <ol class="phil" role="list">
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">01</span>
           <h3>纪律优先于编排</h3>
           <p>质量来自可追溯的证据和主动证伪，而不是更多的智能体。</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">02</span>
           <h3>一个 skill，零运行时依赖</h3>
           <p>只有一个可移植的 skill，没有框架。脚本只用 Python 标准库，也不硬编码任何宿主专属的工具名。</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">03</span>
           <h3>文件才是唯一事实来源</h3>
           <p>研究过程全部落盘；模型上下文只保留结论。</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">04</span>
           <h3>机械门禁取代良好意愿</h3>
           <p>证据规则由校验器强制执行，校验不通过，这一轮就直接失败。</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">05</span>
           <h3>两档，而不是三档</h3>
           <p><code>quick</code> 与 <code>normal</code>，按问题自动选择。没有繁重的编排。</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">06</span>
           <h3>可核查优先于好看</h3>
           <p>每一条论断都可点击追溯；无法核实的一律标注为 <code>unknown</code>。</p>
         </li>
-        <li class="reveal">
+        <li class="sp up">
           <span class="phil-n">07</span>
           <h3>证伪是强制动作</h3>
           <p>反面证据和相互矛盾的结论必须主动搜寻，绝不能默认它们不存在。</p>
@@ -1327,34 +2032,106 @@ a:focus-visible{outline-color:var(--accent)}
     </div>
   </section>
 
-  <section class="section" id="pipeline-zh" aria-labelledby="pipeline-title-zh">
+  <section class="section" id="why-zh" data-now="为什么再做一个" data-now-short="定位" data-num="02" aria-labelledby="why-title-zh">
     <div class="wrap">
-      <h2 class="sec-title" id="pipeline-title-zh">
+      <h2 class="sec-title sp up" id="why-title-zh">
         <span class="sec-num" aria-hidden="true">02</span>
+        <span>为什么还要再做一个</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede sp up">大多数深度研究方案，要么是一套笨重的多智能体框架，要么只是一句单薄的 prompt。这个 skill 走的是中间那条路。</p>
+
+      <ul class="compare" role="list">
+        <li class="compare-col sp up">
+          <p class="compare-tag">多智能体框架</p>
+          <h3>拆给很多个智能体</h3>
+          <p>任务交给许多各司其职的智能体，外面再套一层编排把它们串起来。</p>
+        </li>
+        <li class="compare-col sp up">
+          <p class="compare-tag">单句 prompt</p>
+          <h3>一句 prompt，没人核对</h3>
+          <p>一句 prompt 让模型去研究一个话题。快，但交回来的东西没有任何环节会核对。</p>
+        </li>
+        <li class="compare-col compare-col--this sp up">
+          <p class="compare-tag">这个项目 &#183; 中间那条路</p>
+          <h3>一个 skill，证据落盘</h3>
+          <p>证据写进磁盘，校验器可以判定这一轮失败，查不到的一律标 <code>unknown</code>，反面证据要主动去找。</p>
+        </li>
+      </ul>
+
+      <p class="compare-note sp up">它把开源与大厂深度研究里最好的做法收拾到一起 &#8212;&#8212; 证据契约、来源质量分档、证伪义务、按预算停止、多视角提问 &#8212;&#8212; 再收进一个自包含的 skill。</p>
+      <p class="compare-links">
+        <a href="#philosophy-zh">七条规则全文</a>
+        <a href="#credits-zh">这些想法从哪儿来</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="pipeline-zh" data-now="工作流程" data-now-short="流程" data-num="03" aria-labelledby="pipeline-title-zh">
+    <div class="wrap">
+      <h2 class="sec-title sp up" id="pipeline-title-zh">
+        <span class="sec-num" aria-hidden="true">03</span>
         <span>工作流程</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede reveal">十二个阶段，两道硬门禁。原始检索结果与结构化证据全部落盘，上下文只保留结论。</p>
+      <p class="sec-lede sp up">十二个阶段，两道硬门禁。原始检索结果与结构化证据全部落盘，上下文只保留结论。</p>
 
-      <ol class="flow reveal">
-        <li><span class="step"><span class="step-name"><span class="step-n">01</span>probe</span><span class="step-note">探测能力</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">02</span>anchor</span><span class="step-note">语言 &#183; 格式 &#183; 输出目录</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">03</span>clarify</span><span class="step-note">1&#8211;3 个范围问题</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">04</span>tier</span><span class="step-note">quick | normal</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">05</span>plan</span><span class="step-note">具名的研究轴</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">06</span>research</span><span class="step-note">检索 &#8594; 打开 &#8594; 评估</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">07</span>merge</span><span class="step-note">合并为一份 evidence.json</span></span></li>
-        <li><span class="step is-gate"><span class="step-name"><span class="step-n">08</span>Gate &#9312;</span><span class="step-note">校验器必须报告 ok</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">09</span>write</span><span class="step-note">行内引用，不新增事实</span></span></li>
-        <li><span class="step is-gate"><span class="step-name"><span class="step-n">10</span>Gate &#9313;</span><span class="step-note">无孤立引用、无未解析引用</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">11</span>sources</span><span class="step-note">规范化 + 去重</span></span></li>
-        <li><span class="step"><span class="step-name"><span class="step-n">12</span>deliver</span><span class="step-note">4 份产物 + 覆盖与缺口</span></span></li>
+      <ol class="flow sp" role="list">
+        <li class="act sp">
+          <div class="act-head">
+            <span class="act-badge" aria-hidden="true">1</span>
+            <h3 class="act-title">规划</h3>
+            <p class="act-count"><span class="num" data-count-to="5">5</span> 个阶段</p>
+            <p class="act-note">先弄清问的是什么、这台主机能做什么，以及这一轮到什么深度。</p>
+          </div>
+          <ol class="steps" role="list">
+            <li class="step"><span class="step-name"><span class="step-n">01</span>probe</span><span class="step-note">探测能力</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">02</span>anchor</span><span class="step-note">语言 &#183; 格式 &#183; 输出目录</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">03</span>clarify</span><span class="step-note">1&#8211;3 个范围问题</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">04</span>tier</span><span class="step-note">quick | normal</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">05</span>plan</span><span class="step-note">具名的研究轴</span></li>
+          </ol>
+        </li>
+
+        <li class="act sp">
+          <div class="act-head">
+            <span class="act-badge" aria-hidden="true">2</span>
+            <h3 class="act-title">研究</h3>
+            <p class="act-count"><span class="num" data-count-to="2">2</span> 个阶段</p>
+            <p class="act-note">检索、打开原文通读，再把证据合并成一份文件。</p>
+          </div>
+          <ol class="steps" role="list">
+            <li class="step"><span class="step-name"><span class="step-n">06</span>research</span><span class="step-note">检索 &#8594; 打开 &#8594; 评估</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">07</span>merge</span><span class="step-note">合并为一份 evidence.json</span></li>
+          </ol>
+        </li>
+
+        <li class="gate sp">
+          <span class="step is-gate"><span class="step-name"><span class="step-n">08</span>Gate &#9312;</span><span class="step-note">校验器必须报告 ok</span></span>
+        </li>
+
+        <li class="act sp">
+          <div class="act-head">
+            <span class="act-badge" aria-hidden="true">3</span>
+            <h3 class="act-title">校验与写作</h3>
+            <p class="act-count"><span class="num" data-count-to="3">3</span> 个阶段</p>
+            <p class="act-note">基于这份证据写报告、渲染引用，最后交付四份产物。</p>
+          </div>
+          <ol class="steps" role="list">
+            <li class="step"><span class="step-name"><span class="step-n">09</span>write</span><span class="step-note">行内引用，不新增事实</span></li>
+            <li class="gate sp">
+              <span class="step is-gate"><span class="step-name"><span class="step-n">10</span>Gate &#9313;</span><span class="step-note">无孤立引用、无未解析引用</span></span>
+            </li>
+            <li class="step"><span class="step-name"><span class="step-n">11</span>sources</span><span class="step-note">规范化 + 去重</span></li>
+            <li class="step"><span class="step-name"><span class="step-n">12</span>deliver</span><span class="step-note">4 份产物 + 覆盖与缺口</span></li>
+          </ol>
+        </li>
       </ol>
 
-      <p class="gate-note reveal">Gate &#9312; 运行证据校验器：只有它报告 <code>ok</code>，这一轮才会继续。Gate &#9313; 渲染引用，遇到任何孤立引用或未解析引用都会失败。门禁过不去时，这一轮会停下来如实报告，而不是交付一份坏掉的报告。</p>
+      <p class="gate-note sp up">Gate &#9312; 运行证据校验器：只有它报告 <code>ok</code>，这一轮才会继续。Gate &#9313; 渲染引用，遇到任何孤立引用或未解析引用都会失败。门禁过不去时，这一轮会停下来如实报告，而不是交付一份坏掉的报告。</p>
 
       <div class="split">
-        <div class="panel reveal">
+        <div class="panel sp up">
           <h3>关键规则</h3>
           <ul class="rules" role="list">
             <li>先检索，再打开。搜索结果的摘录永远不算证据。</li>
@@ -1364,7 +2141,7 @@ a:focus-visible{outline-color:var(--accent)}
             <li>预算用尽即停止，交付已达成的覆盖，而不是无休止地循环下去。</li>
           </ul>
         </div>
-        <div class="panel reveal">
+        <div class="panel sp up">
           <h3 id="budget-title-zh">预算与停止条件</h3>
           <div class="table-scroll">
             <table aria-labelledby="budget-title-zh">
@@ -1398,55 +2175,55 @@ a:focus-visible{outline-color:var(--accent)}
     </div>
   </section>
 
-  <section class="section" id="deliverables-zh" aria-labelledby="deliverables-title-zh">
+  <section class="section" id="deliverables-zh" data-now="交付产物" data-now-short="产物" data-num="04" aria-labelledby="deliverables-title-zh">
     <div class="wrap">
-      <h2 class="sec-title" id="deliverables-title-zh">
-        <span class="sec-num" aria-hidden="true">03</span>
+      <h2 class="sec-title sp up" id="deliverables-title-zh">
+        <span class="sec-num" aria-hidden="true">04</span>
         <span>交付产物</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede reveal">每一次运行都会把四份产物写进同一个目录。</p>
-      <p class="path-line reveal">meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/</p>
+      <p class="sec-lede sp up">每一次运行都会把四份产物写进同一个目录。</p>
+      <p class="path-line sp up">meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/</p>
 
       <ul class="cards" role="list">
-        <li class="card reveal">
+        <li class="card sp up">
           <h3 class="card-title">report.md</h3>
           <p>最终报告，正文带行内编号引用。</p>
         </li>
-        <li class="card reveal">
+        <li class="card sp up">
           <h3 class="card-title">sources.md</h3>
           <p>去重后的来源清单。</p>
         </li>
-        <li class="card reveal">
+        <li class="card sp up">
           <h3 class="card-title">evidence.json</h3>
           <p>结构化的论断、证据、来源与边界。</p>
         </li>
-        <li class="card reveal">
+        <li class="card sp up">
           <h3 class="card-title">citations.json</h3>
           <p>用于渲染报告的引用映射。</p>
         </li>
       </ul>
 
-      <p class="fine reveal">报告里的 <code>## Sources</code> 一节由渲染器生成，不是模型手写的，引用编号也从不手工编排。如果宿主没有文件系统权限，报告会直接以内联方式返回，并说明没有任何内容落盘。</p>
+      <p class="fine sp up">报告里的 <code>## Sources</code> 一节由渲染器生成，不是模型手写的，引用编号也从不手工编排。如果宿主没有文件系统权限，报告会直接以内联方式返回，并说明没有任何内容落盘。</p>
     </div>
   </section>
 
-  <section class="section section--band" id="install-zh" aria-labelledby="install-title-zh">
+  <section class="section section--install" id="install-zh" data-now="安装" data-now-short="安装" data-num="05" aria-labelledby="install-title-zh">
     <div class="wrap">
-      <h2 class="sec-title" id="install-title-zh">
-        <span class="sec-num" aria-hidden="true">04</span>
+      <h2 class="sec-title sp up" id="install-title-zh">
+        <span class="sec-num" aria-hidden="true">05</span>
         <span>安装</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede reveal">这个 skill 就是一个目录，里面有 <code>SKILL.md</code>、<code>references/</code> 和 <code>scripts/</code>。用下面任意一条一行命令即可安装。</p>
+      <p class="sec-lede sp up">这个 skill 就是一个目录，里面有 <code>SKILL.md</code>、<code>references/</code> 和 <code>scripts/</code>。用下面任意一条一行命令即可安装。</p>
 
       <div class="split">
-        <div class="install-card reveal">
+        <div class="install-card sp up">
           <p class="kicker">skills.sh / Vercel skills CLI</p>
           <pre><code>npx skills add sogeisetsu/meld-deepresearch</code></pre>
           <p class="fine">安装到 skills CLI 支持的那些宿主中。</p>
         </div>
-        <div class="install-card reveal">
+        <div class="install-card sp up">
           <p class="kicker">GitHub CLI v2.90.0+</p>
           <pre><code>gh skill install sogeisetsu/meld-deepresearch meld-deepresearch</code></pre>
           <p class="fine">可跨 Copilot、Claude Code、Cursor、Codex 和 Gemini 使用。</p>
@@ -1454,7 +2231,7 @@ a:focus-visible{outline-color:var(--accent)}
       </div>
 
       <div class="split">
-        <div class="panel reveal">
+        <div class="panel sp up">
           <h3>手动安装</h3>
           <p>把 <code>skills/meld-deepresearch/</code> 复制到你所用宿主的 skills 目录。跨工具的路径 <code>~/.agents/skills/</code> 已被多个宿主识别。无需任何配置：这个 skill 使用宿主自己的模型，你也不必为它配置模型。</p>
           <ul class="chips" role="list">
@@ -1466,7 +2243,7 @@ a:focus-visible{outline-color:var(--accent)}
             <li class="chip">Gemini CLI</li>
           </ul>
         </div>
-        <div class="panel reveal">
+        <div class="panel sp up">
           <h3>环境要求</h3>
           <ul class="rules" role="list">
             <li>支持 Agent Skills 开放标准的宿主。</li>
@@ -1474,6 +2251,107 @@ a:focus-visible{outline-color:var(--accent)}
             <li>文件读写与命令执行能力，供脚本和产物使用。</li>
             <li>Python 3，仅用标准库，供校验器、引用渲染器和来源去重器使用。脚本无法执行时，这一轮会优雅降级，并在输出里说明。</li>
           </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="credits-zh" data-now="集百家之长" data-now-short="借鉴" data-num="06" aria-labelledby="credits-title-zh">
+    <div class="wrap">
+      <h2 class="sec-title sp up" id="credits-title-zh">
+        <span class="sec-num" aria-hidden="true">06</span>
+        <span>集百家之长</span>
+        <span class="sec-rule" aria-hidden="true"></span>
+      </h2>
+      <p class="sec-lede sp up">这个 skill 借鉴了别人的机制，其中两处还按 MIT 许可复用了文本。下面两层刻意分开写：一层是许可范围内的复用，另一层只是方法上的启发。</p>
+
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee-track">
+          <ul class="marquee-row">
+            <li class="marquee-item">SenseNova-Skills</li>
+            <li class="marquee-item">Deep-Research-skills</li>
+            <li class="marquee-item">OpenAI Deep Research</li>
+            <li class="marquee-item">Google Gemini Deep Research</li>
+            <li class="marquee-item">Anthropic 多智能体研究系统</li>
+            <li class="marquee-item">Microsoft 365 Copilot Researcher</li>
+            <li class="marquee-item">Perplexity Deep Research</li>
+            <li class="marquee-item">xAI Grok DeepSearch</li>
+            <li class="marquee-item">阿里 Alibaba-NLP/DeepResearch（通义）</li>
+            <li class="marquee-item">字节 bytedance/deer-flow</li>
+            <li class="marquee-item">Moonshot Kimi</li>
+            <li class="marquee-item">百度千帆 DeepResearch</li>
+            <li class="marquee-item">智谱 AutoGLM</li>
+            <li class="marquee-item">腾讯混元 Hyra</li>
+            <li class="marquee-item">斯坦福 stanford-oval/storm</li>
+            <li class="marquee-item">Salesforce enterprise-deep-research</li>
+            <li class="marquee-item">assafelovic/gpt-researcher</li>
+            <li class="marquee-item">langchain-ai/open_deep_research</li>
+            <li class="marquee-item">199-biotechnologies/claude-deep-research-skill</li>
+          </ul>
+          <ul class="marquee-row">
+            <li class="marquee-item">SenseNova-Skills</li>
+            <li class="marquee-item">Deep-Research-skills</li>
+            <li class="marquee-item">OpenAI Deep Research</li>
+            <li class="marquee-item">Google Gemini Deep Research</li>
+            <li class="marquee-item">Anthropic 多智能体研究系统</li>
+            <li class="marquee-item">Microsoft 365 Copilot Researcher</li>
+            <li class="marquee-item">Perplexity Deep Research</li>
+            <li class="marquee-item">xAI Grok DeepSearch</li>
+            <li class="marquee-item">阿里 Alibaba-NLP/DeepResearch（通义）</li>
+            <li class="marquee-item">字节 bytedance/deer-flow</li>
+            <li class="marquee-item">Moonshot Kimi</li>
+            <li class="marquee-item">百度千帆 DeepResearch</li>
+            <li class="marquee-item">智谱 AutoGLM</li>
+            <li class="marquee-item">腾讯混元 Hyra</li>
+            <li class="marquee-item">斯坦福 stanford-oval/storm</li>
+            <li class="marquee-item">Salesforce enterprise-deep-research</li>
+            <li class="marquee-item">assafelovic/gpt-researcher</li>
+            <li class="marquee-item">langchain-ai/open_deep_research</li>
+            <li class="marquee-item">199-biotechnologies/claude-deep-research-skill</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="credits">
+        <div class="tier">
+          <h3 class="tier-label">复用文本与机制 &#183; MIT</h3>
+          <div class="borrow-list">
+            <article class="borrow sp up">
+              <p class="lic">MIT</p>
+              <p class="borrow-name"><a href="https://github.com/OpenSenseNova/SenseNova-Skills">SenseNova-Skills</a></p>
+              <p>证据契约 &#8212;&#8212; 断言、证据、来源、引语类型、来源质量分档、证伪义务 &#8212;&#8212; 以及机械校验器、引用渲染、检索 &#8594; 取链接 &#8594; 抓取 &#8594; 评估的闭环、时效策略，还有失败与重试的设计。</p>
+            </article>
+            <article class="borrow sp up">
+              <p class="lic">MIT</p>
+              <p class="borrow-name"><a href="https://github.com/Weizhena/Deep-Research-skills">Deep-Research-skills</a></p>
+              <p>两阶段的「提纲到深入」流程、人在回路里的确认节点，以及 item &#215; field 的结构化研究对象。</p>
+            </article>
+          </div>
+          <p class="fine sp up">两个项目都是 MIT，允许在署名前提下复用文本。所有借鉴都登记在 <a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/NOTICE">NOTICE</a> 里。</p>
+        </div>
+
+        <div class="tier">
+          <h3 class="tier-label">仅借鉴方法 &#183; 不复用文本</h3>
+          <ul class="wall" role="list">
+            <li><span>OpenAI Deep Research</span></li>
+            <li><span>Google Gemini Deep Research</span></li>
+            <li><span>Anthropic 多智能体研究系统</span></li>
+            <li><span>Microsoft 365 Copilot Researcher</span></li>
+            <li><span>Perplexity Deep Research</span></li>
+            <li><span>xAI Grok DeepSearch</span></li>
+            <li><a href="https://github.com/Alibaba-NLP/DeepResearch">阿里 Alibaba-NLP/DeepResearch（通义）</a></li>
+            <li><a href="https://github.com/bytedance/deer-flow">字节 bytedance/deer-flow</a></li>
+            <li><span>Moonshot Kimi</span></li>
+            <li><span>百度千帆 DeepResearch</span></li>
+            <li><span>智谱 AutoGLM</span></li>
+            <li><a href="https://hy.tencent.com/research/hyra">腾讯混元 Hyra</a></li>
+            <li><a href="https://github.com/stanford-oval/storm">斯坦福 stanford-oval/storm</a></li>
+            <li><a href="https://github.com/SalesforceAIResearch/enterprise-deep-research">Salesforce enterprise-deep-research</a></li>
+            <li><a href="https://github.com/assafelovic/gpt-researcher">assafelovic/gpt-researcher</a></li>
+            <li><a href="https://github.com/langchain-ai/open_deep_research">langchain-ai/open_deep_research</a></li>
+            <li><a href="https://github.com/199-biotechnologies/claude-deep-research-skill">199-biotechnologies/claude-deep-research-skill</a></li>
+          </ul>
+          <p class="fine sp up">完整借鉴地图见 <a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/docs/PLAN.md">docs/PLAN.md</a> 第 7 节，署名清单见 <a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/NOTICE">NOTICE</a>。</p>
         </div>
       </div>
     </div>
@@ -1491,6 +2369,7 @@ a:focus-visible{outline-color:var(--accent)}
       <ul class="footer-links" role="list">
         <li><a href="https://github.com/sogeisetsu/meld-deepresearch">GitHub 仓库<span aria-hidden="true"> &#8599;</span></a></li>
         <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/ZH/README-ZH.md">中文 README<span aria-hidden="true"> &#8599;</span></a></li>
+        <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/NOTICE">NOTICE<span aria-hidden="true"> &#8599;</span></a></li>
         <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/LICENSE">MIT 许可证<span aria-hidden="true"> &#8599;</span></a></li>
       </ul>
     </nav>
@@ -1499,11 +2378,29 @@ a:focus-visible{outline-color:var(--accent)}
 </footer>
 
 </div><!-- /zh-Hans -->
-
 <script>
-/* The controls only exist when scripting does, which is why .no-js hides them.
+/* Two jobs: the two controls, and the motion that is tied to scroll position.
+
+   The controls only exist when scripting does, which is why .no-js hides them.
    Both preferences are expressed as attributes on <html> and rendered by CSS,
-   so this script only flips those attributes and remembers the choice. */
+   so this script only flips those attributes and remembers the choice.
+
+   --sp -- this element's progress through the viewport -- is written here, from
+   scroll position, coalesced into one rAF frame, and only for the elements that
+   are actually on screen. It drives content visibility, so it is never left to
+   a stylesheet timeline that might not sample: the reveals are this script's
+   job in every browser, and a settle pass re-derives the whole set whenever the
+   position changes without a scroll event. A stale sample cannot hide content,
+   and with no script at all the registered initial value of 1 leaves the page
+   complete.
+
+   --hp (the hero's distance from the top) is decorative and stays a CSS
+   scroll-driven animation where the browser has one; the same script writes it
+   elsewhere.
+
+   Nothing scroll-linked runs under prefers-reduced-motion: reduce. The
+   registered initial values --sp: 1 and --hp: 0 already leave the page complete
+   and still, so there is nothing to switch off. */
 (function () {
   var root = document.documentElement;
   var store = null;
@@ -1524,10 +2421,13 @@ a:focus-visible{outline-color:var(--accent)}
 
   function read(key) { try { return store ? store.getItem(key) : null; } catch (e) { return null; } }
   function save(key, value) { try { if (store) { store.setItem(key, value); } } catch (e) {} }
+  function toArray(list) { return Array.prototype.slice.call(list); }
+  function clamp01(n) { return n < 0 ? 0 : (n > 1 ? 1 : n); }
 
   function lang() { return root.getAttribute("data-lang") === "zh-Hans" ? "zh-Hans" : "en"; }
   function theme() { return root.getAttribute("data-theme") === "dark" ? "dark" : "light"; }
 
+  /* ---------- controls ---------- */
   function paint() {
     var l = lang();
     var t = theme();
@@ -1561,6 +2461,8 @@ a:focus-visible{outline-color:var(--accent)}
     if (desc) { desc.setAttribute("content", DESCRIPTIONS[l]); }
     if (persist) { save("mdr-lang", l); }
     paint();
+    bind();          /* the browser is now showing the other block */
+    schedule();
   }
 
   function applyTheme(next, persist) {
@@ -1582,7 +2484,315 @@ a:focus-visible{outline-color:var(--accent)}
     }
   });
 
+  /* The hero's --hp is the one number a stylesheet timeline may own. */
+  var reduce = false;
+  var hasTimeline = false;
+  try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  try { hasTimeline = !!(window.CSS && CSS.supports && CSS.supports("animation-timeline", "view()")); } catch (e) {}
+
+  var block = null;
+  var sections = [];
+  var navLinks = [];
+  var nowEl = null;
+  var heroEl = null;
+  var track = null;
+  var trackW = 0;
+  var counts = [];
+  var active = [];         /* .sp elements that are inside the viewport right now */
+  var bridge = null;       /* IntersectionObserver keeping that list current */
+  var watch = null;        /* IntersectionObserver pausing the marquee off screen */
+  var current = null;
+  var frame = 0;
+  var lastWidth = 0;
+  var lastDp = -1;
+  var lastY = 0;
+  var vel = 0;
+  var mx = 0;
+  var mFrame = 0;
+  var mLast = 0;
+
+  function bind() {
+    var i;
+    block = document.querySelector('[data-lang-block="' + lang() + '"]');
+    if (!block) { return; }
+    sections = toArray(block.querySelectorAll("main section"));
+    navLinks = toArray(block.querySelectorAll(".nav-list a"));
+    nowEl = block.querySelector(".now");
+    heroEl = block.querySelector(".hero");
+    track = block.querySelector(".marquee-track");
+    counts = reduce ? [] : toArray(block.querySelectorAll("[data-count-to]"));
+    current = null;
+    mx = 0;
+    measure();
+
+    if (bridge) { bridge.disconnect(); bridge = null; }
+    active = [];
+    if (!reduce && window.IntersectionObserver) {
+      var els = toArray(block.querySelectorAll(".sp"));
+      bridge = new IntersectionObserver(crossed, { threshold: 0 });
+      for (i = 0; i < els.length; i++) { bridge.observe(els[i]); }
+    }
+    if (watch) { watch.disconnect(); watch = null; }
+    if (track && !reduce && window.IntersectionObserver) {
+      watch = new IntersectionObserver(function (entries) {
+        for (var j = 0; j < entries.length; j++) {
+          if (entries[j].isIntersecting) { marqueeStart(); } else { marqueeStop(); }
+        }
+      }, { threshold: 0 });
+      watch.observe(track.parentNode);
+    } else if (track && !reduce) {
+      marqueeStart();
+    }
+    settle();
+  }
+
+  function measure() {
+    if (track) { trackW = track.scrollWidth / 2; }
+  }
+
+  function crossed(entries) {
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i];
+      var at = active.indexOf(e.target);
+      if (e.isIntersecting) {
+        if (at < 0) { active.push(e.target); }
+      } else {
+        if (at >= 0) { active.splice(at, 1); }
+        /* left the viewport: pin it to whichever end it went out through */
+        e.target.style.setProperty("--sp", e.boundingClientRect.top < 0 ? "1" : "0");
+      }
+    }
+    schedule();
+  }
+
+  /* Which section the reader is in. A pure function of the position, so it can
+     be evaluated synchronously -- on load, after a jump, after a swap of
+     language block -- and not only from a frame that might never arrive. */
+  function currentSection(vh, y, max) {
+    var found = null, i;
+    for (i = 0; i < sections.length; i++) {
+      if (sections[i].getBoundingClientRect().top <= vh * .4) { found = sections[i]; } else { break; }
+    }
+    /* At the end of the document nothing else can cross the line, so the last
+       section is the one filling the screen. */
+    if (max <= 0 || y >= max - 2) {
+      var lastSec = sections.length ? sections[sections.length - 1] : null;
+      if (lastSec && lastSec.getBoundingClientRect().top < vh * .6) { found = lastSec; }
+    }
+    return found;
+  }
+
+  /* Paint that answer into the bar: the nav's current link and the section name.
+     The name has to fit whole -- a name cut mid-word reads worse than a shorter
+     one -- so it steps down to the short form before the ellipsis can land
+     inside a word. */
+  function mark(found) {
+    var i;
+    if (found === current) { return; }
+    current = found;
+    for (i = 0; i < navLinks.length; i++) {
+      if (found && navLinks[i].getAttribute("href") === "#" + found.id) {
+        navLinks[i].setAttribute("aria-current", "true");
+      } else {
+        navLinks[i].removeAttribute("aria-current");
+      }
+    }
+    if (nowEl) {
+      var name = found ? (found.getAttribute("data-now") || "") : "";
+      var num = found ? (found.getAttribute("data-num") || "") : "";
+      var short = found ? (found.getAttribute("data-now-short") || "") : "";
+      var tries = [num ? num + " \u00b7 " + name : name, name, short];
+      for (i = 0; i < tries.length; i++) {
+        if (!tries[i]) { continue; }
+        nowEl.textContent = tries[i];
+        if (nowEl.scrollWidth <= nowEl.clientWidth + 1 || i === tries.length - 1) { break; }
+      }
+    }
+  }
+
+  /* One synchronous pass over the whole page: the reveal state of every carrier,
+     the reading-progress line, and which section the reader is in. Called the
+     moment the page is first shown and again after any position change that did
+     not arrive as a scroll event. It only ever writes numbers -- never a
+     half-finished animation -- and it is why content can never be stranded
+     invisible or a label left behind. */
+  function settle() {
+    if (reduce || !block) { return; }
+    var i, vh = window.innerHeight, vv = [];
+    var y = window.pageYOffset || root.scrollTop || 0;
+    var max = document.documentElement.scrollHeight - vh;
+    var els = toArray(block.querySelectorAll(".sp"));
+    for (i = 0; i < els.length; i++) {
+      var r = els[i].getBoundingClientRect();
+      var span = vh + r.height;
+      vv.push([els[i], span > 0 ? clamp01((vh - r.top) / span) : 1]);
+    }
+    var found = currentSection(vh, y, max);
+
+    for (i = 0; i < vv.length; i++) { vv[i][0].style.setProperty("--sp", vv[i][1].toFixed(3)); }
+    var dp = max > 0 ? clamp01(y / max) : 0;
+    if (Math.abs(dp - lastDp) > .0004) { lastDp = dp; root.style.setProperty("--docp", dp.toFixed(4)); }
+    if (!hasTimeline && heroEl) {
+      heroEl.style.setProperty("--hp", clamp01(y / (vh * .9)).toFixed(4));
+    }
+    lastY = y;
+    mark(found);
+  }
+
+  function schedule() { if (!frame) { frame = window.requestAnimationFrame(run); } }
+
+  function run() {
+    frame = 0;
+    var vh = window.innerHeight;
+    var y = window.pageYOffset || root.scrollTop || 0;
+    var doc = document.documentElement;
+    var max = doc.scrollHeight - vh;
+    var dy = y - lastY;
+    var i, r, items;
+    lastY = y;
+    vel = vel * .75 + dy * .25;
+
+    /* ---- read everything before writing anything ---- */
+    var spItems = [];
+    if (!reduce && active.length) {
+      for (i = 0; i < active.length; i++) {
+        r = active[i].getBoundingClientRect();
+        spItems.push([active[i], r.top, r.height]);
+      }
+    }
+    var numItems = [];
+    var numText = [];
+    for (i = 0; i < counts.length; i++) {
+      r = counts[i].getBoundingClientRect();
+      numItems.push([counts[i], r.top, r.height]);
+      numText.push(counts[i].textContent);
+    }
+    var found = currentSection(vh, y, max);
+
+    /* ---- then write ---- */
+    if (!reduce) {
+      var dp = max > 0 ? clamp01(y / max) : 0;
+      if (Math.abs(dp - lastDp) > .0004) { lastDp = dp; root.style.setProperty("--docp", dp.toFixed(4)); }
+    }
+    for (i = 0; i < spItems.length; i++) {
+      var span = vh + spItems[i][2];
+      spItems[i][0].style.setProperty("--sp", (span > 0 ? clamp01((vh - spItems[i][1]) / span) : 1).toFixed(3));
+    }
+    if (!hasTimeline && !reduce && heroEl) {
+      heroEl.style.setProperty("--hp", clamp01(y / (vh * .9)).toFixed(4));
+    }
+    for (i = 0; i < numItems.length; i++) {
+      var p = numItems[i][2] + vh > 0 ? clamp01((vh - numItems[i][1]) / (vh + numItems[i][2])) : 1;
+      var to = +numItems[i][0].getAttribute("data-count-to") || 0;
+      var want = String(Math.round(to * clamp01(p * 3.6 - .12)));
+      if (numText[i] !== want) { numItems[i][0].textContent = want; }
+    }
+    mark(found);
+  }
+
+  /* ---------- the credits marquee ----------
+     One CSS transform per frame, over a strip that is two copies wide. It runs
+     only while the strip is on screen and the page is in front of the reader;
+     with no script at all the strip simply sits at its first item. */
+  function marqueeStart() {
+    if (mFrame || reduce || !track) { return; }
+    mLast = 0;
+    mFrame = window.requestAnimationFrame(marqueeLoop);
+  }
+  function marqueeStop() {
+    if (mFrame) { window.cancelAnimationFrame(mFrame); mFrame = 0; }
+  }
+  function marqueeLoop(t) {
+    mFrame = window.requestAnimationFrame(marqueeLoop);
+    var dt = mLast ? Math.min(64, t - mLast) : 16;
+    mLast = t;
+    if (!trackW) { trackW = track.scrollWidth / 2; if (!trackW) { return; } }
+    var base = -0.045 * (window.innerWidth <= 640 ? .45 : 1);   /* px per ms, leftward */
+    var boost = 1 + Math.min(2, Math.abs(vel) / 120);           /* scroll speed */
+    var dir = vel < -1 ? -1 : 1;                                /* reverse going up */
+    mx += base * boost * dir * dt;
+    if (mx <= -trackW) { mx += trackW; }
+    if (mx > 0) { mx -= trackW; }
+    track.style.transform = "translate3d(" + mx.toFixed(2) + "px,0,0)";
+    vel *= .92;
+  }
+
+  /* ---------- keeping the reveals honest ----------
+     A position change that never arrives as a scroll event -- a fresh load at a
+     deep hash, a restored or corrected scroll position, a repaint, a swap of
+     language block -- still has to move the reveals. These run a settle pass
+     now, then on the next frame, then on a short ladder; every pass is
+     idempotent, so nothing can be left holding its entrance state. */
+  function sync() { settle(); schedule(); }
+  function syncLadder() {
+    sync();
+    anchorToHash();
+    window.setTimeout(function () { sync(); anchorToHash(); }, 0);
+    window.setTimeout(function () { sync(); anchorToHash(); }, 100);
+    window.setTimeout(function () { sync(); anchorToHash(); }, 300);
+  }
+
+  /* Browsers scroll to a fragment themselves. When that happens before the
+     layout has settled the page can stop short of the target, so the position
+     is corrected here -- once, only for a hash that names a real element, and
+     only while the page is still loading. After that the reader's own position
+     is left alone. */
+  var hashLocked = false;
+  function anchorToHash() {
+    if (hashLocked) { return; }
+    var raw = window.location.hash;
+    if (!raw || raw.length < 2) { return; }
+    var el = null;
+    try { el = document.querySelector(raw); } catch (e) { el = null; }
+    if (!el) { return; }
+    var bar = block ? block.querySelector(".topbar") : null;
+    var pad = bar ? bar.getBoundingClientRect().height : 0;
+    var y = window.pageYOffset || root.scrollTop || 0;
+    var want = el.getBoundingClientRect().top + y - pad;
+    var maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    want = want < 0 ? 0 : (want > maxY ? maxY : want);
+    if (Math.abs(y - want) < 6) { return; }
+    var prev = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+    window.scrollTo(0, want);
+    root.style.scrollBehavior = prev;
+    sync();
+  }
+
+  window.addEventListener("scroll", function () { schedule(); }, { passive: true });
+  window.addEventListener("resize", function () {
+    if (window.innerWidth !== lastWidth) { lastWidth = window.innerWidth; bind(); }
+    else { measure(); }
+    sync();
+  }, { passive: true });
+  window.addEventListener("load", function () { measure(); syncLadder(); });
+  window.addEventListener("pageshow", function () { syncLadder(); });
+  window.addEventListener("hashchange", function () { hashLocked = true; syncLadder(); });
+  window.addEventListener("popstate", function () { hashLocked = true; syncLadder(); });
+  document.addEventListener("DOMContentLoaded", function () { syncLadder(); });
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) { marqueeStop(); } else { sync(); }
+  });
+
+  /* Last-resort net. If the position ever moves without a scroll event reaching
+     us -- a browser-side restore, a repaint, an embedder that scrolls us from
+     outside -- the reveals would otherwise keep the state they held at the old
+     position. Comparing the position a few times a second costs nothing, and a
+     mismatch runs exactly the pass a scroll would have run. */
+  window.setInterval(function () {
+    if ((window.pageYOffset || root.scrollTop || 0) !== lastY) { sync(); }
+  }, 400);
+
+  lastWidth = window.innerWidth;
   applyLang(lang(), false);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { measure(); syncLadder(); });
+  }
+  syncLadder();
+  /* a pair of frames after the first paint, for anything that moved late */
+  window.requestAnimationFrame(function () { window.requestAnimationFrame(sync); });
+  window.setTimeout(function () { measure(); sync(); }, 600);
+  window.setTimeout(function () { hashLocked = true; }, 900);
 })();
 </script>
 </body>
