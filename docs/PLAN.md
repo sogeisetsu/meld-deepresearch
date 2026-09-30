@@ -2,7 +2,7 @@
 
 > 本文件是本项目的**权威开发计划**（source of truth）。
 > `AGENTS.md` 只放项目约定与指针；**所有实现细节、里程碑、借鉴来源都在这里**。
-> 计划日期：2026-09-29 ｜ 状态：M0–M3 完成（M3 的 C1–C8 与 `observations[]` 已落地），M4 发布中（2026-09-30）
+> 计划日期：2026-09-29 ｜ 状态：**M0–M4 全部完成**（2026-09-30 发布 `v0.1.0`）
 
 ---
 
@@ -426,7 +426,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 | **M1** ✅ | 写 `SKILL.md` + 4 个 `references/` | frontmatter 合规（含 metadata.author）；正文 ≤ ~200 行；纯英文 |
 | **M2** ✅ | 写 3 个脚本 + `examples/sample-run/` + CI | 脚本自测通过；正/反例都验证 |
 | **M3** ✅ | opencode 装机实测（`~/.agents/skills/`）+ 第二宿主实测 + 修 | quick 与 normal 各跑通一次 —— **2026-09-29 达成**（quick 5 源 / normal 16 源，三道 gate 全绿，独立复跑确认）；第二宿主降级为打包级（见 §11）；实测发现的 C1–C8 与契约缺口**已按 §5.9 落地**（`observations[]` 一等公民、`W_NORMATIVE` 降级、`E_REF_OBSERVATION`/`E_OBS_SHAPE` 与新反例夹具） |
-| **M4** ⏳ | `gh skill publish --dry-run` → 发布 + topics + tag `v0.1.0` | 2026-09-30 发布中：公开仓库、tag `v0.1.0`、Pages 源 `main` / `docs` |
+| **M4** ✅ | `gh skill publish --dry-run` → 发布 + topics + tag `v0.1.0` | **2026-09-30 达成**：公开仓库 `sogeisetsu/meld-deepresearch`；`--dry-run` exit 0 后发布 release `v0.1.0`（topic `agent-skills` + 8 个补充 topic）；Pages 源 `main` / `docs` → https://sogeisetsu.github.io/meld-deepresearch/ ；`npx skills add sogeisetsu/meld-deepresearch` 实测装通 1 个 skill，`gh skill install` 同样可用 |
 
 **opencode 安装无需改配置**：skill 放到 `~/.agents/skills/meld-deepresearch/`（跨工具路径）或 `~/.config/opencode/skills/` 即被发现。
 
@@ -439,7 +439,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 - 硬门脚本在无 Python 的宿主会失效 → 设计为**尽力而为 + 明确跳过提示**。
 - `meld-deepresearch` 在 GitHub 干净，**2026-09-29 用 `gh skill search meld-deepresearch` 复查：零结果、无占用**；`meld` 单独检索则高度歧义（MELD 评分、Property Meld、meld-ts 等），印证**不可缩写为 `meld`**。
 - 腾讯 Hyra 细节主要来自官方页面/媒体，未逐层读其仓库代码。
-- `gh skill publish` 规范校验口径：**2026-09-29 实测 `--dry-run` exit 0 通过**（仅提示缺 git remote）；真实发布仍以 M4 实测为准。
+- `gh skill publish` 规范校验口径：**2026-09-29 首次 `--dry-run` exit 0**（当时仅提示缺 git remote）；**2026-09-30 建仓后复跑 exit 0 并真实发布**，返回 `✓ Added "agent-skills" topic` / `✓ Published v0.1.0` / `✓ Install with: gh skill install sogeisetsu/meld-deepresearch`。提示缺 tag protection ruleset，属可选加固，未启用。
 - ~~**契约缺口（M3 实测发现）**：`sources[]` 强制要求 `url`，因此无法记录第一手/本机证据。~~ **已闭合**：按 §5.9 引入 `observations[]`（一等公民，`command` / `measurement` / `file` / `inspection`），证据可用 `observation_id` 指向观察；`check_evidence.py`、`render_citations.py`、`evidence-contract.md` 与 `examples/invalid/evidence.bad-observation.json` 均已落地并纳入 CI。
 - **第二宿主"运行"级实测缺环境**：本机无 `claude` / `codex` / `cursor` / `gemini` CLI。M3 降级为**打包级**验证——`gh skill install --from-local --agent claude-code --scope user` 已实测投放成功（含 frontmatter 溯源元数据注入）。运行级验证待有宿主后再补。
 
@@ -447,4 +447,4 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 
 ## 12. 下一步
 
-按 M0 → M4 顺序开发。改文件后读回验证；改配置/不可逆操作前先备份并确认；**文件架构变更时同步更新本文 §4 与 `AGENTS.md`**。
+M0 → M4 已全部完成（2026-09-30 发布 `v0.1.0`）。后续改动仍按同一纪律：改文件后读回验证；改配置/不可逆操作前先备份并确认；**文件架构变更时同步更新本文 §4 与 `AGENTS.md`**。
