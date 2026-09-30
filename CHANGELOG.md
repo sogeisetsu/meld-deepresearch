@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-30
+
 ### Added
 
 - Project initialized (M0): repository skeleton, `README.md`, `LICENSE` (MIT),
@@ -59,5 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
-- The skill is at version `0.1.0`; publication (M4) is still pending. See
-  `docs/PLAN.md` milestones M1-M4.
+- The skill is at version `0.1.0` and is published. See `docs/PLAN.md`
+  milestones M1-M4.
+
+[Unreleased]: https://github.com/sogeisetsu/meld-deepresearch/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sogeisetsu/meld-deepresearch/releases/tag/v0.1.0
