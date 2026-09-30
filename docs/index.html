@@ -879,9 +879,9 @@ code{
 .gate .step{
   position:relative;
   display:flex;
-  flex-wrap:wrap;
-  align-items:baseline;
-  gap:.2rem 1rem;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:.28rem;
   width:100%;
   padding:.7rem .85rem;
   border-color:color-mix(in oklab, var(--accent) 62%, var(--hairline));
@@ -907,25 +907,11 @@ code{
   from{background-position:120% 0}
   to{background-position:-70% 0}
 }
+/* The gate reads as two lines: the label on top, its note underneath. */
 .gate .step-note{
-  display:flex;
-  flex:1 1 auto;
-  align-items:baseline;
-  justify-content:flex-end;
-  gap:1rem;
+  display:block;
   min-width:0;
-  text-align:right;
-}
-/* The note hangs at the far end of the bar and a dashed rule runs out to meet
-   it, so the gate reads as one line rather than two labels with a hole between
-   them. */
-.gate .step-note::before{
-  content:"";
-  flex:1 1 2rem;
-  min-width:1.25rem;
-  height:1px;
-  background-image:repeating-linear-gradient(90deg,var(--accent) 0 5px,transparent 5px 11px);
-  opacity:.42;
+  text-align:left;
 }
 .gate .step-name,
 .gate .step-note,
