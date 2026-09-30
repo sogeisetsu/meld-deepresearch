@@ -10,9 +10,9 @@ One skill, no framework. It runs on any host that supports the
 Codex, Cursor, GitHub Copilot, Gemini CLI, and more — and it never locks you
 into one vendor.
 
-> **Status:** the skill is implemented (`SKILL.md`, `references/`, `scripts/`)
-> and exercised by CI on a curated example; publication is still pending (M4).
-> See [`docs/PLAN.md`](docs/PLAN.md).
+> **Status:** `v0.1.0` is published. The skill is implemented (`SKILL.md`,
+> `references/`, `scripts/`), exercised by CI on a curated example, and
+> installable straight from this repository. See [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Why another deep-research skill
 
