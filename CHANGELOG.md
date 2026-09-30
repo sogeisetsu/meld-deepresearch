@@ -50,6 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The reveal state is computed in script for every browser, so no content can be
   left invisible; everything still settles fully visible under
   `prefers-reduced-motion`.
+- Landing-page chapters align to the fold: a chapter whose content fits occupies
+  exactly one screen below the header, chapter boundaries are carried by
+  alternating surfaces instead of rules, and `scroll-snap-type: y proximity`
+  settles a chapter into place when the reader comes to rest.
 - Social preview: `og:`/`twitter:` metadata with a canonical URL, and
   `docs/og.png`, a 1200x630 card rendered from the live hero.
 
