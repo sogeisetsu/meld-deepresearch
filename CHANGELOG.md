@@ -39,6 +39,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a dark theme, each with its own control in the header. English is the default
   on every first visit — the language is never inferred from the browser — and
   the page stays fully readable with JavaScript disabled.
+- Landing-page redesign: a hero wordmark for the skill name, the twelve stages
+  redrawn as a three-act timeline with the two hard gates as full-width gate
+  bars, a section for why the skill exists next to heavy frameworks and thin
+  prompts, a credits section ("Standing on the shoulders of many" / 集百家之长)
+  that separates projects whose text or mechanisms were reused from those that
+  only inspired the approach, and a theme-following install section.
+- Landing-page motion: reveals and the pipeline rail are driven by scroll
+  position, with the reader's progress and current section shown in the header.
+  The reveal state is computed in script for every browser, so no content can be
+  left invisible; everything still settles fully visible under
+  `prefers-reduced-motion`.
+- Social preview: `og:`/`twitter:` metadata with a canonical URL, and
+  `docs/og.png`, a 1200x630 card rendered from the live hero.
 
 ### Notes
 

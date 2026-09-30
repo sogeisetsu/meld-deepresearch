@@ -19,6 +19,7 @@ meld-deepresearch/                    # repository root
 │   ├── PLAN.md                       # authoritative development plan: mechanism, milestones, borrow map (Chinese)
 │   ├── FILE_TREE.md                  # this file: annotated file tree + update rule
 │   ├── index.html                    # GitHub Pages landing page (single self-contained file, zero external requests)
+│   ├── og.png                        # 1200x630 social-preview card, referenced by og:image / twitter:image (regenerate from the live hero if the hero changes)
 │   └── .nojekyll                     # tells GitHub Pages to serve docs/ as-is instead of running Jekyll
 ├── skills/                           # skill packages (this repo ships exactly one)
 │   └── meld-deepresearch/            # the skill directory (contents listed in the note below)
