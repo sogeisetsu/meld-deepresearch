@@ -43,7 +43,7 @@ skills/meld-deepresearch/
 │   ├── tier-selection.md             # auto quick-vs-normal decision rules with worked examples
 │   └── report-template.md            # report skeleton, citation mechanism, quality self-check
 └── scripts/                          # Python 3 stdlib only, no dependencies
-    ├── check_evidence.py             # hard gate: validate evidence.json against the evidence contract
+    ├── check_evidence.py             # hard gate: validate evidence.json against the evidence contract; each actionable error carries an optional "hint" (smallest safe fix)
     ├── render_citations.py           # footnotes -> numbered citations; emits report.md + citations.json
     └── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md
 ```

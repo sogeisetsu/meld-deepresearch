@@ -149,6 +149,14 @@ web source backing it (an observation counts as first-hand, so this passes):
 `dN.cM`, and the validator does **not** verify that the referenced axis or claim
 actually exists in this file.
 
+`kind` is an open tag, but two values carry meaning elsewhere and should be used
+verbatim: `availability` records an unreachable source class (see
+`protocol.md` §4a — a paywalled or bot-walled primary source you could not open),
+and `scope`/`sample`/`method` record the other standard caveats. Routing an
+access-blocked source into a `kind: "availability"` entry is how the run states
+"the conclusion rests on what was reachable" without pretending the blocked page
+was read.
+
 ### `key_findings[]`
 
 | Field | Type | Required | Allowed values | Meaning |
@@ -221,7 +229,10 @@ fact absent from the claims it cites.
 `E_OBS_SHAPE`, `E_EMPTY` — plus `E_JSON` for unusable input (exit 2), and the
 `--plan` codes `E_PLAN_DIM_UNKNOWN` / `E_PLAN_DIM_UNCOVERED`.
 **Warning codes** (`ok` stays `true`): `W_NORMATIVE` (rule 4), `W_NO_FINDINGS`
-and `W_NO_REFUTE` (rules 7 and 8), and `W_KQ_UNANSWERED` when `--plan` is used.
+and `W_NO_REFUTE` (rules 7 and 8), `W_KQ_UNANSWERED` when `--plan` is used, and
+`W_SAME_PUBLISHER` when an `interpretive` claim's distinct urls all share one
+publisher root (a heuristic hint that they may be one outlet restating one
+story, never a failure).
 There is no `E_NORMATIVE` any more: C5 downgraded rule 4 to `W_NORMATIVE`.
 
 So rules 1–3, 5 and 6 plus the `claims`/`sources` half of rule 7 land in
@@ -230,6 +241,15 @@ rule 8 land in `warnings[]` while `ok` stays `true`.
 The validator's stdout shape is a single JSON object
 `{"ok": bool, "errors": [...], "warnings": [...]}`, sorted by `code` then
 `where`; `ok` is `true` if and only if `errors` is empty.
+
+Each entry is `{"code", "message", "where"}` plus an **optional `hint`** — a
+"smallest safe fix" suggestion present only on error codes that have one clear
+corrective action (`E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`, `E_PROJECTIVE_BASIS`,
+`E_REF_SOURCE`, `E_REF_OBSERVATION`, `E_REF_CLAIM`, `E_PLAN_DIM_UNKNOWN`,
+`E_PLAN_DIM_UNCOVERED`). `hint` is additive: a consumer keyed on
+`code`/`where` is unaffected, and a run that must repair itself reads `hint` to
+apply the one fix most likely to clear the error without dropping a claim it did
+not need to drop. It is absent everywhere else, including on a clean pass.
 
 ## Source quality tiers
 
