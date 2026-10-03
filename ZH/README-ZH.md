@@ -6,8 +6,8 @@
 出处的研究报告**。
 
 只有一个 skill，没有框架。它能在任何支持
-[Agent Skills](https://agentskills.io) 开放标准的主机上运行 —— opencode、
-Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等等 —— 也绝不会把你
+[Agent Skills](https://agentskills.io) 开放标准的主机上运行—— opencode、
+Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等等——也绝不会把你
 绑死在某一家厂商身上。
 
 > **状态：** `v0.1.0` 已发布。skill 已经实现（`SKILL.md`、`references/`、
@@ -76,9 +76,9 @@ gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
 
 随后它会自动选档：
 
-- **`quick`** —— 一条自成一体的研究线（写一段简报、回答单个问题、核对某个
+- **`quick`** ——一条自成一体的研究线（写一段简报、回答单个问题、核对某个
   点）。
-- **`normal`** —— 多个可以独立检索的维度、实体对比、完整报告，或者预期会出现
+- **`normal`** ——多个可以独立检索的维度、实体对比、完整报告，或者预期会出现
   互相冲突的证据。
 
 你也可以显式指定档位。
@@ -131,9 +131,9 @@ gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
 列表在 [`NOTICE`](../NOTICE)。其中影响最明显的两个是：
 
 - [SenseNova-Skills](https://github.com/OpenSenseNova/SenseNova-Skills)（MIT）
-  —— 证据契约、校验器和引用渲染。
+  ——证据契约、校验器和引用渲染。
 - [Weizhena/Deep-Research-skills](https://github.com/Weizhena/Deep-Research-skills)
-  （MIT）—— 两阶段流程与人工介入的检查点。
+  （MIT）——两阶段流程与人工介入的检查点。
 
 ## 开发
 
@@ -147,7 +147,7 @@ python skills/meld-deepresearch/scripts/check_evidence.py \
   examples/sample-run/evidence.json
 ```
 
-完整的验证集合 —— 正向示例，加上 `examples/invalid/` 里的负向用例 —— 列在
+完整的验证集合——正向示例，加上 `examples/invalid/` 里的负向用例——列在
 [`AGENTS.md`](../AGENTS.md) 中，由 CI 在 `.github/workflows/validate.yml` 中
 执行。
 
