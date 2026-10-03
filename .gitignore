@@ -1,4 +1,4 @@
-# OS
+﻿# OS
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -40,7 +40,3 @@ meld-deepresearch-reports/
 ZH/CHANGELOG-ZH.md
 ZH/SKILL-ZH.md
 
-# BEGIN oh-my-opencode-slim worktrees
-.slim/worktrees/
-.slim/worktrees.json
-# END oh-my-opencode-slim worktrees
