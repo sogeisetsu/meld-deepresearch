@@ -2,25 +2,23 @@
 
 Rubric and question set are defined in [`../README.md`](../README.md) §2–§3.
 
+All three skills were installed into the OpenCode host
+(`~/.config/opencode/skills/`) and run on **the same question** for comparison:
+
+> **Q2** — "核实一下：OpenAI 在 2024 年的营收是否真的达到了 37 亿美元？请给出一份带引用的核查报告。"
+> (Verify whether OpenAI's 2024 revenue really reached 3.7 billion USD; produce a
+> citation-backed verification report. The number is deliberately unverified.)
+
 ## Status
 
 | Question | meld-deepresearch | SenseNova | Weizhena |
 |---|---|---|---|
-| Q1 industry survey | **run (see below)** | not run | not run |
-| Q2 wrong-number check | pending | not run | not run |
-| Q3 contested question | not run | not run | not run |
-| Q4 latest figure | not run | not run | not run |
-| Q5 sparse evidence | not run | not run | not run |
-| Q6 vague request | not run | not run | not run |
-
-Opponent skills (`sn-deep-research`, Weizhena `research`) are **not installed in
-this environment**, so no cross-skill live comparison has been executed. The
-design-level scores in [`design-score.md`](design-score.md) stand in for that
-until the opponents are installed and run.
+| Q2 wrong-number check (live) | run (see below) | run — **did not execute** | run — executed after adaptation |
+| Q1 / Q3–Q6 | not run | not run | not run |
 
 ## Self-validation (executed)
 
-The skill's own gate suite was run end-to-end in this worktree and passes:
+The skill's own gate suite was run end-to-end and passes:
 
 | Check | Result |
 |---|---|
@@ -30,43 +28,113 @@ The skill's own gate suite was run end-to-end in this worktree and passes:
 | `dedupe_sources.py` on the sample | `ok: true`, 4 sources, 0 duplicates |
 | 5 negative fixtures | each fails for exactly its own reason, exit 1; `evidence.no-refute.json` → `ok: true` + `W_NO_REFUTE`, exit 0 |
 
-This exercises the whole mechanical spine (contract → gates → render → dedupe)
-but on the curated sample, so it scores **axis G on the tooling**, not on a live
-research run.
+## Q2 — SenseNova `sn-deep-research`
 
-## Q1 — industry survey (meld-deepresearch)
+**Result: the skill's own Tier-1 probe forced a stop; it never ran.**
 
-Not executed as a live agent run. `meld-deepresearch` is not installed into this
-host's skill directory (`~/.config/opencode/skills/`), so running it "live" here
-would be a manual imitation of the protocol rather than the skill actually
-firing — which would not be evidence. A real live run must leave the process
-artifacts required to score axis G: `plan.json`, per-axis
-`sub_reports/dN.evidence.json`, merged `evidence.json`, both gate outputs, and
-the four deliverables (`report.md`, `sources.md`, `evidence.json`,
-`citations.json`).
+- Web search, by the skill's own definition, was **not ready**: `sn-search-*`
+  scripts depend on `SERPER_API_KEY`/etc., which were unset. A live call to
+  `serper_image_search.py` returned
+  `Serper image search is unavailable in the current environment.` **exit 1**.
+- The skill's rule — "web search missing → pause, dispatch no role" — fired. No
+  scout/plan/research role was dispatched and no pipeline artifacts exist.
+- The skill did **not fire in OpenCode at all** (no `sn-*` under
+  `~/.config/opencode/skills/`; the run was a manual reading of `SKILL.md` from
+  the clone).
+- Host incompatibilities beyond search: the `{baseDir}` / `${SKILL_DIR}`
+  placeholders are not substituted by OpenCode; the skill's mandatory
+  `progress_event.py` / `launch_workbench.py` bootstrap scripts **do not exist in
+  the repo at all**; the Anthropic/OpenClaw dispatch mechanism is absent.
+- A best-effort verdict was produced **outside the skill's pipeline** (clearly
+  labelled): the $3.7B figure is **true** as 2024 calendar-year revenue —
+  NYT/CNBC 2024 document reports, later confirmed by audited FY2024 statements
+  reported in 2026.
+- Artifacts: `eval-run-sensenova/probe-tier1.md`,
+  `eval-run-sensenova/verdict-outside-skill.md`.
 
-Run command (from the repository root, in a scratch output dir):
+**Score note:** on this host, SenseNova scores **0 on axis G** for this question —
+its own rules required it to refuse to run, and it did. Portability is the gap.
 
-```bash
-python skills/meld-deepresearch/scripts/check_evidence.py \
-  <output_dir>/evidence.json --plan <output_dir>/plan.json
-python skills/meld-deepresearch/scripts/render_citations.py \
-  --report <output_dir>/report.src.md \
-  --evidence <output_dir>/evidence.json \
-  --output <output_dir>/report.md
-python skills/meld-deepresearch/scripts/dedupe_sources.py \
-  --evidence <output_dir>/evidence.json \
-  --output <output_dir>/sources.md
-```
+## Q2 — Weizhena `research`
 
-## Why the opponents are not run here
+**Result: the chain ran end to end, but only after non-trivial adaptation to
+OpenCode.**
 
-- **SenseNova `sn-deep-research`** requires a SenseNova API key and is documented
-  for OpenClaw / hermes-agent only; it depends on sibling skills
-  (`sn-prepare-citations`, `sn-ppt-standard`, `sn-search-*`) that must all be
-  copied in.
-- **Weizhena** requires `pip install pyyaml` and `OPENCODE_ENABLE_EXA=1`.
+- **Hard break:** `research-deep` hardcodes
+  `python ~/.claude/skills/research/validate_json.py …`. PowerShell does not
+  expand `~` for native commands, and the `.claude` path does not exist → the
+  literal command **failed, exit 2**. It worked only after being repointed at the
+  OpenCode install path.
+- **Claude-only tools:** all five skills declare `allowed-tools:
+  Task, AskUserQuestion, WebSearch` — none exist on this host, so
+  `allowed-tools` is unenforceable and every confirmation step had to be replaced
+  with a recorded default. The mandated background `web-search-agent` (a `Task`)
+  could not be launched as an agent.
+- **Gate:** `validate_json.py` ran — PASS 6/6 (100 % field coverage), and a
+  negative control correctly FAILED. But the gate is **coverage-only**: it does
+  **not** verify citation truthfulness or evidence access.
+- **Content verdict:** $3.7B is **true** (2024 calendar-year revenue; run-rate
+  counter-figures like ~$5.5B were correctly classified as non-contradicting).
+  Original pages opened (CNBC, Where's Your Ed At, Ars Technica); blocked access
+  (NYT 403, Reuters 401, FT/Bloomberg paywalls) was recorded as `[uncertain]` and
+  never treated as read.
+- Artifacts: `eval-run-weizhena/ADAPTATION_LOG.md`, `DECISIONS.md`,
+  `openai-2024-revenue-verification/` (outline, fields, 6 result JSONs,
+  `report.md`).
 
-Both are installable, but installing third-party skills and a pip dependency is a
-change to this machine outside the repository's own scope; it is left as an
-explicit, separate decision rather than done silently.
+## Q2 — `meld-deepresearch` (ours)
+
+**Result: ran end to end on OpenCode with no adaptation; both gates fired.**
+
+- **Tier:** `normal` (explicit report request + ≥2 independent axes + expected
+  conflict).
+- **Pipeline:** probe → anchors → assumptions recorded → `plan.json` (3 axes:
+  primary-attributed / press corroboration / counter-evidence; `kq1`–`kq4`) →
+  per-axis research loop → merge → Gate ① → one-pass Chinese report → Gate ② →
+  `sources.md`. All four deliverables + `plan.json` + per-axis
+  `sub_reports/dN.evidence.json` produced.
+- **Evidence:** 23 fetch attempts (budget 25); every `sources[]` entry is a page
+  that was opened — no snippet-only evidence. 6 originals were bot-walled
+  (NYT/Reuters/Bloomberg/CNN/Axios/openai.com, HTTP 403) and recorded as an
+  availability caveat, not cited as read. 11 claims, 15 distinct sources, 1
+  observation, `writing_context` caveats, 3 key findings.
+- **Refutation:** 2 `refute`-polarity claims (non-zero) — a revenue-share floor
+  and an older $4B projection. Metric confusion (ARR vs calendar revenue) kept
+  explicitly unresolved in a Contradictions section.
+- **Gate ① FAILED on the first attempt and was fixed:**
+  ```
+  {"ok": false, "errors": [{"code": "E_FACTUAL_SOURCE",
+   "message": "factual claim needs at least one evidence item backed by a primary
+   or secondary source, or by an observation", "where": "claims[11]"}], "warnings": []}
+  ```
+  Fix: dropped the tertiary-only claim + its source. Second attempt:
+  `{"ok": true, "errors": [], "warnings": []}`. **This is the decisive
+  difference from the other two skills — the gate genuinely stopped a deliverable
+  and forced a correction.**
+- **Gate ②:** `{"ok": true, "citation_count": 15, "observation_count": 1,
+  "orphans": [], "uncited": []}`; `dedupe_sources.py` →
+  `{"ok": true, "sources": 15, "duplicates_merged": 0}`.
+- **Verdict:** $3.7B corroborated as calendar-2024 revenue — a Sep-2024
+  projection, a Mar-2025 reported actual, and a Jun-2026 leaked-audit figure,
+  all consistent.
+- **Honest soft spots named by the run itself:** a bot-walled primary voice
+  (openai.com) only reachable via secondary quotes; the distinct-origin rule is
+  URL-level while many outlets relay one release; two ProPublica URLs
+  (org page vs API) counted as two sources (borderline); the single Gate-① fix
+  chance was spent on a claim that arguably need not have been dropped.
+- Artifacts: `eval-run-meld/meld-deepresearch-reports/2026-10-04-openai-2024-revenue-7c3f/`.
+
+## Cross-run read
+
+| | meld-deepresearch | SenseNova | Weizhena |
+|---|---|---|---|
+| Ran on OpenCode without adaptation? | yes | **no — refused** | **no — repointed a hardcoded path** |
+| Opened original pages? | yes | n/a | yes |
+| Counter-evidence handled? | yes (refute mandate) | n/a | yes (manual item) |
+| Gate verifies citation truth, not just coverage? | yes | n/a | **no — coverage only** |
+| Verdict on the $3.7B claim | confirmed | confirmed (outside pipeline) | confirmed |
+
+This is exactly the axis the public benchmarks do not score: **whether the skill
+actually runs, and whether it re-checks its own citations.** On those two,
+`meld-deepresearch` and SenseNova diverge completely on this host — not on report
+prose.

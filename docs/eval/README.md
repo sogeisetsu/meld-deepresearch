@@ -152,10 +152,24 @@ Scored by reading each skill's own files. See
 | G Process discipline | **5** | 4 | 2 |
 | **Total (35)** | **30** | **29** | **21** |
 
-### 5.2 Live-run scores
+### 5.2 Live-run scores (Q2, same question, all three skills)
 
-See [`records/live-runs.md`](records/live-runs.md) for the questions actually
-executed and the raw artifacts.
+The three skills were installed into the same OpenCode host and run on the same
+question (verify a deliberately-unverified "$3.7B" OpenAI-2024-revenue claim).
+Full artifacts and per-step notes are in [`records/live-runs.md`](records/live-runs.md).
+
+| Axis | meld-deepresearch | SenseNova | Weizhena |
+|---|---|---|---|
+| Ran on OpenCode, no adaptation | **yes** | **no — refused at its own probe** (needs a separate search-API key; OpenClaw/hermes only) | **no — hardcoded `~/.claude/...` validator path had to be repointed** |
+| Opened original pages | yes | n/a | yes |
+| Counter-evidence | yes (2 `refute` claims) | n/a | yes (manual item) |
+| Gate caught a real defect | **yes — Gate ① failed once, forced a fix** | n/a | no (coverage-only gate, PASS 6/6) |
+| Verdict on the claim | confirmed (calendar-2024 revenue) | confirmed (outside pipeline) | confirmed |
+| Runs here (0–5 for this question) | **5** | **0** | **3** |
+
+The headline is not the prose — all three reached the same verdict. It is that
+**only one of the three actually ran and re-checked its own citations on this
+host.** That is precisely the axis (G) the public benchmarks never score.
 
 ## 6. Gap analysis
 
@@ -186,6 +200,29 @@ executed and the raw artifacts.
 3. **Coverage breadth (A, 4 vs SenseNova 4).** Roughly even; SenseNova's
    scout/review/supplement roles give it a structural edge on very broad topics
    that our two-tier budget may cap early.
+
+### 6.4 What the live runs changed
+
+The live Q2 comparison (section 5.2) sharpened the picture in a way the
+design-level scoring could not:
+
+- **Portability is the real gap, and it runs our way.** On a stock OpenCode host,
+  only `meld-deepresearch` ran without modification. SenseNova refused at its own
+  Tier-1 probe (its search path needs a separate `SERPER_API_KEY`; it targets
+  OpenClaw/hermes, and a mandatory script it references does not even exist in
+  its repo). Weizhena ran only after a hardcoded `~/.claude/...` validator path
+  was repointed, and its `allowed-tools` are Claude-only names that OpenCode
+  ignores.
+- **The gate is not ceremonial.** Our Gate ① genuinely failed once (a
+  tertiary-only `factual` claim) and forced a fix before delivery. Weizhena's
+  gate passed 6/6 but checks only field coverage — it would not have caught that
+  class of defect at all.
+- **All three reached the same verdict** on the $3.7B claim, so the difference is
+  not report prose; it is *whether the skill runs, and whether it re-checks its
+  own citations.*
+
+This is the concrete evidence behind the design-level axis-G spread
+(5 / 4 / 2): the design score predicted a gap, and the live run confirmed it.
 
 ### 6.3 Recommendation
 
