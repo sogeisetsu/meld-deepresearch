@@ -39,3 +39,8 @@ meld-deepresearch-reports/
 # Chinese translations kept local only; ZH/README-ZH.md IS published
 ZH/CHANGELOG-ZH.md
 ZH/SKILL-ZH.md
+
+# BEGIN oh-my-opencode-slim worktrees
+.slim/worktrees/
+.slim/worktrees.json
+# END oh-my-opencode-slim worktrees
