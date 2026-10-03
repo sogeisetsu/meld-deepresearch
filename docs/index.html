@@ -167,12 +167,15 @@
   }
 }
 
-/* The one reveal. The ramp saturates around --sp .52 -- that is, when the
-   element's top has climbed to roughly the middle of the screen -- so the
-   motion is still running while the reader is watching it, and the stagger
-   below is wide enough to read as a sequence. --lift is how far it travels, and
-   nothing ever goes below --reveal-min. */
-.up{
+/* The one reveal, scoped to the pipeline chapter. Everywhere else `.up` is a
+   plain marker with no rule of its own, so a card outside the pipeline never
+   fades in and never slides: it is simply painted at rest. Inside the pipeline
+   the ramp saturates around --sp .52 -- that is, when the element's top has
+   climbed to roughly the middle of the screen -- so the motion is still running
+   while the reader is watching it. --lift is how far it travels, and nothing
+   ever goes below --reveal-min. */
+#pipeline .up,
+#pipeline-zh .up{
   --e:clamp(0, calc(var(--sp) * var(--rate, 1.8) - var(--late, .02)), 1);
   opacity:calc(var(--reveal-min) + (1 - var(--reveal-min)) * var(--e));
   transform:translate(0, calc((1 - var(--e)) * var(--lift, 44px)));
@@ -597,7 +600,6 @@ code{
   letter-spacing:.1em;
   color:var(--accent);
   transform:translateY(-.45em);
-  opacity:clamp(0, calc(var(--sp, 1) * 3.6 - 1.5), 1);
 }
 .sec-rule{
   flex:1 1 3rem;
@@ -606,8 +608,13 @@ code{
   min-width:1.5rem;
   background:var(--hairline);
   transform-origin:left center;
-  transform:scaleX(clamp(0, calc(var(--sp, 1) * 2.4 - .15), 1));
 }
+/* The heading's own entrance is part of the pipeline's reveal and lives only
+   there; in every other chapter the number and rule are drawn at rest. */
+#pipeline .sec-num,
+#pipeline-zh .sec-num{opacity:clamp(0, calc(var(--sp, 1) * 3.6 - 1.5), 1)}
+#pipeline .sec-rule,
+#pipeline-zh .sec-rule{transform:scaleX(clamp(0, calc(var(--sp, 1) * 2.4 - .15), 1))}
 .sec-lede{
   margin-top:1.1rem;
   max-width:62ch;
@@ -1442,7 +1449,6 @@ code{
   }
   .compare-col--this{transition:translate .25s ease,box-shadow .25s ease,border-color .25s ease,background-color .25s ease}
   .compare-col--this:hover{translate:0 -1.1rem;box-shadow:0 26px 48px -32px rgba(23,22,26,.75)}
-  .split > *:nth-child(2){--d:.12}
 }
 
 /* The hero's second layer: a soft accent wash that drifts on its own, so the top
@@ -1594,7 +1600,7 @@ svg{overflow:visible}
 
 <header class="topbar" id="top">
   <div class="wrap topbar-inner">
-    <a class="brand" href="#top">
+    <a class="brand" href="#top" data-scroll-top>
       <svg class="brand-mark" viewBox="7.4 8.4 17.2 16.2" aria-hidden="true"><path d="M9 23V10l7 6.5L23 10v13" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span class="brand-text">meld-deepresearch</span>
     </a>
@@ -1645,7 +1651,7 @@ svg{overflow:visible}
         </ul>
 
         <h1 id="hero-title">Turn a vague topic into a <span class="hl">verifiable, citation-backed</span> research report.</h1>
-        <p class="lede">One portable skill. Any host that supports the Agent Skills open standard can load it directly: opencode, Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and more.</p>
+        <p class="lede">It is just one portable skill, and any host that supports the Agent Skills open standard can load it directly &#8212; opencode, Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and more.</p>
         <div class="actions">
           <a class="btn btn--primary" href="#install">Install the skill</a>
           <a class="btn btn--ghost" href="https://github.com/sogeisetsu/meld-deepresearch">Read the repository<span aria-hidden="true"> &#8599;</span></a>
@@ -2076,7 +2082,7 @@ svg{overflow:visible}
     <nav aria-label="Project links">
       <ul class="footer-links" role="list">
         <li><a href="https://github.com/sogeisetsu/meld-deepresearch">GitHub repository<span aria-hidden="true"> &#8599;</span></a></li>
-        <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/ZH/README-ZH.md">Chinese README<span aria-hidden="true"> &#8599;</span></a></li>
+        <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/README.md">README<span aria-hidden="true"> &#8599;</span></a></li>
         <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/NOTICE">NOTICE<span aria-hidden="true"> &#8599;</span></a></li>
         <li><a href="https://github.com/sogeisetsu/meld-deepresearch/blob/main/LICENSE">MIT license<span aria-hidden="true"> &#8599;</span></a></li>
       </ul>
@@ -2092,7 +2098,7 @@ svg{overflow:visible}
 
 <header class="topbar" id="top-zh">
   <div class="wrap topbar-inner">
-    <a class="brand" href="#top-zh">
+    <a class="brand" href="#top-zh" data-scroll-top>
       <svg class="brand-mark" viewBox="7.4 8.4 17.2 16.2" aria-hidden="true"><path d="M9 23V10l7 6.5L23 10v13" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span class="brand-text">meld-deepresearch</span>
     </a>
@@ -2139,11 +2145,11 @@ svg{overflow:visible}
           <li>Agent Skills 标准</li>
           <li>零运行时依赖</li>
           <li>MIT</li>
-          <li><span class="num" data-count-to="6">6</span> 个宿主</li>
+          <li><span class="num" data-count-to="6">6</span> 种工具可直接加载</li>
         </ul>
 
         <h1 id="hero-title-zh">把含糊的话题，变成一份<span class="hl">可核查、每句话都有引用</span>的研究报告。</h1>
-        <p class="lede">一个可移植的 skill。任何支持 Agent Skills 开放标准的主机都能直接加载：opencode、Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等。</p>
+        <p class="lede">它只是一个可移植的 skill：凡是支持 Agent Skills 开放标准的主机，都能直接加载——opencode、Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 都可以。</p>
         <div class="actions">
           <a class="btn btn--primary" href="#install-zh">安装这个 skill</a>
           <a class="btn btn--ghost" href="https://github.com/sogeisetsu/meld-deepresearch">查看仓库<span aria-hidden="true"> &#8599;</span></a>
@@ -2680,9 +2686,30 @@ svg{overflow:visible}
 
   document.addEventListener("click", function (event) {
     var el = event.target && event.target.closest
-      ? event.target.closest("[data-lang-set],[data-theme-toggle]")
+      ? event.target.closest("[data-lang-set],[data-theme-toggle],[data-scroll-top]")
       : null;
     if (!el) { return; }
+    if (el.hasAttribute("data-scroll-top")) {
+      /* The brand lives in the fixed bar, so its `#top` anchor is already in
+         view and the browser would not move. Take the click and return to the
+         very top of the document, honouring the page's smooth scroll. */
+      event.preventDefault();
+      hashLocked = true;             /* our own scroll, not an anchor the ladder should re-apply */
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+      /* Smooth for a reader who is looking at the page, instant when the tab is
+         hidden: a smooth-scroll animation can be frozen in a background tab,
+         and a return-to-top that silently does nothing is worse than an
+         immediate one. The inline override beats the document's own smooth
+         `scroll-behavior`, exactly as the hash correction does. */
+      var prevTop = root.style.scrollBehavior;
+      root.style.scrollBehavior = (document.visibilityState === "visible") ? "smooth" : "auto";
+      window.scrollTo(0, 0);
+      root.style.scrollBehavior = prevTop;
+      sync(false);
+      return;
+    }
     if (el.hasAttribute("data-lang-set")) {
       applyLang(el.getAttribute("data-lang-set"), true);
     } else {
