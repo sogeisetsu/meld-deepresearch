@@ -10,7 +10,7 @@
 Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等等——也绝不会把你
 绑死在某一家厂商身上。
 
-> **状态：** `v0.1.0` 已发布。skill 已经实现（`SKILL.md`、`references/`、
+> **状态：** `v0.2.0` 已发布。skill 已经实现（`SKILL.md`、`references/`、
 > `scripts/`），并由 CI 在一个精选示例上跑通，可以直接从本仓库安装。见
 > [`docs/PLAN.md`](../docs/PLAN.md)。
 
