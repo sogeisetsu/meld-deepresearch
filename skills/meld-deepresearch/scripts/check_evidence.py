@@ -12,11 +12,18 @@ stdout receives exactly one JSON object:
 
     {"ok": bool, "errors": [...], "warnings": [...]}
 
-Every entry is {"code": "...", "message": "...", "where": "..."} where ``where``
-is a JSON-path-like locator such as ``claims[2].evidence[0].source_id`` or
-``sources[1]``. Both lists are sorted by code then by ``where``, so CI output is
-stable across runs. ``ok`` is true only when ``errors`` is empty; warnings never
-flip it.
+Every entry is {"code": "...", "message": "...", "where": "...", "hint": "..."}
+where ``where`` is a JSON-path-like locator such as
+``claims[2].evidence[0].source_id`` or ``sources[1]``, and ``hint`` is an
+optional "smallest safe fix" suggestion, present only when one clear corrective
+action exists (absent otherwise). Both lists are sorted by code then by
+``where``, so CI output is stable across runs. ``ok`` is true only when
+``errors`` is empty; warnings never flip it.
+
+``hint`` is deliberately separate from ``message`` so the machine contract stays
+stable: a consumer that keys on ``code``/``where`` keeps working, and a model
+that has to repair a run reads ``hint`` for the one fix that most likely clears
+the error without dropping a claim it did not need to drop.
 
 Exit codes
 ----------
@@ -34,8 +41,8 @@ E_OBS_SHAPE / E_EMPTY / E_PLAN_DIM_UNKNOWN / E_PLAN_DIM_UNCOVERED.
 
 Warning codes
 -------------
-W_NORMATIVE / W_NO_FINDINGS / W_NO_REFUTE / W_KQ_UNANSWERED (warnings keep
-ok: true).
+W_NORMATIVE / W_NO_FINDINGS / W_NO_REFUTE / W_KQ_UNANSWERED / W_SAME_PUBLISHER
+(warnings keep ok: true).
 
 Normative detection (W_NORMATIVE) is a documented best-effort heuristic: the
 claim's ``text`` is lowercased and matched word-boundary / case-insensitively
@@ -104,8 +111,30 @@ NORMATIVE_RE = re.compile(r"\b(?:%s)\b" % "|".join(
     re.escape(phrase) for phrase in NORMATIVE_PHRASES))
 
 
-def _entry(code, message, where):
-    return {"code": code, "message": message, "where": where}
+def _domain_root(url):
+    """Best-effort publisher root for a URL: host minus leading 'www.'.
+
+    Used only for the W_SAME_PUBLISHER heuristic — never for pass/fail. Two
+    urls on the same host (with or without 'www.') share a root; a shared root
+    for several sources that prop up one interpretive claim is a hint that they
+    may be one publisher, not independent origins. This is deliberately coarse:
+    it cannot tell a wire story re-published across outlets from genuinely
+    independent reporting, so it only ever warns.
+    """
+    match = re.match(r"^https?://([^/]+)", url.strip(), re.IGNORECASE)
+    if not match:
+        return None
+    host = match.group(1).lower().split("@")[-1].split(":")[0]
+    if host.startswith("www."):
+        host = host[4:]
+    return host or None
+
+
+def _entry(code, message, where, hint=None):
+    entry = {"code": code, "message": message, "where": where}
+    if hint:
+        entry["hint"] = hint
+    return entry
 
 
 def _emit(ok, errors, warnings):
@@ -310,17 +339,21 @@ def _validate_evidence(claim_where, evidence, source_meta, observation_ids,
     Each item points at exactly one origin: ``source_id`` XOR
     ``observation_id``. Returns
     ``(evidence_ok, distinct_source_ids, distinct_source_urls,
-    distinct_observation_ids, credible)``; only entries that resolve are
-    counted.
+    distinct_observation_ids, credible, distinct_domains)``; only entries that
+    resolve are counted. ``distinct_domains`` is the set of publisher roots
+    (``_domain_root``) behind the resolving sources, used only by the
+    W_SAME_PUBLISHER heuristic.
     """
     distinct_ids = set()
     distinct_urls = set()
     distinct_obs = set()
+    distinct_domains = set()
     credible = False
     if not isinstance(evidence, list):
         errors.append(_entry(
             "E_SHAPE", "'evidence' must be an array", claim_where + ".evidence"))
-        return False, distinct_ids, distinct_urls, distinct_obs, credible
+        return (False, distinct_ids, distinct_urls, distinct_obs, credible,
+                distinct_domains)
     for index, item in enumerate(evidence):
         where = "%s.evidence[%d]" % (claim_where, index)
         if not isinstance(item, dict):
@@ -350,7 +383,10 @@ def _validate_evidence(claim_where, evidence, source_meta, observation_ids,
                 errors.append(_entry(
                     "E_REF_SOURCE",
                     "source_id '%s' does not resolve to an entry in sources[]"
-                    % source_id, where + ".source_id"))
+                    % source_id, where + ".source_id",
+                    hint="smallest safe fix: point source_id at an id that "
+                         "exists in sources[], or add the missing source entry, "
+                         "or remove this evidence item."))
             else:
                 distinct_ids.add(source_id)
                 record = source_meta[source_id]
@@ -359,6 +395,9 @@ def _validate_evidence(claim_where, evidence, source_meta, observation_ids,
                 url = record.get("url")
                 if isinstance(url, str) and url.strip():
                     distinct_urls.add(url.strip())
+                    domain = _domain_root(url)
+                    if domain:
+                        distinct_domains.add(domain)
 
         if has_observation:
             observation_id = item.get("observation_id")
@@ -372,7 +411,10 @@ def _validate_evidence(claim_where, evidence, source_meta, observation_ids,
                     "E_REF_OBSERVATION",
                     "observation_id '%s' does not resolve to an entry in "
                     "observations[]" % observation_id,
-                    where + ".observation_id"))
+                    where + ".observation_id",
+                    hint="smallest safe fix: point observation_id at an id that "
+                         "exists in observations[], or add the missing "
+                         "observation entry, or remove this evidence item."))
             else:
                 distinct_obs.add(observation_id)
 
@@ -387,7 +429,8 @@ def _validate_evidence(claim_where, evidence, source_meta, observation_ids,
                     "E_ENUM",
                     "'quote_type' must be one of %s" % "|".join(QUOTE_TYPES),
                     where + ".quote_type"))
-    return (True, distinct_ids, distinct_urls, distinct_obs, credible)
+    return (True, distinct_ids, distinct_urls, distinct_obs, credible,
+            distinct_domains)
 
 
 def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
@@ -470,12 +513,13 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
         distinct_ids = set()
         distinct_urls = set()
         distinct_obs = set()
+        distinct_domains = set()
         credible = False
         if "evidence" in claim:
             (evidence_ok, distinct_ids, distinct_urls, distinct_obs,
-             credible) = _validate_evidence(where, claim.get("evidence"),
-                                            source_meta, observation_ids,
-                                            errors)
+             credible, distinct_domains) = _validate_evidence(
+                 where, claim.get("evidence"), source_meta, observation_ids,
+                 errors)
 
         # An observation is first-hand evidence, so it satisfies `factual` on
         # its own; `interpretive` counts distinct origins, and one origin is
@@ -487,14 +531,23 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
             errors.append(_entry(
                 "E_FACTUAL_SOURCE",
                 "factual claim needs at least one evidence item backed by a "
-                "primary or secondary source, or by an observation", where))
+                "primary or secondary source, or by an observation", where,
+                hint="smallest safe fix: either change this claim's kind to "
+                     "'interpretive' (if it is really a reading of the sources) "
+                     "or add one evidence item resolving to a 'primary' or "
+                     "'secondary' source, or record the fact as an observation. "
+                     "Do not keep a 'factual' claim resting only on 'tertiary' "
+                     "sources."))
         elif kind == "projective" and evidence_ok:
             evidence = claim.get("evidence")
             if not isinstance(evidence, list) or len(evidence) < 1:
                 errors.append(_entry(
                     "E_PROJECTIVE_BASIS",
                     "projective claim needs at least one evidence item "
-                    "recording its basis", where))
+                    "recording its basis", where,
+                    hint="smallest safe fix: add at least one evidence item "
+                         "(any quality tier) showing what the projection is "
+                         "based on, or drop the projection."))
         elif kind == "interpretive" and evidence_ok:
             # F5: two distinct origins — a source_id with its own url, or an
             # observation_id.
@@ -507,6 +560,24 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
                     "to %d distinct url(s) and %d distinct observation(s)" % (
                         len(distinct_ids), len(distinct_urls),
                         len(distinct_obs)),
+                    where,
+                    hint="smallest safe fix: add one more evidence item from a "
+                         "DIFFERENT origin — a source whose url differs from "
+                         "every url already cited here, or an observation_id. "
+                         "Two ids sharing one url do not count as two origins, "
+                         "and re-publishing the same url under a new id does "
+                         "not help."))
+            elif origin_count >= 2 and len(distinct_domains) == 1 and \
+                    len(distinct_urls) >= 2:
+                # Two or more distinct urls prop up the claim, but they all sit
+                # on one publisher root — often one wire story re-published.
+                # This is a heuristic, so it only ever warns.
+                warnings.append(_entry(
+                    "W_SAME_PUBLISHER",
+                    "interpretive claim rests on %d distinct url(s) that all "
+                    "share one publisher root ('%s'); they may be one outlet "
+                    "restating one story, not independent origins"
+                    % (len(distinct_urls), sorted(distinct_domains)[0]),
                     where))
 
         if isinstance(text, str):
@@ -637,7 +708,9 @@ def _validate_key_findings(doc, claim_ids, errors):
                     errors.append(_entry(
                         "E_REF_CLAIM",
                         "claim id '%s' does not resolve to a claim in this "
-                        "file" % item, item_where))
+                        "file" % item, item_where,
+                        hint="smallest safe fix: reference a claim id that "
+                             "exists, or drop this entry from claim_ids[]."))
 
 
 def _cross_check_plan(plan, axes, answered, errors, warnings):
@@ -694,7 +767,10 @@ def _cross_check_plan(plan, axes, answered, errors, warnings):
             errors.append(_entry(
                 "E_PLAN_DIM_UNKNOWN",
                 "claim axis '%s' is not a dimension declared by the plan"
-                % axis, "claims[%d].id" % claim_index))
+                % axis, "claims[%d].id" % claim_index,
+                hint="smallest safe fix: either add dimension '%s' to the "
+                     "plan's dimensions[], or re-key this claim under a "
+                     "declared dimension." % axis))
 
     covered = set(axis for _, axis in axes)
     for index, dimension_id in enumerate(dimension_ids):
@@ -702,7 +778,11 @@ def _cross_check_plan(plan, axes, answered, errors, warnings):
             errors.append(_entry(
                 "E_PLAN_DIM_UNCOVERED",
                 "plan dimension '%s' has no claim in this file" % dimension_id,
-                "dimensions[%d]" % index))
+                "dimensions[%d]" % index,
+                hint="smallest safe fix: add at least one claim under dimension "
+                     "'%s', or remove it from the plan if the scope was "
+                     "deliberately dropped (and say so in the coverage note)."
+                     % dimension_id))
 
     for question_where, question_id in key_questions:
         if question_id not in answered:

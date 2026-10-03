@@ -53,6 +53,43 @@ Exact rules — all mandatory:
 
 When uncertain which case applies, treat the fact as case 2 (the cheaper mistake).
 
+## 4a. Access-blocked sources
+
+The strongest primary sources are often the hardest to open: paywalls, bot
+walls, and region blocks (403/401, Cloudflare challenges, metered paywalls).
+Wanting the primary source and *not being able to open it* is a normal
+condition, not a failure — but it must be handled the same way every time.
+
+**The rule is: the original-open requirement is never waived.** A page you could
+not open is not evidence, no matter how authoritative it is.
+
+When a fetch cannot open the original text:
+
+1. **Record the attempt, not the source.** Add an `observations[]` entry with
+   `kind: "inspection"`, `method` describing the attempted fetch, and `snippet`
+   holding the observable outcome (the HTTP status, e.g. `403`, or
+   `paywall`/`bot-wall`). This is first-hand evidence that the page was
+   unreachable, and it is citable as `[^oN]`.
+2. **Record availability as a caveat.** Add a `writing_context[]` entry with
+   `kind: "availability"` stating which source class was unreachable and what
+   the conclusion therefore rests on. Route it into the report through its
+   `use` field.
+3. **Never launder a blocked source into apparent evidence.** Do **not** cite a
+   search-engine cache, a snippet, a syndicated repost, or a "read it here"
+   aggregator as if you had opened the original. Those are snippets (§2 rule 3)
+   and are never evidence. If the only place a number appears is a snippet of a
+   page you could not open, that number is not claimable.
+4. **Degrade, do not fabricate.** It is legitimate to deliver a conclusion
+   supported only by sources you *did* open (e.g. a secondary report that quotes
+   the blocked primary), as long as step 1 and step 2 record the gap. The
+   blocked source is not listed in `sources[]` as cited support.
+5. **When a claim rests on nothing openable, mark it `unknown`.** If, after the
+   budget, the only support for a claim is unreachable primary material, do not
+   downgrade it to a low-confidence assertion — label it `unknown` per §7.
+
+This is what the existing rules already imply (a snippet is never evidence); this
+section makes the handling explicit so two runs behave the same way.
+
 ## 5. Per-round evaluation and saturation
 
 At the end of every round, judge the axis on three dimensions:
@@ -97,6 +134,23 @@ The next round's queries target this gap list first. Any gap still open when the
   bound by the ≤3-rounds-per-axis limit, not by the fetch budget.
 - **When the budget is exhausted: STOP.** Return the best coverage achieved so far and **explicitly list what was not covered** (per-axis gaps from §7). Never loop forever, never take "just one more round" past the cap.
 - If the source floor cannot be reached inside the fetch budget, report the shortfall honestly instead of padding with snippet-only or duplicate sources.
+
+### Raising the cap (wide topics only)
+
+A genuinely wide topic (many entities, many independent axes) can exhaust the
+`normal` fetch budget before the axes are saturated. The cap is a discipline,
+not a prohibition, so it may be **raised mid-run** under two conditions:
+
+- **Only the fetch/source numbers move; the tier never does.** There is no third
+  tier. A `normal` run that needs more room stays `normal` with a higher cap; it
+  does not become some `deep` tier.
+- **The raise is explicit and recorded.** Either the user asks for it, or the run
+  states in its coverage note that it raised the cap before doing so. Record the
+  new numbers where the assumptions live (§11): `plan.json` for a `normal` run,
+  the delivery message for a `quick` run.
+
+The ≤3-rounds-per-axis limit and the stop-on-exhaustion rule are **not** part of
+the raise: only the fetch budget and the distinct-source floor can move.
 
 ## 9. Merge and hard gates
 
