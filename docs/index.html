@@ -570,8 +570,10 @@ code{
   scroll-snap-align:start;
 }
 .hero{scroll-snap-align:start}
-/* Chapters alternate so that every neighbouring pair differs. */
-#main > section:nth-of-type(even){
+/* Chapters alternate so that every neighbouring pair differs. Both language
+   mains carry the same rule so the two versions read identically. */
+#main > section:nth-of-type(even),
+#main-zh > section:nth-of-type(even){
   --surface:var(--bg-sunken);
   background:var(--bg-sunken);
 }
