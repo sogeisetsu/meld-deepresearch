@@ -10,7 +10,7 @@ One skill, no framework. It runs on any host that supports the
 Codex, Cursor, GitHub Copilot, Gemini CLI, and more — and it never locks you
 into one vendor.
 
-> **Status:** `v0.1.0` is published. The skill is implemented (`SKILL.md`,
+> **Status:** `v0.2.0` is published. The skill is implemented (`SKILL.md`,
 > `references/`, `scripts/`), exercised by CI on a curated example, and
 > installable straight from this repository. See [`docs/PLAN.md`](docs/PLAN.md).
 

@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-04
+
+### Added
+
+- **Access-blocked sources are now a documented rule, not improvisation.**
+  `references/protocol.md` gains a dedicated section on paywalled, bot-walled
+  and region-blocked pages: the run records the failed fetch as an observation
+  (with the HTTP status), notes the gap as an `availability` caveat, and never
+  passes a search cache, snippet or syndicated repost off as the original. If
+  the only support for a claim is unreachable primary material, the claim is
+  labelled `unknown` rather than downgraded into a confident assertion.
+- **The validator now tells you the smallest safe fix.** Every actionable
+  validation error (`check_evidence.py`) carries an optional `hint` field naming
+  the one repair most likely to clear it — for example, whether to re-key a
+  claim, add a second distinct origin, or drop an unreachable reference. The
+  `code`/`message`/`where` contract is unchanged, so existing consumers keep
+  working.
+- **A same-publisher warning.** When an `interpretive` claim's distinct source
+  URLs all sit on one publisher root (a wire story re-published across the same
+  outlet), the validator reports `W_SAME_PUBLISHER` — a warning only, because
+  the check is a heuristic and never fails a run.
+- **Mid-run budget uplift for wide topics.** The fetch budget and
+  distinct-source floor can be raised explicitly during a run when a genuinely
+  broad topic would otherwise be capped early. The tier never changes (there is
+  still no third tier), and the ≤3-rounds-per-axis limit and stop rules are
+  untouched.
+- A **Deep Research evaluation standard and three-skill comparison**
+  (`docs/eval/`): the recognized report-quality benchmarks (RACE/FACT,
+  ResearchRubrics, DEER, DRACO and more), a seven-axis rubric, a shared test
+  question, and a live comparison against SenseNova-Skills and
+  Weizhena/Deep-Research-skills — including what none of the public benchmarks
+  measure (process discipline, forced refutation, honest stopping).
+
+### Changed
+
+- The landing page (`docs/index.html`) was reworked from user feedback: the
+  English footer's README link now points at the English README (each language
+  links to its own), clicking the wordmark returns to the top of the page, the
+  card fade-and-slide reveal now applies only to the "How it works" chapter (the
+  top progress line keeps its animation), the hero copy reads more naturally in
+  both languages, and both language versions now share the same chapter
+  background alternation.
+- Chinese `README-ZH.md` lost the stray spaces the translation had left around
+  the em dashes.
+
 ## [0.1.0] - 2026-09-30
 
 ### Added

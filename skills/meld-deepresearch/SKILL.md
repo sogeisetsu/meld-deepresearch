@@ -6,7 +6,7 @@ compatibility: Requires web search, web fetch, file read/write and command execu
 metadata:
   author: sogeisetsu
   repository: https://github.com/sogeisetsu/meld-deepresearch
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # meld-deepresearch
