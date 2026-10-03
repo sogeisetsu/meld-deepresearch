@@ -567,9 +567,8 @@ code{
   scroll-snap-align:start;
 }
 .hero{scroll-snap-align:start}
-/* Chapters alternate so that every neighbouring pair differs. The install
-   chapter keeps its own accent tint and is excluded here. */
-#main > section:nth-of-type(even):not(.section--install){
+/* Chapters alternate so that every neighbouring pair differs. */
+#main > section:nth-of-type(even){
   --surface:var(--bg-sunken);
   background:var(--bg-sunken);
 }
@@ -628,6 +627,7 @@ code{
   line-height:1.5;
   overflow-wrap:anywhere;
 }
+.path-note{margin-top:.55rem}
 
 /* --- philosophy grid --- */
 .phil{
@@ -657,25 +657,114 @@ code{
 .phil h3{font-size:1.1rem}
 .phil p{max-width:54ch;font-size:.92rem;color:var(--ink-soft)}
 
-/* --- mid-path comparison --- */
+/* --- mid-path comparison ---
+   Two extremes and one middle, read as a spectrum: a labelled track above,
+   then three options where only the middle one is lit. The extremes sit back
+   on a dashed, sunken card with a ✕ verdict; the middle carries the accent,
+   a ✓ verdict and a lift. So the block reads as a comparison at a glance. */
 .compare{
   display:grid;
-  gap:1px;
+  gap:clamp(1.1rem,2.4vw,1.6rem);
   margin-top:clamp(1.75rem,3vw,2.5rem);
-  background:var(--hairline);
-  border:1px solid var(--hairline);
-  border-radius:var(--radius);
-  overflow:hidden;
 }
-@media (min-width:840px){.compare{grid-template-columns:repeat(3,1fr)}}
+/* The spectrum: a hairline with a diamond bead at its centre, so the eye reads
+   "heavy <-- here --> thin" before it reads a word. */
+.compare-scale{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  font-family:var(--font-mono);
+  font-size:.66rem;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.compare-scale::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:50%;
+  height:1px;
+  background:linear-gradient(90deg, var(--hairline), var(--hairline-strong) 50%, var(--hairline));
+}
+.compare-scale::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:.6rem;
+  height:.6rem;
+  transform:translate(-50%,-50%) rotate(45deg);
+  background:var(--accent);
+  box-shadow:0 0 0 .3rem var(--surface);
+}
+.compare-pole{position:relative;z-index:1;background:var(--surface);padding-inline:.5rem;white-space:nowrap}
+.compare-pole:first-child{padding-left:0}
+.compare-pole:last-child{padding-right:0}
+@media (max-width:520px){
+  .compare-scale{font-size:.58rem;letter-spacing:.05em}
+}
+.compare-cols{display:grid;gap:clamp(.6rem,1.6vw,1rem)}
+@media (min-width:840px){
+  .compare-cols{grid-template-columns:repeat(3,1fr);align-items:stretch}
+  /* Keep the source order (frameworks, prompts, this), but let the middle path
+     stand physically in the middle on a wide screen. */
+  .compare-col:nth-child(1){grid-column:1;grid-row:1}
+  .compare-col--this{grid-column:2;grid-row:1}
+  .compare-col:nth-child(2){grid-column:3;grid-row:1}
+}
 .compare-col{
+  position:relative;
   display:grid;
   gap:.5rem;
   align-content:start;
   padding:clamp(1.15rem,2.2vw,1.7rem);
+  border:1px solid var(--hairline);
+  border-radius:var(--radius);
   background:var(--bg-raised);
 }
-.compare-col--this{background:var(--bg);box-shadow:inset 2px 0 0 var(--accent)}
+/* The two extremes sit back: sunken, dashed, held at arm's length. */
+.compare-col--side{
+  background:var(--bg-sunken);
+  border-style:dashed;
+}
+.compare-col--side h3{color:var(--ink-soft)}
+/* The middle path is the only lit card: accent edge, lift, shadow. */
+.compare-col--this{
+  background:var(--bg-raised);
+  border-color:color-mix(in oklab, var(--accent) 45%, var(--hairline));
+  border-top:3px solid var(--accent);
+}
+@media (min-width:840px){
+  .compare-col--this{
+    translate:0 -.6rem;
+    box-shadow:0 22px 44px -34px rgba(23,22,26,.7);
+  }
+}
+/* A verdict chip: ✕ on an extreme, ✓ on the middle. */
+.compare-verdict{
+  display:inline-grid;
+  place-items:center;
+  width:1.55rem;
+  height:1.55rem;
+  margin-bottom:.15rem;
+  border-radius:50%;
+  font-family:var(--font-mono);
+  font-size:.82rem;
+  font-weight:700;
+  line-height:1;
+}
+.compare-col--side .compare-verdict{
+  color:var(--ink-soft);
+  border:1px solid var(--hairline-strong);
+}
+.compare-col--this .compare-verdict{
+  color:var(--on-accent);
+  background:var(--accent);
+}
 .compare-tag{
   font-family:var(--font-mono);
   font-size:.64rem;
@@ -1007,16 +1096,9 @@ code{
   border:1px solid var(--hairline);
   border-radius:var(--radius);
   background:var(--bg-raised);
-  --e:clamp(0, calc(var(--sp, 1) * 1.8 - .02 - var(--d, 0)), 1);
-  opacity:calc(var(--reveal-min) + (1 - var(--reveal-min)) * var(--e));
-  transform:translate(0, calc((1 - var(--e)) * 36px));
 }
-/* Hover moves with `translate`, not `transform`: the reveal owns `transform`,
-   and the two would otherwise overwrite each other. */
+/* Hover lifts the card with `translate`, so it never fights the layout. */
 .card:hover{border-color:var(--hairline-strong);box-shadow:var(--card-shadow);translate:0 -5px}
-.cards > .card:nth-child(2){--d:.08}
-.cards > .card:nth-child(3){--d:.16}
-.cards > .card:nth-child(4){--d:.24}
 .card-title{
   display:flex;
   align-items:center;
@@ -1128,13 +1210,10 @@ code{
 
 /* ============================================================
    8. Install
-   The section follows the theme -- a soft accent tint and a top accent rule,
-   no forced dark band. Only the command blocks stay dark.
+   No surface of its own: the install chapter follows the same alternating
+   background as every other chapter, so it reads as part of the page. Only the
+   command blocks stay dark.
    ============================================================ */
-.section--install{
-  background:var(--bg-raised);
-  background:color-mix(in oklab, var(--accent) 7%, var(--bg-raised));
-}
 .install-card{
   display:grid;
   gap:.75rem;
@@ -1361,11 +1440,8 @@ code{
     translate:0 -4px;
     box-shadow:var(--card-shadow);
   }
-  /* A stagger inside a row as well as between rows, so the order of arrival is
-     readable rather than simultaneous. */
-  .phil li:nth-child(even){--d:.12}
-  .compare-col:nth-child(2){--d:.12}
-  .compare-col:nth-child(3){--d:.24}
+  .compare-col--this{transition:translate .25s ease,box-shadow .25s ease,border-color .25s ease,background-color .25s ease}
+  .compare-col--this:hover{translate:0 -1.1rem;box-shadow:0 26px 48px -32px rgba(23,22,26,.75)}
   .split > *:nth-child(2){--d:.12}
 }
 
@@ -1471,6 +1547,7 @@ svg{overflow:visible}
   .sec-rule{transform:none}
   .gate .step{box-shadow:none;transform:none}
   .card,.panel,.step,.phil li,.borrow,.install-card,.compare-col{break-inside:avoid}
+  .compare-col--this{translate:none;box-shadow:none}
   .marquee-track{transform:none !important}
 }
 </style>
@@ -1568,7 +1645,7 @@ svg{overflow:visible}
         </ul>
 
         <h1 id="hero-title">Turn a vague topic into a <span class="hl">verifiable, citation-backed</span> research report.</h1>
-        <p class="lede">One portable skill &#8212; not a multi-agent framework. It runs on any host that supports the Agent Skills open standard: opencode, Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and more.</p>
+        <p class="lede">One portable skill. Any host that supports the Agent Skills open standard can load it directly: opencode, Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and more.</p>
         <div class="actions">
           <a class="btn btn--primary" href="#install">Install the skill</a>
           <a class="btn btn--ghost" href="https://github.com/sogeisetsu/meld-deepresearch">Read the repository<span aria-hidden="true"> &#8599;</span></a>
@@ -1580,7 +1657,7 @@ svg{overflow:visible}
         <dl class="spec">
           <div class="spec-row">
             <dt>Scope</dt>
-            <dd>one skill, no framework</dd>
+            <dd>one skill</dd>
           </div>
           <div class="spec-row">
             <dt>Runtime deps</dt>
@@ -1661,23 +1738,32 @@ svg{overflow:visible}
       </h2>
       <p class="sec-lede sp up">Most deep-research tooling is either a heavy multi-agent framework or a thin prompt. This skill takes the middle path.</p>
 
-      <ul class="compare" role="list">
-        <li class="compare-col sp up">
-          <p class="compare-tag">Heavy multi-agent frameworks</p>
-          <h3>Split across many agents</h3>
-          <p>The work is handed to many specialised agents, with a layer of orchestration holding them together.</p>
-        </li>
-        <li class="compare-col sp up">
-          <p class="compare-tag">Thin single prompts</p>
-          <h3>One prompt, nothing checked</h3>
-          <p>A single prompt asks a model for a research report. Nothing verifies what comes back.</p>
-        </li>
-        <li class="compare-col compare-col--this sp up">
-          <p class="compare-tag">This project &#183; the middle path</p>
-          <h3>One skill, evidence on disk</h3>
-          <p>Evidence is written to disk, a validator can fail the run, anything unverified is labelled <code>unknown</code>, and counter-evidence is searched on purpose.</p>
-        </li>
-      </ul>
+      <div class="compare">
+        <div class="compare-scale" aria-hidden="true">
+          <span class="compare-pole">Heavy multi-agent framework</span>
+          <span class="compare-pole">Thin single prompt</span>
+        </div>
+        <ul class="compare-cols" role="list">
+          <li class="compare-col compare-col--side sp up">
+            <span class="compare-verdict" aria-hidden="true">&#10005;</span>
+            <p class="compare-tag">Heavy multi-agent frameworks</p>
+            <h3>Split across many agents</h3>
+            <p>The work is handed to many specialised agents, with a layer of orchestration holding them together.</p>
+          </li>
+          <li class="compare-col compare-col--this sp up">
+            <span class="compare-verdict" aria-hidden="true">&#10003;</span>
+            <p class="compare-tag">This project &#183; the middle path</p>
+            <h3>One skill, evidence on disk</h3>
+            <p>Evidence is written to disk, a validator can fail the run, anything unverified is labelled <code>unknown</code>, and counter-evidence is searched on purpose.</p>
+          </li>
+          <li class="compare-col compare-col--side sp up">
+            <span class="compare-verdict" aria-hidden="true">&#10005;</span>
+            <p class="compare-tag">Thin single prompts</p>
+            <h3>One prompt, nothing checked</h3>
+            <p>A single prompt asks a model for a research report. Nothing verifies what comes back.</p>
+          </li>
+        </ul>
+      </div>
 
       <p class="compare-note sp up">It borrows the best ideas from both open-source and big-tech deep research &#8212; evidence contracts, source quality tiers, refute obligations, budget-aware stopping, multi-perspective questioning &#8212; and distils them into a single, self-contained skill.</p>
       <p class="compare-links">
@@ -1805,6 +1891,7 @@ svg{overflow:visible}
       </h2>
       <p class="sec-lede sp up">Every run writes four artifacts into one directory.</p>
       <p class="path-line sp up">meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/</p>
+      <p class="fine path-note sp up"><code>{slug}</code> is the topic turned into a short, filename-safe string; <code>{hex4}</code> is a 4-character hex suffix that keeps folder names unique.</p>
 
       <ul class="cards" role="list">
         <li class="card sp up">
@@ -1884,7 +1971,7 @@ svg{overflow:visible}
         <span>Standing on the shoulders of many</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede sp up">This skill borrowed mechanisms, and in two cases text, from other projects. The two tiers below are kept apart on purpose: one is reuse under a licence, the other is inspiration only.</p>
+      <p class="sec-lede sp up">This skill borrowed mechanisms, and in two cases text, from other projects. The two layers below are deliberately kept apart: one is reuse under a licence, the other is inspiration only.</p>
 
       <div class="marquee" aria-hidden="true">
         <div class="marquee-track">
@@ -2056,7 +2143,7 @@ svg{overflow:visible}
         </ul>
 
         <h1 id="hero-title-zh">把含糊的话题，变成一份<span class="hl">可核查、每句话都有引用</span>的研究报告。</h1>
-        <p class="lede">一个可移植的 skill，而不是多智能体框架。任何支持 Agent Skills 开放标准的主机都能直接加载：opencode、Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等。</p>
+        <p class="lede">一个可移植的 skill。任何支持 Agent Skills 开放标准的主机都能直接加载：opencode、Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等。</p>
         <div class="actions">
           <a class="btn btn--primary" href="#install-zh">安装这个 skill</a>
           <a class="btn btn--ghost" href="https://github.com/sogeisetsu/meld-deepresearch">查看仓库<span aria-hidden="true"> &#8599;</span></a>
@@ -2068,7 +2155,7 @@ svg{overflow:visible}
         <dl class="spec">
           <div class="spec-row">
             <dt>形态</dt>
-            <dd>单个 skill，无框架</dd>
+            <dd>单个 skill</dd>
           </div>
           <div class="spec-row">
             <dt>运行时依赖</dt>
@@ -2149,23 +2236,32 @@ svg{overflow:visible}
       </h2>
       <p class="sec-lede sp up">大多数深度研究方案，要么是一套笨重的多智能体框架，要么只是一句单薄的 prompt。这个 skill 走的是中间那条路。</p>
 
-      <ul class="compare" role="list">
-        <li class="compare-col sp up">
-          <p class="compare-tag">多智能体框架</p>
-          <h3>拆给很多个智能体</h3>
-          <p>任务交给许多各司其职的智能体，外面再套一层编排把它们串起来。</p>
-        </li>
-        <li class="compare-col sp up">
-          <p class="compare-tag">单句 prompt</p>
-          <h3>一句 prompt，没人核对</h3>
-          <p>一句 prompt 让模型去研究一个话题。快，但交回来的东西没有任何环节会核对。</p>
-        </li>
-        <li class="compare-col compare-col--this sp up">
-          <p class="compare-tag">这个项目 &#183; 中间那条路</p>
-          <h3>一个 skill，证据落盘</h3>
-          <p>证据写进磁盘，校验器可以判定这一轮失败，查不到的一律标 <code>unknown</code>，反面证据要主动去找。</p>
-        </li>
-      </ul>
+      <div class="compare">
+        <div class="compare-scale" aria-hidden="true">
+          <span class="compare-pole">多智能体框架</span>
+          <span class="compare-pole">单句 prompt</span>
+        </div>
+        <ul class="compare-cols" role="list">
+          <li class="compare-col compare-col--side sp up">
+            <span class="compare-verdict" aria-hidden="true">&#10005;</span>
+            <p class="compare-tag">多智能体框架</p>
+            <h3>拆给很多个智能体</h3>
+            <p>任务交给许多各司其职的智能体，外面再套一层编排把它们串起来。</p>
+          </li>
+          <li class="compare-col compare-col--this sp up">
+            <span class="compare-verdict" aria-hidden="true">&#10003;</span>
+            <p class="compare-tag">这个项目 &#183; 中间那条路</p>
+            <h3>一个 skill，证据落盘</h3>
+            <p>证据写进磁盘，校验器可以判定这一轮失败，查不到的一律标 <code>unknown</code>，反面证据要主动去找。</p>
+          </li>
+          <li class="compare-col compare-col--side sp up">
+            <span class="compare-verdict" aria-hidden="true">&#10005;</span>
+            <p class="compare-tag">单句 prompt</p>
+            <h3>一句 prompt，没人核对</h3>
+            <p>一句 prompt 让模型去研究一个话题。快，但交回来的东西没有任何环节会核对。</p>
+          </li>
+        </ul>
+      </div>
 
       <p class="compare-note sp up">它把开源与大厂深度研究里最好的做法收拾到一起 &#8212;&#8212; 证据契约、来源质量分档、证伪义务、按预算停止、多视角提问 &#8212;&#8212; 再收进一个自包含的 skill。</p>
       <p class="compare-links">
@@ -2293,6 +2389,7 @@ svg{overflow:visible}
       </h2>
       <p class="sec-lede sp up">每一次运行都会把四份产物写进同一个目录。</p>
       <p class="path-line sp up">meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/</p>
+      <p class="fine path-note sp up"><code>{slug}</code> 是把话题转成的、适合做文件名的短字符串；<code>{hex4}</code> 是 4 位十六进制后缀，用来保证目录名不重复。</p>
 
       <ul class="cards" role="list">
         <li class="card sp up">
@@ -2372,7 +2469,7 @@ svg{overflow:visible}
         <span>集百家之长</span>
         <span class="sec-rule" aria-hidden="true"></span>
       </h2>
-      <p class="sec-lede sp up">这个 skill 借鉴了别人的机制，其中两处还按 MIT 许可复用了文本。下面两层刻意分开写：一层是许可范围内的复用，另一层只是方法上的启发。</p>
+      <p class="sec-lede sp up">这个 skill 借鉴了别人的机制，其中两处还按 MIT 许可复用了文本。下面分成两层：一层是许可范围内的复用，另一层只是方法上的启发。</p>
 
       <div class="marquee" aria-hidden="true">
         <div class="marquee-track">
