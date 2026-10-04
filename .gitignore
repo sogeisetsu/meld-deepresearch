@@ -73,3 +73,6 @@ ZH/SKILL-ZH.md
 
 # Local git worktrees (kept inside the repo so agents need no external-dir grant)
 .worktrees/
+
+# SenseNova comparison: frozen baseline downloads + live-run artifacts (local only)
+test/
