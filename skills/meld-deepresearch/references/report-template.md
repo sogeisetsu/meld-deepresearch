@@ -56,9 +56,18 @@ or six numbered chapters, not the default set).
   every number still carries a citation, the strongest counter-evidence still
   opens the contradictions material, unknowns are still labelled.
 - **Match the requested register and length.** "正式、简洁 / formal and concise"
-  means a concise formal report, not an academic monograph. Do not surface
-  internal identifiers (`kqN`, `dN`, axis codes) in the body — keep that
-  apparatus in the appendix or the evidence files.
+  means a concise formal report, not an academic monograph.
+  - Keep external citations to sources that actually carry a claim; do not pad the
+    body with background literature — the reference list is support, not content.
+  - When the request implies a management deliverable (e.g. "解释数据背后的管理
+    含义", an executive audience), include the corresponding business section — a
+    consolidated `结论与改进建议` / *Conclusions & Recommendations* chapter — not
+    just a research summary.
+  - Respect a stated length target: keep the body within it and move method,
+    observation detail and secondary contradictions into a compact, non-numbered
+    appendix (they still live in the evidence files for axis G).
+  - Do not surface internal identifiers (`kqN`, `dN`, axis codes) in the body —
+    keep that apparatus in the appendix or the evidence files.
 
 ## Genre templates
 

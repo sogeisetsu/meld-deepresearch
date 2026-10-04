@@ -141,3 +141,54 @@ for the baseline, full process artifacts for the meld run:
 
 Full objective surface **A–E,G** (max 30): meld **30** vs baseline **21**; meld ≥
 baseline on every axis.
+
+## Round 3 (current skill: `main` `b6422ad`, `SKILL.md` `e409856b…`)
+
+Re-run on the current skill, which now ships `read_table.py`. Output:
+`test/runs/example2/round3/`. tier `normal`, genre `panorama`, 6 numbered
+chapters + non-numbered appendix; 22/25 fetches, 15 sources, 32 claims, 15
+observations.
+
+Deterministic (orchestrator re-run): gate ① `ok`; gate ② `ok`, 15 citations, 15
+observations, 0 orphan/uncited. The run read the 10 xlsx with the skill's own
+stdlib `read_table.py` — **0** references to `openpyxl`, 96 to `read_table.py`
+(closing the earlier ad-hoc-helper caveat) — and its `.work/verify.py`
+independently re-checks 23 headline figures (23/23 PASS). Headline numbers match
+the orchestrator's independent stdlib recompute (932 / 50.03 / 49.12 / 61.70%).
+`run-meta.json` pins `b6422ad` / `e409856b…`.
+
+| pass | order | total A | total B |
+|---|---|---|---|
+| 1 | A=baseline · B=meld3 | 19 | 24 |
+| 2 | A=meld3 · B=baseline | 24 | 19 |
+| 3 | A=baseline · B=meld3 | 18 | 24 |
+
+Per-axis medians across the three round-3 passes (A–E; F excluded; max 25):
+
+| axis | baseline (median) | meld3 (median) |
+|---|---|---|
+| A Coverage | 5 | 5 |
+| B Depth | 3 | 5 |
+| C Factual accuracy | 4 | 5 |
+| D Provenance | 2 | 5 |
+| E Instruction-following | **5** | **4** |
+| **total** | **19** | **24** |
+
+Per-pass totals — meld3 24/24/24, baseline 19/19/18.
+
+**FAIL (round 3) — E lags by 1.** Total 24 ≥ 19 and meld ≥ baseline on A/B/C/D,
+but **E: meld 4 < baseline 5** (all three passes). The judges' reason is register,
+not structure (the body already has 6 chapters): meld reads as an academic
+research memo — 15 external references, a "strongest counter-evidence" framing,
+no consolidated `结论与改进建议` chapter — and likely exceeds the ~14-page target;
+the baseline is a concise 5-chapter business report with a recommendations
+chapter. This is a narrow, consistent gap, so a targeted fix is warranted.
+
+### Fix (round 4)
+
+`references/report-template.md` — extend the "Match the requested register and
+length" rule: (a) keep external citations to sources that carry a claim, not
+background literature; (b) when the request implies a management deliverable,
+include a consolidated `结论与改进建议` chapter; (c) respect a stated length
+target, moving method/observation/secondary-contradiction detail into a compact
+non-numbered appendix (it still lives in the evidence files for axis G).
