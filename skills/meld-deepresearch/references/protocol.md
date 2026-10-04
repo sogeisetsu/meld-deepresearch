@@ -211,8 +211,10 @@ Gate ② vocabulary, matching `render_citations.py` exactly:
 - **Orphan** = an inline marker whose id is **absent from the array it names** —
   `[^sN]` with no `sources[]` entry, or `[^oN]` with no `observations[]` entry
   → gate ② fails.
-- **Unresolved** = a marker left un-replaced (empty id, or a residual `[^` in
-  the rendered output) → gate ② fails.
+- **Unresolved** = a marker left un-replaced (an empty id, or a residual `[^`
+  marker) → gate ② fails. In the default GFM-footnote mode the rendered `[^N]` /
+  `[^oN]` markers are expected, so only orphans fail; the residual-`[^` check
+  applies to `--anchors` / `--legacy-plain`.
 - **Uncited** = a source in `sources[]` or an observation in `observations[]`
   that the report never cites → **warning only**, never a failure.
 
@@ -234,7 +236,9 @@ python scripts/content_review.py --report "$OUTDIR/report.md" --evidence "$OUTDI
 
 `merge_evidence.py` and `content_review.py` are new; `content_review.py` is
 optional and only warns. A `quick` run has no `plan.json`, so it omits the
-`--plan` flag.
+`--plan` flag. `render_citations.py` renders GFM footnotes by default (the
+renderer wires the jump itself, so it survives HTML sanitising); add `--anchors`
+only when the target host keeps inline `<a id>` anchors.
 
 - Gate failure ⇒ **fix once and re-run** (at most one re-run per gate).
 - Second failure ⇒ **stop and report honestly** (failing stage, artifact paths, last error). Do not deliver a report that failed a gate.

@@ -29,13 +29,19 @@ Marker format:
     find it.
 
     Three render modes:
-      * default        ``[[N]](#ref-N)`` with a first-occurrence cite anchor
+      * default        GFM footnotes: the marker becomes ``[^N]`` (source) or
+                       ``[^oN]`` (observation) and the reference list becomes
+                       footnote definitions ``[^N]: ...``. A GFM renderer
+                       (GitHub, most editors) shows a numbered superscript and
+                       wires the jump and back-link itself, so it needs no
+                       inline HTML and survives HTML sanitising. The standalone
+                       ``## Sources`` / ``## Observations`` headings are dropped
+                       in this mode (the host renders its own footnotes block).
+      * ``--anchors``  ``[[N]](#ref-N)`` with a first-occurrence cite anchor
                        ``<a id="cite-N"></a>`` and a backlink ``[↩](#cite-N)``
-                       on each reference line — clickable, works on any
-                       Markdown host that allows inline HTML.
-      * ``--footnotes`` GFM footnotes ``[^N]`` / ``[^oN]`` with definitions
-                       ``[^N]: ...`` (a reader with footnote support renders
-                       the jump itself).
+                       on each reference line — clickable on hosts that keep
+                       inline HTML (many strip ``id`` attributes, which is why
+                       footnotes are the default).
       * ``--legacy-plain`` the old plain ``[N]`` / ``[ON]`` text, kept for
                        byte-for-byte backward compatibility.
 
@@ -152,9 +158,16 @@ def build_parser():
         help="citations.json path (default: citations.json next to --output)",
     )
     parser.add_argument(
+        "--anchors",
+        action="store_true",
+        help="render clickable HTML anchors ([[N]](#ref-N) + <a id>) instead "
+             "of the default GFM footnotes; note that many renderers strip "
+             "id attributes, which is why footnotes are the default",
+    )
+    parser.add_argument(
         "--footnotes",
         action="store_true",
-        help="render GFM footnotes ([^N]) instead of clickable anchors",
+        help="deprecated no-op alias: GFM footnotes are already the default",
     )
     parser.add_argument(
         "--legacy-plain",
@@ -286,6 +299,14 @@ def build_sources_section(text, numbers, by_id, mode):
     block = "\n".join(lines)
 
     heading = SOURCES_HEADING_RE.search(text)
+    if mode == "footnotes":
+        # GFM footnote definitions render into the host's own footnotes block,
+        # so the standalone ## Sources heading is dropped in this mode.
+        base = (text[: heading.start()] if heading else text).rstrip("\n")
+        if block:
+            return base + "\n\n" + block + "\n"
+        return base + "\n"
+
     if heading:
         head = text[: heading.end()]  # heading line without its newline
         if block:
@@ -321,7 +342,9 @@ def observation_line(number, observation, mode):
 def build_observations_section(text, numbers, by_id, mode):
     """Append ## Observations, or rebuild the content after an existing one.
 
-    Only called when at least one observation is cited.
+    Only called when at least one observation is cited. In ``footnotes`` mode
+    the heading is dropped: the host renders both marker families in one
+    footnotes block.
     """
     ordered = sorted(numbers.items(), key=lambda item: item[1])
     lines = [
@@ -331,6 +354,12 @@ def build_observations_section(text, numbers, by_id, mode):
     block = "\n".join(lines)
 
     heading = OBSERVATIONS_HEADING_RE.search(text)
+    if mode == "footnotes":
+        base = (text[: heading.start()] if heading else text).rstrip("\n")
+        if block:
+            return base + "\n\n" + block + "\n"
+        return base + "\n"
+
     if heading:
         head = text[: heading.end()]  # heading line without its newline
         if block:
@@ -357,8 +386,8 @@ def main(argv=None):
     source_numbers, observation_numbers, orphans = assign_numbers(
         report_text, by_id, obs_by_id
     )
-    mode = "footnotes" if args.footnotes else (
-        "legacy" if args.legacy_plain else "anchor")
+    mode = "legacy" if args.legacy_plain else (
+        "anchor" if args.anchors else "footnotes")
     rendered = substitute_markers(
         report_text, source_numbers, observation_numbers, mode)
     rendered = build_sources_section(rendered, source_numbers, by_id, mode)

@@ -158,6 +158,7 @@ python render_citations.py --report <report.src.md> --evidence <evidence.json> \
 
 - 按**首次出现顺序**分别对两个标记族编号：`[^sN]` → `[N]`（来源），`[^oN]` → `[ON]`（观察）。两族各自从 1 开始（因此可以同时存在 `[1]` 与 `[O1]`）。
 - 正文内联替换标记；把 `## Sources` 标题之后的全部内容替换为编号来源清单；**当且仅当**引用了观察时，再追加 `## Observations` 段（行格式 `[ON] method — environment (captured YYYY-MM-DD)`，`environment` 为空写 `unknown`）。
+- **默认渲染为 GFM 脚注**（`[^N]`/`[^oN]` + `[^N]:` 定义，去掉独立 `## Sources`/`## Observations` 标题），因为 `<a id>` 内联锚点会被 GitHub 等渲染器剥离、点角标不跳转；`--anchors` 恢复旧的 `[[N]](#ref-N)` 形式，`--legacy-plain` 恢复纯文本。
 - `citations.json`：`{"ok": bool, "citations": [{"number": 1, "source_id": "s1", "title": "…", "url": "…", "quality": "…", "published_at": "…"}], "observations": [{"number": 1, "observation_id": "o1", "kind": "…", "method": "…", "command": "…", "captured_at": "…", "environment": "…"}], "orphans": [...], "uncited": [...]}`（`observations` 键**始终存在**，无观察时为空数组）。
 - stdout 摘要：`{"ok": bool, "citation_count": N, "observation_count": M, "orphans": [...], "uncited": [...]}`。
 - **orphan**（标记指向 `sources[]` / `observations[]` 中不存在的 id）→ `ok:false`、exit 1；**未解析**（渲染后仍残留 `[^` 或空 id 标记）→ 同样 `ok:false`、exit 1；**uncited**（已声明却从未引用，来源与观察均计）→ 仅警告。
