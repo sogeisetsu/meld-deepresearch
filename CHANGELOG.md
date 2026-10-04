@@ -60,6 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   writing-context collision regression), `content_review.py`, the
   chronicle-genre example, every negative fixture, and the new
   `examples/merge-run/` fold fixture.
+- The npm package (`package.json` `files`) now ships only `docs/PLAN.md` instead
+  of the whole `docs/` tree, dropping the landing page, `og.png` and the
+  `docs/eval/` records from the tarball while keeping the README's relative link
+  resolvable.
+- `.gitignore` was hardened (build/temp/Node artifacts, `**/.work/`) and is now
+  stored as UTF-8 without a BOM.
+- The archived skill-creator benchmark records use a portable
+  `skill_path: skills/meld-deepresearch` instead of a machine-local absolute path.
 
 ### Fixed
 
