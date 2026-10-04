@@ -41,6 +41,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.work/` now holds the run middleware (`plan.json`, `report.src.md`,
   `sub_reports/`), leaving the four top-level artifacts as the deliverables.
 - `dedupe_sources.py` adds a `source_type` column only when a source uses it.
+- CI's script self-test now covers `merge_evidence.py` (including a
+  writing-context collision regression), `content_review.py`, the
+  chronicle-genre example, every negative fixture, and the new
+  `examples/merge-run/` fold fixture.
+
+### Fixed
+
+- `check_evidence.py` no longer crashes with a Python traceback when a
+  top-level array has the wrong shape (for example a non-array `claims`); it now
+  reports a clean `E_SHAPE` JSON body, as the contract promises.
+- `merge_evidence.py` re-keys a colliding `writing_context` id inside its own
+  `dN.wM` family instead of to a bare `cN`, so the merged `evidence.json` still
+  passes gate ① instead of failing with `E_ID_PATTERN`.
 
 ## [0.2.0] - 2026-10-04
 

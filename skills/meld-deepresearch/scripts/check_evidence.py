@@ -483,7 +483,7 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
 
     claims = doc.get("claims")
     if not isinstance(claims, list):
-        return claim_ids, axes, answered, has_refute
+        return claim_ids, axes, answered, has_refute, background_ids
 
     for index, claim in enumerate(claims):
         where = "claims[%d]" % index

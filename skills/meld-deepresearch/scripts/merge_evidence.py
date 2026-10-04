@@ -42,6 +42,7 @@ import copy
 import glob
 import json
 import os
+import re
 import sys
 
 try:  # the sibling script ships next to this one
@@ -49,6 +50,11 @@ try:  # the sibling script ships next to this one
 except Exception:  # pragma: no cover - fallback if imported oddly
     def dedupe_key(url):
         return (url or "").strip().lower()
+
+# Writing-context ids must keep the contract shape ``dN.wM`` (see
+# evidence-contract.md); a collision is re-keyed inside that family, never to a
+# bare ``cN`` that the validator would reject.
+CONTEXT_ID_RE = re.compile(r"^(d\d+)\.w\d+$")
 
 
 def emit(obj):
@@ -65,6 +71,21 @@ def next_id(prefix, used):
     while "%s%d" % (prefix, index) in used:
         index += 1
     return "%s%d" % (prefix, index)
+
+
+def next_context_id(context_id, used):
+    """Next free ``dN.wM`` id in ``context_id``'s own axis family.
+
+    Keeps the contract pattern when the incoming id already matches ``dN.wM``;
+    a malformed id falls back to the ``d0`` family so the merged file still
+    validates with ``check_evidence.py`` instead of carrying a bare ``cN``.
+    """
+    match = CONTEXT_ID_RE.match(context_id)
+    axis = match.group(1) if match else "d0"
+    index = 1
+    while "%s.w%d" % (axis, index) in used:
+        index += 1
+    return "%s.w%d" % (axis, index)
 
 
 def _deep(obj):
@@ -164,7 +185,7 @@ def merge_docs(docs):
             context_id = merged.get("id")
             if isinstance(context_id, str):
                 new_id = context_id if context_id not in used_contexts \
-                    else next_id("c", used_contexts)
+                    else next_context_id(context_id, used_contexts)
                 used_contexts.add(new_id)
                 merged["id"] = new_id
             if isinstance(merged.get("source_ids"), list):

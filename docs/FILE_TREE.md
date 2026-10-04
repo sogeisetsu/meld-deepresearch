@@ -27,6 +27,7 @@ meld-deepresearch/                    # repository root
 ├── examples/                         # example artifacts, used by CI
 │   ├── sample-run/                   # one complete illustrative run: report.src.md, report.md, sources.md, evidence.json, citations.json, plan.json
 │   ├── chronicle-run/                # a chronicle-genre run: background claims, gaps[], source_type, plan genre + must_have_materials
+│   ├── merge-run/                    # a two-axis merge fixture: sub_reports/{d1,d2}.evidence.json share one URL, which folds to a single source id with references re-pointed
 │   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + one orphan-citation draft
 └── .github/                          # GitHub configuration
     └── workflows/                    # CI: validate.yml (spec check + end-to-end script self-test)

@@ -165,6 +165,18 @@ jobs:
           step "check_evidence: no refute claim warns but passes" 0 "W_NO_REFUTE" -- \
             python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.no-refute.json
 
+          step "check_evidence: background claim backs a key finding" 1 "E_FINDING_BACKGROUND" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.finding-background.json
+
+          step "check_evidence: gap with a bad reason enum" 1 "E_GAP_ENUM" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.gap-bad-enum.json
+
+          step "check_evidence: gap referencing an unknown source" 1 "E_GAP_REF" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.gap-bad-ref.json
+
+          step "check_evidence: gap missing a required field" 1 "E_GAP_SHAPE" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.gap-bad-shape.json
+
           step "render_citations: valid sample report" 0 "" -- \
             python3 skills/meld-deepresearch/scripts/render_citations.py \
               --report examples/sample-run/report.src.md \
@@ -186,6 +198,46 @@ jobs:
               --evidence examples/sample-run/evidence.json \
               --output "${tmp}/sources.md"
           assert_file "dedupe_sources: valid sample evidence" "${tmp}/sources.md"
+
+          step "check_evidence: chronicle example with plan" 0 "" -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py \
+              examples/chronicle-run/evidence.json \
+              --plan examples/chronicle-run/plan.json
+
+          step "render_citations: chronicle example" 0 '"ok": true' -- \
+            python3 skills/meld-deepresearch/scripts/render_citations.py \
+              --report examples/chronicle-run/report.src.md \
+              --evidence examples/chronicle-run/evidence.json \
+              --output "${tmp}/chronicle.md" \
+              --citations "${tmp}/chronicle.citations.json"
+          assert_file "render_citations: chronicle example" "${tmp}/chronicle.md"
+
+          step "merge_evidence: fold a shared source across axes" 0 '"ok": true' -- \
+            python3 skills/meld-deepresearch/scripts/merge_evidence.py \
+              --subreports examples/merge-run/sub_reports \
+              --output "${tmp}/merge-run.json"
+          assert_file "merge_evidence: fold a shared source across axes" "${tmp}/merge-run.json"
+
+          step "merge_evidence: merged file passes gate one" 0 '"ok": true' -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py "${tmp}/merge-run.json"
+
+          # Regression: a colliding writing-context id must be re-keyed inside
+          # its own dN.wM family, never to a bare cN, or the merged file would
+          # fail gate one with E_ID_PATTERN.
+          collide_reports="${tmp}/collide/sub_reports"
+          mkdir -p "${collide_reports}"
+          printf '%s\n' '{"claims":[{"id":"d1.c1","text":"a","kind":"factual","polarity":"support","topic_tag":"t","answers_key_question":null,"evidence":[{"source_id":"s1","snippet":"x","quote_type":"direct"}]}],"sources":[{"id":"s1","url":"https://collide.example/a","title":"a","quality":"primary","published_at":null}],"writing_context":[{"id":"d1.w1","kind":"scope","text":"a","source_ids":["s1"],"applies_to":["d1.c1"],"use":"u"}],"key_findings":[]}' > "${collide_reports}/d1.evidence.json"
+          printf '%s\n' '{"claims":[{"id":"d2.c1","text":"b","kind":"factual","polarity":"support","topic_tag":"t","answers_key_question":null,"evidence":[{"source_id":"s2","snippet":"y","quote_type":"direct"}]}],"sources":[{"id":"s2","url":"https://collide.example/b","title":"b","quality":"primary","published_at":null}],"writing_context":[{"id":"d1.w1","kind":"scope","text":"b","source_ids":["s2"],"applies_to":["d2.c1"],"use":"u"}],"key_findings":[]}' > "${collide_reports}/d2.evidence.json"
+          step "merge_evidence: colliding context ids stay dN.wM" 0 '"ok": true' -- \
+            python3 skills/meld-deepresearch/scripts/merge_evidence.py \
+              --subreports "${collide_reports}" --output "${tmp}/collide.json"
+          step "merge_evidence: collision result passes gate one" 0 '"ok": true' -- \
+            python3 skills/meld-deepresearch/scripts/check_evidence.py "${tmp}/collide.json"
+
+          step "content_review: sample report warns but never fails" 0 '"ok": true' -- \
+            python3 skills/meld-deepresearch/scripts/content_review.py \
+              --report examples/sample-run/report.md \
+              --evidence examples/sample-run/evidence.json
 
           if [ "${status}" -ne 0 ]; then
             echo "One or more self-test steps failed."
