@@ -173,3 +173,21 @@ Both examples are not-inferior after one in-scope skill fix (commit `639f408`).
 Every run recorded its skill SHA + file hashes (`run-meta.json`); every verdict is
 the median of 3 blind `oracle` passes; both gates and sampled citation links were
 re-run independently by the orchestrator.
+
+## 14. Independent verification (orchestrator-run, not the child's word)
+
+| Check | T1 r1 | T2 r1 | T2 r2 |
+|---|---|---|---|
+| Gate ① `check_evidence.py --plan` | ok | ok | ok |
+| Gate ② `render_citations.py` | ok, 0 orphan/uncited | ok, 0 orphan/uncited | ok, 0 orphan/uncited |
+| Sampled citation links reachable | 8/8 | 6/6 | 6/6 |
+| Numeric cross-check vs raw xlsx | — | 932 / 50.03 / 49.12 / 61.7% all match | same |
+| `run-meta.json` skill hash | `ca6aa8c5…` | `ca6aa8c5…` | `97210300…` |
+
+- CI-equivalence: `test/tools/spec_check.py` passes (frontmatter, forbidden
+  host-tool names, POSIX-only snippets); `test/tools/ci_selftest.py` replays the
+  workflow's 23 self-test steps — **all pass**; `git merge-tree main HEAD` is
+  clean, so `main` stays mergeable.
+- `test/` is gitignored (`.gitignore:78`) and `git ls-files test` is empty —
+  neither the frozen baseline nor any live-run artifact is committed.
+- **No push**: `origin/main` is unchanged; the branch has no remote.
