@@ -1,32 +1,63 @@
-﻿# OS
+# OS
 .DS_Store
 Thumbs.db
+ehthumbs.db
 desktop.ini
+*.stackdump
+*.lnk
 
 # Editors
 .vscode/
 .idea/
+.fleet/
+.vs/
+.history/
 *.swp
 *~
 
 # Python
 __pycache__/
 *.py[cod]
+*.egg
 *.egg-info/
+.eggs/
 .venv/
 venv/
+.tox/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.pytype/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+
+# Node (package.json is published, but its install/pack artifacts are not)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+*.tgz
 
 # Env / secrets
 .env
 .env.*
 !.env.example
 
+# Temp files and merge artifacts
+*.log
+*.tmp
+*.bak
+*.orig
+*.rej
+tmp/
+
 # Local research run outputs (never commit live runs)
 meld-deepresearch-reports/
 **/meld-deepresearch-reports/
+**/.work/
 
 # OpenCode local session state
 .opencode/
@@ -42,4 +73,3 @@ ZH/SKILL-ZH.md
 
 # Local git worktrees (kept inside the repo so agents need no external-dir grant)
 .worktrees/
-
