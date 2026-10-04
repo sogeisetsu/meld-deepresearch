@@ -123,6 +123,39 @@ Per-pass totals — meld2 28/28/28, baseline 13/15/13.
 unchanged: the baseline's citations remain unresolvable (D 0–1) and meld's
 evidence chain is intact.
 
+## Round 3 (frozen skill: `main` `0958af1`, `SKILL.md` `e409856b…`)
+
+Re-run on the frozen skill (which now includes the report-register fix) so both
+examples are pinned to one SHA. Output: `test/runs/example1/round3b/` (13
+headings). tier `normal`, 18/25 fetches, 15 sources, 3 observations, 32 claims.
+Gates independently re-run: ① `ok`; ② `ok`, 15 citations, 3 observations, 0
+orphan/uncited. `run-meta.json` pins `0958af1` / `e409856b…`.
+
+| pass | order | total A | total B |
+|---|---|---|---|
+| 1 | A=baseline · B=meld3 | 18 | 28 |
+| 2 | A=meld3 · B=baseline | 28 | 14 |
+| 3 | A=baseline · B=meld3 | 14 | 27 |
+
+Per-axis medians across the three round-3 passes (A–E,G; F excluded; max 30):
+
+| axis | baseline (median) | meld3 (median) |
+|---|---|---|
+| A Coverage | 5 | 5 |
+| B Depth | 3 | 5 |
+| C Factual support | 1 | 5 |
+| D Citation quality | 0 | 5 |
+| E Instruction-following | 5 | 5 |
+| G Process discipline | 1 | 3 |
+| **total** | **15** | **28** |
+
+Per-pass totals — meld3 28/28/27, baseline 18/14/14. Two passes fetched 6 of
+meld's 15 links (all 200, content matches); the baseline has no resolvable links.
+
+**PASS** — meld3 ≥ baseline on every axis (28 ≥ 15) on the **frozen** skill
+(`main` `0958af1`, `SKILL.md` `e409856b…`) — the same version T2 round 4 was
+scored on.
+
 ## Skill changes
 
 None (round 1 already not-inferior). No skill file was modified in this round.

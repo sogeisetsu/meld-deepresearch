@@ -165,19 +165,25 @@ committed).
 
 ## 13. Result
 
-A–E scored by 3 blind passes; G by a dedicated independent pass
-(deliverable-visible for the baselines, full process artifacts for the meld runs).
+Final verdicts are on the **frozen skill** `main` `0958af1` (`SKILL.md`
+`e409856b…`), so both examples share one version. A–E scored by 3 blind passes;
+G by a dedicated independent pass.
 
-| Example | Round | meld A–E,G | baseline A–E,G | Verdict |
+| Example | Round (skill) | meld | baseline | Verdict |
 |---|---|---|---|---|
-| T1 embodied-AI landscape | 1 | **29 / 30** (A–E 25, G 4) | 15 / 30 (A–E 13, G 2) | **PASS** |
-| T2 employee performance | 1 | 24 / 25 (A–E, G n/a) | 18 / 25 (A–E) | FAIL on E |
-| T2 employee performance | 2 | **30 / 30** (A–E 25, G 5) | 21 / 30 (A–E 18, G 3) | **PASS** |
+| T1 embodied-AI landscape | r3 (`0958af1`) | **28 / 30** | 15 / 30 | **PASS** |
+| T2 employee performance | r4 (`0958af1`) | **24 / 25** | 17 / 25 | **PASS** |
 
-Both examples are not-inferior on **every** in-scope axis (A–E,G) after one
-in-scope skill fix (commit `639f408`). Every run recorded its skill SHA + file
-hashes (`run-meta.json`); every A–E verdict is the median of 3 blind `oracle`
-passes; both gates and sampled citation links were re-run independently.
+Round history (why these rounds):
+- T1 r1 (pre-fix) PASS 28 vs 14; r2 (`86b472d`) PASS 28 vs 12; r3 (`0958af1`) PASS 28 vs 15.
+- T2 r1 FAIL on E (11 sections vs the requested "5–6 章") → fix `639f408` → r2
+  (`639f408`) PASS. Adding `read_table.py` (`86b472d`) → r3 FAIL on E by 1 (the
+  report read as an academic memo) → fix `0958af1` (business-register guidance) →
+  r4 PASS.
+
+Every run recorded its skill SHA + file hashes (`run-meta.json`); both gates and
+sampled citation links were re-run independently; T2 also cross-checks against an
+independent stdlib recompute of the source xlsx.
 
 ## 14. Independent verification (orchestrator-run, not the child's word)
 

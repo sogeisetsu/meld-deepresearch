@@ -192,3 +192,39 @@ background literature; (b) when the request implies a management deliverable,
 include a consolidated `结论与改进建议` chapter; (c) respect a stated length
 target, moving method/observation/secondary-contradiction detail into a compact
 non-numbered appendix (it still lives in the evidence files for axis G).
+
+## Round 4 (current skill: `main` `0958af1`, `report-template.md` `4D566C7A…`)
+
+Output: `test/runs/example2/round4/`. tier `normal`, 6 numbered chapters +
+non-numbered appendix incl. `结论与改进建议`; **`read_table.py` used** (0
+`openpyxl`). Gates independently re-run: ① `ok`; ② `ok`, 4 citations, 3
+observations, 0 orphan/uncited. Headline numbers match the recompute. **Source
+floor missed** — only 4 external sources (the run mostly analysed local data),
+reported by the run as a gap. `run-meta.json` pins `0958af1` / `e409856b…`.
+
+| pass | order | total A | total B |
+|---|---|---|---|
+| 1 | A=baseline · B=meld4 | 17 | 23 |
+| 2 | A=meld4 · B=baseline | 23 | 16 |
+| 3 | A=baseline · B=meld4 | 16 | 24 |
+
+Per-axis medians across the three round-4 passes (A–E; F excluded; max 25):
+
+| axis | baseline (median) | meld4 (median) |
+|---|---|---|
+| A Coverage | 5 | 5 |
+| B Depth | 3 | 5 |
+| C Factual accuracy | 3 | 5 |
+| D Provenance | 2 | 5 |
+| E Instruction-following | 4 | 4 |
+| **total** | **17** | **24** |
+
+Per-pass totals — meld4 23/23/24, baseline 17/16/16.
+
+**PASS (round 4)** — meld4 ≥ baseline on every axis (24 ≥ 17); **E now ties at 4**
+(the round-3 disagreeing axis), and meld keeps a large lead on B/C/D. The
+register fix closed the E gap. Meld's E remains its weakest axis (residual
+internal-process wording in the body), and the run's external source count (4) is
+below the normal-tier floor — a genuine quality limitation, but not a loss
+against the baseline. Current skill: `main` `0958af1`, `report-template.md`
+`4D566C7A…`.
