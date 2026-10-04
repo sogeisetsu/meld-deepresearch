@@ -91,6 +91,38 @@ full process artifacts for the meld run:
 Full objective surface **A–E,G** (max 30): meld **29** vs baseline **15**; meld ≥
 baseline on every axis.
 
+## Round 2 (current skill: `main` `86b472d`, `SKILL.md` `e409856b…`)
+
+Re-run on the post-merge skill (which now ships `read_table.py`). Output:
+`test/runs/example1/round2/` (109 lines). tier `normal`, 20/25 fetches, 15 sources,
+5 observations, 9 `refute` claims. Deterministic (orchestrator re-run): gate ① `ok`;
+gate ② `ok`, 15 citations, 5 observations, 0 orphan/uncited.
+
+| pass | order | total A | total B |
+|---|---|---|---|
+| 1 | A=baseline · B=meld2 | 13 | 28 |
+| 2 | A=meld2 · B=baseline | 28 | 15 |
+| 3 | A=baseline · B=meld2 | 13 | 28 |
+
+Per-axis medians across the three round-2 passes (A–E,G; F excluded; max 30):
+
+| axis | baseline (median) | meld2 (median) |
+|---|---|---|
+| A Coverage | 4 | 5 |
+| B Depth | 2 | 5 |
+| C Factual support | 1 | 5 |
+| D Citation quality | 0 | 5 |
+| E Instruction-following | 4 | 5 |
+| G Process discipline | 1 | 3 |
+| **total** | **12** | **28** |
+
+Per-pass totals — meld2 28/28/28, baseline 13/15/13.
+
+**PASS** — meld2 ≥ baseline on every axis (28 ≥ 12) on the **current** skill
+(`main` `86b472d`, `SKILL.md` `e409856b…`). Compared with round 1 the picture is
+unchanged: the baseline's citations remain unresolvable (D 0–1) and meld's
+evidence chain is intact.
+
 ## Skill changes
 
 None (round 1 already not-inferior). No skill file was modified in this round.
