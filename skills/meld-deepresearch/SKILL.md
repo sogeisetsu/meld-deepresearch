@@ -120,6 +120,7 @@ Non-negotiable, enforced by the validator — the full schema, allowed values an
 - Every claim carries evidence — a web source **or** a reproducible first-hand `observations[]` entry cited `[^oN]`; a search-result snippet is never evidence.
 - A `factual` claim needs a `primary`/`secondary` source or an observation; an `interpretive` claim needs two **distinct** origins; anything unverifiable is labelled `unknown`.
 - Counter-evidence is searched on purpose; a run with no `refute` claim at all draws a validator warning.
+- When the request supplies local data files (`.xlsx` / `.csv`), read them with `scripts/read_table.py` (stdlib) and record the command as an `observations[]` entry; cite computed figures `[^oN]` (`references/protocol.md` §2a).
 
 ## 8. Budget and stop conditions
 

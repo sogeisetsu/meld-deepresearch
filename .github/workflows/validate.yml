@@ -290,6 +290,9 @@ jobs:
               --report examples/sample-run/report.md \
               --evidence examples/sample-run/evidence.json
 
+          step "read_table: stdlib xlsx/csv selftest" 0 "read_table selftest: OK" -- \
+            python3 skills/meld-deepresearch/scripts/read_table.py --selftest
+
           if [ "${status}" -ne 0 ]; then
             echo "One or more self-test steps failed."
             exit 1

@@ -47,6 +47,30 @@ Exact rules — all mandatory:
    key and adds no dependency. Platform-internal `code:` search and
    citation-count ranking stay deliberately out of scope.
 
+## 2a. Local data files are first-hand evidence
+
+When the request **supplies local data files** (`.xlsx`, `.csv`, `.tsv`) instead
+of, or in addition to, a web question, read them on the host rather than
+searching for their contents:
+
+1. **Read the file with `scripts/read_table.py`** (Python stdlib only):
+   `python scripts/read_table.py <file> [--sheet <name|index>] [--all-sheets] [--max-rows N] [--format json]`.
+   It handles shared/inline strings, sparse cells, booleans and Excel serial
+   dates, and maps sheets through the workbook relationships (never a hard-coded
+   `sheet1.xml`).
+2. **Record the exact command as an `observations[]` entry** (`kind:
+   "inspection"`, with a re-runnable `command`), and cite every figure computed
+   from the file with `[^oN]`. The tool output is first-hand evidence, not a web
+   source — it lives in `observations[]` and needs no `sources[]` entry.
+3. **Reading a local file is not a web fetch**, so it does not count against the
+   fetch budget (§8); it is still evidence, and its numbers must be reproducible
+   by re-running the recorded command.
+4. **Do not invent numbers the file does not contain**, and do not round or
+   reinterpret silently — a figure the recorded command cannot produce is
+   `unknown`.
+5. If the file cannot be parsed (corrupt or unsupported), record a `gaps[]` entry
+   with `reason: access-limited` (or `other`) and continue.
+
 ## 3. Mandatory refutation
 
 - After the supporting evidence looks sufficient, **actively search for counter-evidence**: opposing findings, failed cases, debunkings, and claims that cannot be verified at all.
