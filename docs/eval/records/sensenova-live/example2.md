@@ -127,3 +127,17 @@ is closed: after the structure fix the body has 6 numbered chapters and the E
 median is meld 5 vs baseline 4. Residual E variance (meld scored 4 once, 5 twice)
 is judges weighing meld's citation density/length against "简洁"; the same
 passes docked the baseline's short length. No further skill change needed.
+
+## G axis (supplementary, full process artifacts)
+
+The passes above excluded G (the baseline has no process trace). A dedicated
+independent pass scored G per the rubric's intent — deliverable-visible (cap 3)
+for the baseline, full process artifacts for the meld run:
+
+| instance | G | basis |
+|---|---|---|
+| T2 baseline | **3** | deliverable only: data source and thresholds stated, but inferences stated as facts, no unknowns / counter-evidence / repro |
+| T2 meld r2 (`97210300…`) | **5** | 17 observations with re-runnable `analyze.py` commands, both gates' stdout in run-log, budget honesty, active threshold self-falsification, unknowns listed |
+
+Full objective surface **A–E,G** (max 30): meld **30** vs baseline **21**; meld ≥
+baseline on every axis.

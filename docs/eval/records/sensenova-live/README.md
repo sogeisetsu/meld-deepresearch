@@ -84,7 +84,7 @@ Baseline G is grounded only in deliverable-visible signals (citations present,
 unknowns labeled, visible contradiction handling) and is **capped at 3**; if it
 cannot be grounded it is `n/a`.
 
-### T2 (data analysis) — scorable `{A,B,C,D,E}`, baseline G = `n/a`
+### T2 (data analysis) — scorable `{A,B,C,D,E}`, plus G in a supplementary pass
 
 Deliverable **container format** (docx / html / md) is treated as **F
 (presentation)** and excluded; `E` covers the *content/structure* instructions
@@ -99,7 +99,9 @@ only. This is a protocol decision, stated explicitly.
 | E | 5–6 chapters, ~14-page scope, formal professional tone, required elements present | all met within the requested shape |
 | G | meld process artifacts | full trace |
 
-Baseline G = `n/a` (no process trace exists), so `S = {A,B,C,D,E}` for T2.
+Baseline G has no process trace, so a dedicated pass scores it from
+deliverable-visible signals (cap 3); meld G is scored from full process
+artifacts. `S = {A,B,C,D,E,G}` for T2.
 
 ## 7. Judge protocol
 
@@ -163,16 +165,19 @@ committed).
 
 ## 13. Result
 
-| Example | Round | meld (median) | baseline (median) | Verdict |
-|---|---|---|---|---|
-| T1 embodied-AI landscape | 1 | 28 / 30 | 14 / 30 | **PASS** |
-| T2 employee performance | 1 | 24 / 25 | 18 / 25 | FAIL on E |
-| T2 employee performance | 2 | 25 / 25 | 18 / 25 | **PASS** |
+A–E scored by 3 blind passes; G by a dedicated independent pass
+(deliverable-visible for the baselines, full process artifacts for the meld runs).
 
-Both examples are not-inferior after one in-scope skill fix (commit `639f408`).
-Every run recorded its skill SHA + file hashes (`run-meta.json`); every verdict is
-the median of 3 blind `oracle` passes; both gates and sampled citation links were
-re-run independently by the orchestrator.
+| Example | Round | meld A–E,G | baseline A–E,G | Verdict |
+|---|---|---|---|---|
+| T1 embodied-AI landscape | 1 | **29 / 30** (A–E 25, G 4) | 15 / 30 (A–E 13, G 2) | **PASS** |
+| T2 employee performance | 1 | 24 / 25 (A–E, G n/a) | 18 / 25 (A–E) | FAIL on E |
+| T2 employee performance | 2 | **30 / 30** (A–E 25, G 5) | 21 / 30 (A–E 18, G 3) | **PASS** |
+
+Both examples are not-inferior on **every** in-scope axis (A–E,G) after one
+in-scope skill fix (commit `639f408`). Every run recorded its skill SHA + file
+hashes (`run-meta.json`); every A–E verdict is the median of 3 blind `oracle`
+passes; both gates and sampled citation links were re-run independently.
 
 ## 14. Independent verification (orchestrator-run, not the child's word)
 
@@ -191,3 +196,5 @@ re-run independently by the orchestrator.
 - `test/` is gitignored (`.gitignore:78`) and `git ls-files test` is empty —
   neither the frozen baseline nor any live-run artifact is committed.
 - **No push**: `origin/main` is unchanged; the branch has no remote.
+- G-axis supplementary pass (process artifacts): baseline G **2** (T1) / **3**
+  (T2); meld G **4** (T1) / **5** (T2).

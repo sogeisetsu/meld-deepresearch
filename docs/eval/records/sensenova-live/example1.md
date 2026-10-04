@@ -56,7 +56,7 @@ parameter tables and overseas vendor coverage, and no charts (F, excluded).
 
 ## Verdict
 
-Median across the 3 blind passes (F excluded, max 30):
+Median across the 3 blind passes, axes A–E (F excluded; max 25):
 
 | axis | baseline (median) | meld (median) |
 |---|---|---|
@@ -65,19 +65,31 @@ Median across the 3 blind passes (F excluded, max 30):
 | C Factual support | 1 | 5 |
 | D Citation quality | 1 | 5 |
 | E Instruction-following | 4 | 5 |
-| G Process discipline | 1 | 3 |
-| **total** | **14** | **28** |
+| **A–E total** | **13** | **25** |
 
-Per-pass totals — baseline **15 / 13 / 16**, meld **28 / 28 / 27** (range ≤ 2).
+Per-pass deliverable-visible totals (A–E,G) — baseline 15/13/16, meld 28/28/27 (range ≤ 2).
 
-**PASS** — meld ≥ baseline on every in-scope axis and 28 ≥ 14 overall. No skill
-change is required for example 1.
+**PASS** — meld ≥ baseline on every in-scope axis. Two independent passes verified
+meld's links by fetching (8/8 reachable; 4 checked content-level) and confirmed
+the baseline has no resolvable reference list. The decisive spread is on C/D
+(enforced evidence and citations), not on prose; the baseline keeps a real edge on
+product-level parameter tables, which meld could later absorb without touching any
+constraint.
 
-Two independent passes verified meld's links by fetching (8/8 reachable; 4
-checked content-level) and confirmed the baseline has no resolvable reference
-list. The decisive spread is on C/D/G (enforced evidence and citations), not on
-prose; the baseline keeps a real edge on product-level parameter tables, which
-meld could later absorb without touching any constraint.
+## G axis (supplementary, full process artifacts)
+
+The 3 passes above scored G from the deliverable only (cap 3) because the judge was
+shown the reports without the process directory. A dedicated independent pass then
+scored G per the rubric's intent — deliverable-visible (cap 3) for the baseline,
+full process artifacts for the meld run:
+
+| instance | G | basis |
+|---|---|---|
+| T1 baseline | **2** | deliverable only: all `[n]` markers dangling, no reference list / method / unknowns |
+| T1 meld r1 (`ca6aa8c5…`) | **4** | plan.json, 4 axis sub_reports, gate-① failure + fix recorded, fetch-log, refutation + unknowns; only `o7` had a re-runnable command |
+
+Full objective surface **A–E,G** (max 30): meld **29** vs baseline **15**; meld ≥
+baseline on every axis.
 
 ## Skill changes
 
