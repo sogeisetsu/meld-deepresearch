@@ -1,0 +1,25 @@
+{
+  "reviews": [
+    {
+      "run_id": "eval-0-with_skill",
+      "feedback": "比较好的地方是对这个数据的来源进行了比较详尽的分析",
+      "timestamp": "2026-10-04T01:30:06.890Z"
+    },
+    {
+      "run_id": "eval-0-without_skill",
+      "feedback": "这个比较好的地方是它对证据链和证据强度分析得比较到位",
+      "timestamp": "2026-10-04T01:30:06.890Z"
+    },
+    {
+      "run_id": "eval-1-with_skill",
+      "feedback": "比较大的一个问题是，它输出的 report.md 的 Markdown 渲染似乎有问题。可能是它写的 Markdown 有问题，因为我点角标会出现问题，并不能够跳转。摘要部分写得比较模糊，不像人话，就是读起来很费劲，不知道在说什么。我并没有看到所谓的最强反方证据在这个 report.md 里边有单独说出来，也就是说，他好像没有干这个事儿。或者说，他把反方最强证据藏得太深了",
+      "timestamp": "2026-10-04T01:30:06.890Z"
+    },
+    {
+      "run_id": "eval-1-without_skill",
+      "feedback": "这个比较好的是，首先它理清了生产率的几个口径",
+      "timestamp": "2026-10-04T01:30:06.890Z"
+    }
+  ],
+  "status": "in_progress"
+}

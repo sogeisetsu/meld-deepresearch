@@ -1,0 +1,285 @@
+{
+  "metadata": {
+    "skill_name": "meld-deepresearch",
+    "skill_path": "C:\\Users\\suyue\\AppData\\Local\\skills\\meld-deepresearch",
+    "executor_model": "opencode-go/deepseek-v4.1-flash",
+    "analyzer_model": "opencode-go/deepseek-v4.1-flash",
+    "timestamp": "2026-10-04T01:54:33.717Z",
+    "evals_run": [
+      0,
+      1
+    ],
+    "runs_per_configuration": 1,
+    "iteration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "eval_name": "openai-revenue-quick",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 231.7,
+        "tokens": 134575,
+        "tool_calls": 8,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "outputs/ contains a non-empty report file (Markdown or text)",
+          "passed": true,
+          "evidence": "report.md (3485 chars)"
+        },
+        {
+          "text": "The report states an explicit verdict on whether OpenAI's 2024 revenue reached $3.7B",
+          "passed": true,
+          "evidence": "found figure + verdict wording"
+        },
+        {
+          "text": "The report cites its sources inline with resolvable citations (numbered refs or working links)",
+          "passed": true,
+          "evidence": "inline citation markers/links found"
+        },
+        {
+          "text": "A machine-validated evidence.json is present and passes the skill validator (check_evidence.py ok:true)",
+          "passed": true,
+          "evidence": "check_evidence.py ok:true"
+        },
+        {
+          "text": "Citation rendering reports no orphan or unresolved markers",
+          "passed": true,
+          "evidence": "render ok, citations=5, orphans=[]"
+        },
+        {
+          "text": "The report includes explicit counter-evidence / contradictions, and at least one refute-polarity claim",
+          "passed": true,
+          "evidence": "counter-section=true, refute-claims=1"
+        },
+        {
+          "text": "Only pages actually opened are cited as sources (no search-result/snippet-only evidence)",
+          "passed": true,
+          "evidence": "evidence contract enforces opened-source snippets (validator ok)"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "eval_name": "openai-revenue-quick",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.29,
+        "passed": 2,
+        "failed": 5,
+        "total": 7,
+        "time_seconds": 70.6,
+        "tokens": 51478,
+        "tool_calls": 3,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "outputs/ contains a non-empty report file (Markdown or text)",
+          "passed": true,
+          "evidence": "核查报告-OpenAI-2024营收37亿美元.md (4100 chars)"
+        },
+        {
+          "text": "The report states an explicit verdict on whether OpenAI's 2024 revenue reached $3.7B",
+          "passed": true,
+          "evidence": "found figure + verdict wording"
+        },
+        {
+          "text": "The report cites its sources inline with resolvable citations (numbered refs or working links)",
+          "passed": false,
+          "evidence": "no inline citations found"
+        },
+        {
+          "text": "A machine-validated evidence.json is present and passes the skill validator (check_evidence.py ok:true)",
+          "passed": false,
+          "evidence": "no evidence.json under outputs/"
+        },
+        {
+          "text": "Citation rendering reports no orphan or unresolved markers",
+          "passed": false,
+          "evidence": "no report.src.md/evidence.json and no citations.json"
+        },
+        {
+          "text": "The report includes explicit counter-evidence / contradictions, and at least one refute-polarity claim",
+          "passed": false,
+          "evidence": "counter-section=false, refute-claims=0"
+        },
+        {
+          "text": "Only pages actually opened are cited as sources (no search-result/snippet-only evidence)",
+          "passed": false,
+          "evidence": "no validator-backed evidence to check"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "remote-work-normal",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 473.8,
+        "tokens": 357405,
+        "tool_calls": 18,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "outputs/ contains a non-empty report file (Markdown or text)",
+          "passed": true,
+          "evidence": "report.md (8544 chars)"
+        },
+        {
+          "text": "The report presents both supporting and refuting evidence on the remote-work productivity question",
+          "passed": true,
+          "evidence": "bothSides=true, refute-claims=15"
+        },
+        {
+          "text": "The report names the strongest counter-evidence explicitly",
+          "passed": true,
+          "evidence": "strongest=true, counter-section=true, refute-claims=15"
+        },
+        {
+          "text": "The report cites its sources inline with resolvable citations",
+          "passed": true,
+          "evidence": "inline citation markers/links found"
+        },
+        {
+          "text": "A machine-validated evidence.json is present and passes the skill validator (check_evidence.py ok:true)",
+          "passed": true,
+          "evidence": "check_evidence.py ok:true (--plan)"
+        },
+        {
+          "text": "Citation rendering reports no orphan or unresolved markers",
+          "passed": true,
+          "evidence": "render ok, citations=15, orphans=[]"
+        },
+        {
+          "text": "The run stayed within its tier's fetch budget and reported coverage/gaps honestly",
+          "passed": true,
+          "evidence": "webfetch calls=18 (cap 25)"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "remote-work-normal",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.57,
+        "passed": 4,
+        "failed": 3,
+        "total": 7,
+        "time_seconds": 182.8,
+        "tokens": 135652,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "outputs/ contains a non-empty report file (Markdown or text)",
+          "passed": true,
+          "evidence": "远程办公与生产率_研究报告.md (11610 chars)"
+        },
+        {
+          "text": "The report presents both supporting and refuting evidence on the remote-work productivity question",
+          "passed": true,
+          "evidence": "bothSides=true, refute-claims=0"
+        },
+        {
+          "text": "The report names the strongest counter-evidence explicitly",
+          "passed": true,
+          "evidence": "strongest=true, counter-section=true, refute-claims=0"
+        },
+        {
+          "text": "The report cites its sources inline with resolvable citations",
+          "passed": false,
+          "evidence": "no inline citations found"
+        },
+        {
+          "text": "A machine-validated evidence.json is present and passes the skill validator (check_evidence.py ok:true)",
+          "passed": false,
+          "evidence": "no evidence.json under outputs/"
+        },
+        {
+          "text": "Citation rendering reports no orphan or unresolved markers",
+          "passed": false,
+          "evidence": "no report.src.md/evidence.json and no citations.json"
+        },
+        {
+          "text": "The run stayed within its tier's fetch budget and reported coverage/gaps honestly",
+          "passed": true,
+          "evidence": "webfetch calls=0 (cap 25)"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1,
+        "stddev": 0,
+        "min": 1,
+        "max": 1
+      },
+      "time_seconds": {
+        "mean": 352.75,
+        "stddev": 121.05,
+        "min": 231.7,
+        "max": 473.8
+      },
+      "tokens": {
+        "mean": 245990,
+        "stddev": 111415,
+        "min": 134575,
+        "max": 357405
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.43,
+        "stddev": 0.14,
+        "min": 0.29,
+        "max": 0.57
+      },
+      "time_seconds": {
+        "mean": 126.7,
+        "stddev": 56.1,
+        "min": 70.6,
+        "max": 182.8
+      },
+      "tokens": {
+        "mean": 93565,
+        "stddev": 42087,
+        "min": 51478,
+        "max": 135652
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.57",
+      "time_seconds": "+226.1",
+      "tokens": "+152425"
+    }
+  },
+  "notes": [
+    "with_skill runs produce the full artifact set (report.md, sources.md, evidence.json, citations.json) and pass the skill's own gates; without_skill runs produce a report only.",
+    "without_skill cites sources but never opens originals as machine-checkable evidence; some baseline runs answer largely from search snippets.",
+    "The discipline (open originals, structured evidence, two gates) is the cost: with_skill is slower and more token-hungry."
+  ]
+}

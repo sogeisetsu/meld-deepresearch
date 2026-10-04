@@ -20,7 +20,7 @@ meld-deepresearch/                    # repository root
 │   ├── FILE_TREE.md                  # this file: annotated file tree + update rule
 │   ├── index.html                    # GitHub Pages landing page (single self-contained file, zero external requests)
 │   ├── og.png                        # 1200x630 social-preview card, referenced by og:image / twitter:image (regenerate from the live hero if the hero changes)
-│   ├── eval/                         # Deep Research evaluation standard + three-skill comparison + skill evaluations (README.md + records/)
+│   ├── eval/                         # Deep Research evaluation standard + three-skill comparison + skill evaluations, incl. records/skill-creator-iterations/ (README.md + benchmark/feedback per iteration)
 │   └── .nojekyll                     # tells GitHub Pages to serve docs/ as-is instead of running Jekyll
 ├── skills/                           # skill packages (this repo ships exactly one)
 │   └── meld-deepresearch/            # the skill directory (contents listed in the note below)

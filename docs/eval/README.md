@@ -171,6 +171,16 @@ The headline is not the prose — all three reached the same verdict. It is that
 **only one of the three actually ran and re-checked its own citations on this
 host.** That is precisely the axis (G) the public benchmarks never score.
 
+### 5.3 skill-creator iteration loop
+
+A separate, controlled loop (`opencode-skill-creator`) graded the skill against
+its own deliverable and against a no-skill baseline on two of the questions
+above, over three iterations — see
+[`records/skill-creator-iterations/`](records/skill-creator-iterations/README.md).
+It drove three fixes (GFM-footnote citations, a bulleted TL;DR summary, and an
+explicit strongest-counter-evidence line) and left the description unchanged
+after a trigger-optimization pass.
+
 ## 6. Gap analysis
 
 ### 6.1 Where `meld-deepresearch` leads
