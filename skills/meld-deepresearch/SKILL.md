@@ -150,9 +150,9 @@ Write into `output_dir`:
 The renderer owns the report's `## Sources` and `## Observations` sections;
 leave `report.src.md` ending at `## Sources` with nothing after it
 (`references/report-template.md`). It emits GFM footnotes by default, so the
-rendered `report.md` carries a footnote block instead of that heading — the host
-wires the numbered superscript and its back-link itself. `sources.md` and the
-report's citation block cover the same sources in two forms.
+rendered `report.md` carries a footnote block instead of that heading — the GFM
+renderer wires the numbered superscript and its back-link itself. `sources.md`
+and the report's citation block cover the same sources in two forms.
 
 Return the four artifact paths, plus the tier used, the coverage reached, the
 full manifest (including `.work/` contents), and every failed fetch (URL +

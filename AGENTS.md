@@ -124,6 +124,30 @@ python skills/meld-deepresearch/scripts/check_evidence.py .work/tmp/merge-run.js
 python skills/meld-deepresearch/scripts/content_review.py \
   --report examples/sample-run/report.md \
   --evidence examples/sample-run/evidence.json
+
+# gate ② must reject blank markers in the default (GFM-footnote) mode
+# (expected output {"ok": false, ...}, exit 1)
+python skills/meld-deepresearch/scripts/render_citations.py \
+  --report examples/invalid/report.empty-marker.src.md \
+  --evidence examples/invalid/evidence.no-refute.json \
+  --output .work/tmp/empty-marker.md
+
+# the three render modes must each emit their own marker form
+# default: footnote definitions [^1]: / [^o1]:
+python skills/meld-deepresearch/scripts/render_citations.py \
+  --report examples/sample-run/report.src.md \
+  --evidence examples/sample-run/evidence.json \
+  --output .work/tmp/report.fn.md
+# --anchors: [[1]](#ref-1) links plus <a id="cite-1"></a> cite anchors
+# --legacy-plain: bare [1] source markers plus [O1] observation markers
+python skills/meld-deepresearch/scripts/render_citations.py --anchors \
+  --report examples/sample-run/report.src.md \
+  --evidence examples/sample-run/evidence.json \
+  --output .work/tmp/report.anchors.md
+python skills/meld-deepresearch/scripts/render_citations.py --legacy-plain \
+  --report examples/sample-run/report.src.md \
+  --evidence examples/sample-run/evidence.json \
+  --output .work/tmp/report.legacy.md
 ```
 
 Negative fixtures in `examples/invalid/` must each fail for exactly their own
@@ -134,12 +158,17 @@ reason: `evidence.unknown-source.json` → `E_REF_SOURCE`, `evidence.tertiary-on
 `evidence.gap-bad-enum.json` → `E_GAP_ENUM`, `evidence.gap-bad-ref.json` →
 `E_GAP_REF`, `evidence.gap-bad-shape.json` → `E_GAP_SHAPE`
 (all exit 1); `evidence.no-refute.json` → `ok: true` with
-`W_NO_REFUTE` (exit 0). `report.orphan.src.md` fails gate ② (exit 1).
+`W_NO_REFUTE` (exit 0). `report.orphan.src.md` fails gate ② (exit 1), and so
+does `report.empty-marker.src.md` — its blank `[^]` / `[^ ]` markers must fail
+gate ② in the default GFM-footnote mode (exit 1).
 
 CI additionally checks: frontmatter field lengths, English-only `description`,
 and that no host-specific tool names appear anywhere in `skills/`. Its script
-self-test runs every command above plus `content_review.py`, the collision
-regression for `merge_evidence.py`, and the orphan-citation fixture.
+self-test runs every command above plus `content_review.py`, the three render
+modes (default footnotes → `[^1]:`, `--anchors` → `[[1]](#ref-1)` +
+`<a id="cite-1"></a>`, `--legacy-plain` → `[1]` / `[O1]`), the collision
+regression for `merge_evidence.py`, and the orphan- and blank-citation
+fixtures.
 
 ## Development plan
 

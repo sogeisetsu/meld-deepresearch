@@ -66,6 +66,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   resolvable.
 - `.gitignore` was hardened (build/temp/Node artifacts, `**/.work/`) and is now
   stored as UTF-8 without a BOM.
+- CI's script self-test now pins all three render modes — default footnotes
+  (`[^1]:` / `[^o1]:` definitions), `--anchors` (`[[1]](#ref-1)` plus
+  `<a id="cite-1"></a>`) and `--legacy-plain` (`[1]` / `[O1]`) — and asserts
+  the new blank-marker fixture fails, so a silent flip of the default mode
+  cannot regress again unnoticed.
+- The npm package (`package.json` `files`) additionally ships `AGENTS.md` and
+  `ZH/README-ZH.md` (the README's relative links to them now resolve inside
+  the tarball) and never packs compiled caches, via the negation patterns
+  `"!**/__pycache__"` and `"!**/*.pyc"`.
+- `docs/FILE_TREE.md` was re-synced with the hardened `.gitignore` (build/
+  temp/Node artifacts, local `.worktrees/`) and the `SKILL.md` frontmatter
+  field list (now including `compatibility`).
+- `examples/sample-run/report.src.md`'s Executive Summary was reordered so the
+  strongest counter-evidence (single snapshot vs archived time series) lands by
+  the third sentence, with the plugin-support contradiction after it;
+  `report.md` and `citations.json` were re-rendered from it (citation numbering
+  and `sources.md` are unchanged).
+- Footnote wiring is attributed to the **GFM renderer**, not the agent host,
+  in `SKILL.md`, `references/report-template.md` and the renderer docstring.
 - The archived skill-creator benchmark records use a portable
   `skill_path: skills/meld-deepresearch` instead of a machine-local absolute path.
 
@@ -77,6 +96,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `merge_evidence.py` re-keys a colliding `writing_context` id inside its own
   `dN.wM` family instead of to a bare `cN`, so the merged `evidence.json` still
   passes gate ① instead of failing with `E_ID_PATTERN`.
+- **Gate ② now rejects blank citation markers in the default GFM-footnote
+  mode.** `[^]` / `[^ ]` markers carried no id, so they were neither numbered
+  nor substituted and, with the default flipped from anchors to footnotes, they
+  escaped the residual-`[^` scan too — a draft containing them rendered with
+  `ok: true` (exit 0) even though `--anchors` / `--legacy-plain` failed it. The
+  renderer now scans the rendered output for markers whose id is empty after
+  stripping and fails them alongside orphans. New fixture
+  `examples/invalid/report.empty-marker.src.md` (exit 1); the gate ②
+  vocabulary in `references/protocol.md` §9 documents the rule.
 
 ## [0.2.0] - 2026-10-04
 

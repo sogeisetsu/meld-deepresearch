@@ -144,6 +144,14 @@ jobs:
             fi
           }
 
+          # assert_contains <label> <path> <fixed-string>
+          assert_contains() {
+            if [ ! -f "$2" ] || ! grep -Fq -- "$3" "$2"; then
+              echo "FAIL [$1]: file $2 did not contain expected text: $3"
+              status=1
+            fi
+          }
+
           step "check_evidence: valid sample run" 0 "" -- \
             python3 skills/meld-deepresearch/scripts/check_evidence.py examples/sample-run/evidence.json
 
@@ -185,6 +193,49 @@ jobs:
               --citations "${tmp}/citations.json"
           assert_file "render_citations: valid sample report" "${tmp}/report.md"
           assert_file "render_citations: valid sample report" "${tmp}/citations.json"
+
+          # Three render modes must each produce their own marker form,
+          # otherwise a silent default flip (anchors <-> footnotes) goes
+          # unnoticed. Default mode: GFM footnote definitions and markers.
+          assert_contains "render_citations: default mode emits footnote definitions" \
+            "${tmp}/report.md" '[^1]:'
+          assert_contains "render_citations: default mode emits footnote markers" \
+            "${tmp}/report.md" '[^o1]:'
+
+          step "render_citations: anchors mode" 0 '"ok": true' -- \
+            python3 skills/meld-deepresearch/scripts/render_citations.py \
+              --anchors \
+              --report examples/sample-run/report.src.md \
+              --evidence examples/sample-run/evidence.json \
+              --output "${tmp}/report.anchors.md" \
+              --citations "${tmp}/citations.anchors.json"
+          assert_file "render_citations: anchors mode" "${tmp}/report.anchors.md"
+          assert_contains "render_citations: anchors mode emits links" \
+            "${tmp}/report.anchors.md" '[[1]](#ref-1)'
+          assert_contains "render_citations: anchors mode emits cite anchors" \
+            "${tmp}/report.anchors.md" '<a id="cite-1"></a>'
+
+          step "render_citations: legacy-plain mode" 0 '"ok": true' -- \
+            python3 skills/meld-deepresearch/scripts/render_citations.py \
+              --legacy-plain \
+              --report examples/sample-run/report.src.md \
+              --evidence examples/sample-run/evidence.json \
+              --output "${tmp}/report.legacy.md" \
+              --citations "${tmp}/citations.legacy.json"
+          assert_file "render_citations: legacy-plain mode" "${tmp}/report.legacy.md"
+          assert_contains "render_citations: legacy-plain mode renders sources" \
+            "${tmp}/report.legacy.md" '[1]'
+          assert_contains "render_citations: legacy-plain mode renders observations" \
+            "${tmp}/report.legacy.md" '[O1]'
+
+          # Blank markers ([^] / [^ ]) are neither numbered nor substituted;
+          # they must fail gate ② in the default GFM-footnote mode.
+          step "render_citations: blank marker fails in default mode" 1 '"ok": false' -- \
+            python3 skills/meld-deepresearch/scripts/render_citations.py \
+              --report examples/invalid/report.empty-marker.src.md \
+              --evidence examples/invalid/evidence.no-refute.json \
+              --output "${tmp}/empty-marker.md" \
+              --citations "${tmp}/empty-marker.citations.json"
 
           step "render_citations: orphan marker fails" 1 "" -- \
             python3 skills/meld-deepresearch/scripts/render_citations.py \

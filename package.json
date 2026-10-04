@@ -26,9 +26,13 @@
     "skills",
     "docs/PLAN.md",
     "README.md",
+    "AGENTS.md",
+    "ZH/README-ZH.md",
     "LICENSE",
     "NOTICE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "!**/__pycache__",
+    "!**/*.pyc"
   ],
   "engines": {
     "python": ">=3.9"

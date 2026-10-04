@@ -9,11 +9,10 @@
 Nimbus 2.0 shipped on 2026-03-14 with no runtime dependencies [^s1], and the
 project passed roughly 12,000 stars within three months [^s2]. The available
 evidence attributes that growth mainly to build-time wins rather than to
-marketing activity [^s2] [^s3] [^s4]. A widely repeated claim that 2.0 removed
-plugin support is contradicted by the release notes [^s1] [^s3]. Two limits
-qualify the picture: the star figures are a snapshot rather than an archived
-time series, and the build-time comparison rests on a single machine [^s2]
-[^s3].
+marketing activity [^s2] [^s3] [^s4]. Two limits qualify the picture: the star
+figures are a snapshot rather than an archived time series, and the build-time
+comparison rests on a single machine [^s2] [^s3]. A widely repeated claim that
+2.0 removed plugin support is contradicted by the release notes [^s1] [^s3].
 
 ## Findings
 

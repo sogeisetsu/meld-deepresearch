@@ -6,7 +6,7 @@
 
 ```text
 meld-deepresearch/                    # repository root
-├── .gitignore                        # ignored: OS/editor junk, Python caches, venvs, .env, local run outputs, .opencode/, .openchamber/, local-only ZH translations
+├── .gitignore                        # ignored: OS/editor junk, Python caches, venvs, build/dist and temp/backup artifacts, Node install/pack artifacts, .env, local run outputs, .opencode/, .openchamber/, local-only ZH translations, local .worktrees/
 ├── .gitattributes                    # line-ending policy: LF in repo for text/*.py/*.md, CRLF for Windows scripts, binary marked
 ├── AGENTS.md                         # agent-facing project guide: design philosophy, boundaries, conventions, validation commands
 ├── README.md                         # public overview: positioning, design philosophy, install matrix, usage
@@ -28,7 +28,7 @@ meld-deepresearch/                    # repository root
 │   ├── sample-run/                   # one complete illustrative run: report.src.md, report.md, sources.md, evidence.json, citations.json, plan.json
 │   ├── chronicle-run/                # a chronicle-genre run: background claims, gaps[], source_type, plan genre + must_have_materials
 │   ├── merge-run/                    # a two-axis merge fixture: sub_reports/{d1,d2}.evidence.json share one URL, which folds to a single source id with references re-pointed
-│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + one orphan-citation draft
+│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + two gate-② drafts (orphan marker, blank marker)
 └── .github/                          # GitHub configuration
     └── workflows/                    # CI: validate.yml (spec check + end-to-end script self-test)
 ```
@@ -38,7 +38,7 @@ keep the tree at depth 2).** All entries exist:
 
 ```text
 skills/meld-deepresearch/
-├── SKILL.md                          # the entry point: frontmatter (name/description/license/metadata) + workflow
+├── SKILL.md                          # the entry point: frontmatter (name/description/license/compatibility/metadata) + workflow
 ├── references/                       # progressive-disclosure detail, loaded on demand by the model
 │   ├── protocol.md                   # per-axis loop, source-class routing, mandatory refutation, time-sensitivity, merge, gaps[], budgets, gates, failure/retry table, artifacts
 │   ├── evidence-contract.md          # claims / evidence / sources / observations / writing_context / key_findings / gaps schema, plan.json, hard rules
