@@ -23,10 +23,11 @@ Marker format:
     numbered source list (the heading is appended when the report has none).
     When at least one observation is cited, a ``## Observations`` section is
     appended as well, one line per cited observation in the form
-    ``[ON] method — environment (captured YYYY-MM-DD)`` (an empty or null
-    ``environment`` renders as ``unknown``). A marker whose id resolves in
-    neither family is an **orphan** and is left un-replaced so a human can
-    find it.
+    ``[^oN]: method — environment (captured YYYY-MM-DD)`` in the default GFM
+    mode (``--legacy-plain`` uses ``[ON] method — ...``; GFM mode also drops the
+    heading, see "Three render modes"). An empty or null ``environment``
+    renders as ``unknown``. A marker whose id resolves in neither family is an
+    **orphan** and is left un-replaced so a human can find it.
 
     Three render modes:
       * default        GFM footnotes: the marker becomes ``[^N]`` (source) or
@@ -239,7 +240,7 @@ def assign_numbers(report_text, by_source_id, by_observation_id):
 def substitute_markers(report_text, source_numbers, observation_numbers, mode):
     """Replace resolvable markers per ``mode``; leave orphans visible.
 
-    ``mode`` is ``"anchor"`` (default), ``"footnotes"`` or ``"legacy"``.
+    ``mode`` is ``"footnotes"`` (default), ``"anchor"`` or ``"legacy"``.
     """
     source_cited = set()
     observation_cited = set()

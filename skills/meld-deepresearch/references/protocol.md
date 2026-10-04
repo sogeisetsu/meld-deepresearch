@@ -203,7 +203,7 @@ It folds the six contract arrays — `claims`, `sources`, `observations`,
 
 **Gate ① must run with `--plan` on a `normal` run.** Because `plan.json` is a
 required normal-tier artifact, gate ① for a `normal` run is
-`check_evidence.py "$OUTDIR/evidence.json" --plan "$OUTDIR/plan.json"` — this
+`check_evidence.py "$OUTDIR/evidence.json" --plan "$OUTDIR/.work/plan.json"` — this
 is the only gate that checks plan coverage (every declared dimension covered,
 every declared `kqN` answered). A `normal` run whose gate ① omits `--plan` has
 not passed gate ①. `quick` runs have no `plan.json` and omit the flag.
@@ -224,7 +224,8 @@ Gate ② vocabulary, matching `render_citations.py` exactly:
 
 Run this block **from the skill's own directory** — the script paths below are
 relative to it. Set `OUTDIR` to the run's output directory first, and use
-`python3` when `python` is unavailable.
+`python3` when `python` is unavailable. The block uses bash variable syntax
+(`OUTDIR=...`, `"$OUTDIR"`); adapt it to the shell the host actually provides.
 
 ```bash
 OUTDIR="meld-deepresearch-reports/2026-09-29-my-topic-ab12"
@@ -241,6 +242,10 @@ optional and only warns. A `quick` run has no `plan.json`, so it omits the
 `--plan` flag. `render_citations.py` renders GFM footnotes by default (the
 renderer wires the jump itself, so it survives HTML sanitising); add `--anchors`
 only when the target host keeps inline `<a id>` anchors.
+Optional flags: `content_review.py --llm` records (it does not perform) a
+host-side LLM judge review, with `--model <provider/model>` naming the
+provider/model; `render_citations.py --citations <path>` writes the citation
+map somewhere other than next to `--output`.
 
 - Gate failure ⇒ **fix once and re-run** (at most one re-run per gate).
 - Second failure ⇒ **stop and report honestly** (failing stage, artifact paths, last error). Do not deliver a report that failed a gate.
@@ -292,19 +297,17 @@ can see exactly what was produced and what was skipped.
 - **First-hand evidence** — commands run, measurements taken, files inspected on
   the host — is recorded as `observations[]` in `evidence.json` (the entry shape
   and the `evidence[].observation_id` rule are defined in
-  `evidence-contract.md`). The report cites an observation with `[^oN]`,
-  rendered as `[ON]`. The merged `evidence.json` carries `observations[]`
+  `evidence-contract.md`). The report cites an observation with `[^oN]`, kept
+  as `[^oN]` in the default GFM-footnote mode (`--legacy-plain` renders it as
+  `[ON]`). The merged `evidence.json` carries `observations[]`
   alongside `sources[]`; the merge step in §9 concatenates it too.
 - **Assumptions when the host cannot ask the user** go into `plan.json` for a
   `normal` run, and into the delivery message for a `quick` run (a `quick` run
   has no `plan.json`). State them there, never only in the model's context.
-- `sources.md` is produced by `dedupe_sources.py` and is the **standalone,
-  de-duplicated source list** — distinct from the report's own `## Sources`
-  section (which the citation renderer owns, see `report-template.md`):
-
-  `python scripts/dedupe_sources.py --evidence <output_dir>/evidence.json --output <output_dir>/sources.md`
-
-  Use `python3` when `python` is unavailable.
+- `sources.md` is produced by `dedupe_sources.py` (exact invocation in the
+  §9 gate-command block) and is the **standalone, de-duplicated source list**
+  — distinct from the report's own `## Sources` section (which the citation
+  renderer owns, see `report-template.md`).
 - If the host lacks file-write capability: return **the report body only** in the response and state plainly that nothing was persisted.
 
 ## 12. Files are the source of truth
