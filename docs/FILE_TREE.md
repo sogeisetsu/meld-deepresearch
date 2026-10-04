@@ -40,7 +40,7 @@ keep the tree at depth 2).** All entries exist:
 skills/meld-deepresearch/
 ├── SKILL.md                          # the entry point: frontmatter (name/description/license/metadata) + workflow
 ├── references/                       # progressive-disclosure detail, loaded on demand by the model
-│   ├── protocol.md                   # per-axis loop, source-class routing, mandatory refutation, time-sensitivity, merge, gaps[], budgets, gates, artifacts
+│   ├── protocol.md                   # per-axis loop, source-class routing, mandatory refutation, time-sensitivity, merge, gaps[], budgets, gates, failure/retry table, artifacts
 │   ├── evidence-contract.md          # claims / evidence / sources / observations / writing_context / key_findings / gaps schema, plan.json, hard rules
 │   ├── tier-selection.md             # auto quick-vs-normal decision rules, genre note, worked examples
 │   └── report-template.md            # report skeleton (zh/en titles), genre templates, uncertainty grading, citation mechanism, self-check

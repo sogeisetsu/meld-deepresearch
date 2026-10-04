@@ -75,24 +75,17 @@ Fix three anchors before researching:
 
 ## 4. Clarify before researching
 
-If the host can ask the user questions, ask **1–3 questions that only affect
-scope**: time window, geography, comparison set, or which definition is meant.
-Never ask something the request already answers. For a `normal` run, the draft
-plan (its axes and their scope) may also be offered for confirmation or editing
-before research starts.
-
-If the host cannot ask, record the assumptions explicitly — in `plan.json` for a
-`normal` run, or in the delivery message for a `quick` run — and continue. Never
-block waiting for an answer.
+If the host can ask, ask **1–3 scope-only questions** (time window, geography,
+comparison set, which definition). Never ask what the request already answers;
+for a `normal` run the draft plan may also be offered for confirmation. If the
+host cannot ask, record the assumptions — in `plan.json` (`normal`) or the
+delivery message (`quick`) — and continue; never block on an answer.
 
 ## 5. Tier selection
 
-Pick `quick` or `normal` automatically from the request and continue. Default is
-`quick`; any single `normal` condition upgrades the run. The user can always
-override the tier.
-
-See `references/tier-selection.md` for the decision table, the scoring
-procedure, and worked examples.
+Pick `quick` or `normal` automatically and continue — default `quick`, any
+single `normal` condition upgrades, the user can override. See
+`references/tier-selection.md` for the decision table and worked examples.
 
 ## 6. Workflow
 
@@ -125,9 +118,8 @@ Non-negotiable, and enforced by the validator:
 - Anything unverifiable is labelled `unknown`, never guessed.
 - A run that ends with no `refute` claim at all is suspicious; the validator warns about it.
 
-First-hand evidence — a command you ran, a measurement, a file you inspected — is
-recorded in `observations[]` and cited as `[^oN]`. It is evidence, not a footnote:
-its `method` and `command` must let a reader reproduce it.
+First-hand evidence (a command you ran, a measurement, a file you inspected) goes
+in `observations[]`, is cited as `[^oN]`, and must be reproducible.
 
 The full schema, allowed values, and every hard rule live in
 `references/evidence-contract.md`.
@@ -173,12 +165,12 @@ Write into `output_dir`:
 `content_review.py` is an optional, warn-only self-check (`--report` +
 `--evidence`); it never blocks delivery.
 
-The report's own `## Sources` and `## Observations` sections are written by the
-**renderer**, not by you: leave `report.src.md` ending with a `## Sources`
-heading and nothing after it. The renderer emits GFM footnotes by default, so the
+The renderer owns the report's `## Sources` and `## Observations` sections;
+leave `report.src.md` ending at `## Sources` with nothing after it
+(`references/report-template.md`). It emits GFM footnotes by default, so the
 rendered `report.md` carries a footnote block instead of that heading — the host
 wires the numbered superscript and its back-link itself. `sources.md` and the
-report's citation block cover the same sources in two different forms.
+report's citation block cover the same sources in two forms.
 
 Return the four artifact paths, plus the tier used, the coverage reached, the
 full manifest (including `.work/` contents), and every failed fetch (URL +
@@ -187,9 +179,11 @@ nothing was persisted.
 
 ## 11. Failure and retry
 
-Each stage (plan / research / merge / write / render) may be retried **once**. If
-a stage still fails, stop and report the failing stage, the artifact paths
-produced so far, and the last error. Never pretend a run completed.
+Each stage (plan / research / merge / write / render) may be retried **once**,
+then stop and report the failing stage, the artifact paths produced so far, and
+the last error — never pretend a run completed. Apply the
+symptom → first fix → fallback table in `references/protocol.md` §10 instead of
+inventing a recovery.
 
 ## 12. Non-negotiables
 
@@ -203,7 +197,5 @@ produced so far, and the last error. Never pretend a run completed.
 ## 13. Context strategy
 
 Files are the source of truth: raw retrieval and structured evidence go to
-disk, and the context keeps only conclusions. If the host offers subagents, axes
-**may** be delegated for context isolation, with results returned through
-absolute file paths; if it does not, run every axis inline. Delegation is always
-optional and never required.
+disk, the context keeps only conclusions, and delegation is optional — see
+`references/protocol.md` §12–§13.
