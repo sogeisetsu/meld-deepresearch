@@ -39,6 +39,27 @@ required sections above.
 | `## Sources` | Owned by `render_citations.py`: numbered citation list for every source the report cites, regenerated wholesale by the renderer. The writer ends `report.src.md` with this heading and nothing after it |
 | `## Observations` | Owned by `render_citations.py`: appended **only when at least one observation is cited**, one line per cited observation — default GFM mode drops the heading and emits `[^oN]: method — environment (captured YYYY-MM-DD)`; `--legacy-plain` uses `[ON] method — …`. The writer never writes this section |
 
+## Requested structure overrides the skeleton
+
+The skeleton above is the **default**. When the request names a chapter count, an
+outline, or a required section list, that structure is **binding**: the report's
+numbered top-level chapters follow the request exactly (e.g. "5–6 个章节" ⇒ five
+or six numbered chapters, not the default set).
+
+- Remap the required content into the requested chapters. `Executive Summary`,
+  `Contradictions & Counter-evidence`, `Gaps & Unknowns` and the genre sections
+  are satisfied *inside* those chapters or in one non-numbered
+  `## 附录：方法与局限` (Appendix: method & limits) — not as extra numbered
+  chapters. The renderer-owned `## Sources` / `## Observations` remain; they are
+  reference blocks, not chapters.
+- A binding structure may reduce the chapter count, never the evidence rules:
+  every number still carries a citation, the strongest counter-evidence still
+  opens the contradictions material, unknowns are still labelled.
+- **Match the requested register and length.** "正式、简洁 / formal and concise"
+  means a concise formal report, not an academic monograph. Do not surface
+  internal identifiers (`kqN`, `dN`, axis codes) in the body — keep that
+  apparatus in the appendix or the evidence files.
+
 ## Genre templates
 
 A genre is chosen at plan time (`plan.json` `genre`) and only *adds* sections
@@ -155,7 +176,7 @@ Ask each question before delivering; fix the report, not the answers.
 |---|---|---|
 | Comprehensiveness | All axes, key questions and their counter-evidence covered | Did any `kqN`, axis, or contradiction go unmentioned? |
 | Insight | Findings synthesize *why* and *so what*, not a link dump | Does each finding say something the sources individually did not? |
-| Instruction-following | Skeleton order, language, scope and format as requested | Does the report match the requested language, scope and sections? |
+| Instruction-following | Requested structure, language, scope, tone and format; skeleton only when the request is silent | If a chapter count / outline / tone was requested, does the body match it exactly (no extra chapters, no internal codes)? |
 | Readability | Scannable headings, short paragraphs, plain wording, consistent terms | Would a reader get the answer from the summary alone? |
 
 ## Do / Don't
@@ -171,3 +192,4 @@ Ask each question before delivering; fix the report, not the answers.
 | Report what the evidence shows | State recommendations or prescriptions as findings |
 | Write unanswered items as `unknown` with a reason | Guess or silently drop a question |
 | Let the script number the citations and emit `## Sources` | Hand-number citations or write a reference list by hand — the renderer owns `## Sources` |
+| Honor a requested chapter count / outline / tone exactly — fold discipline material into a non-numbered appendix | Let `Executive Summary` / `Contradictions` / `Gaps` / genre sections push the body past the requested chapters, or expose `kqN` / `dN` codes |
