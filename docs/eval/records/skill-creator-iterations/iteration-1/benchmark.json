@@ -1,7 +1,7 @@
 {
   "metadata": {
     "skill_name": "meld-deepresearch",
-    "skill_path": "C:\\Users\\suyue\\AppData\\Local\\skills\\meld-deepresearch",
+    "skill_path": "skills/meld-deepresearch",
     "executor_model": "opencode-go/deepseek-v4.1-flash",
     "analyzer_model": "opencode-go/deepseek-v4.1-flash",
     "timestamp": "2026-10-04T01:54:33.717Z",
