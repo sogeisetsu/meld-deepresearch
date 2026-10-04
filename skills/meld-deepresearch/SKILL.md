@@ -56,7 +56,7 @@ Probe the host before planning and hold the result in memory:
 | file read | blocking | stop and tell the user |
 | file write | degradable | still run, but return the report body inline and state that nothing was persisted |
 | command execution | degradable | still run, but walk the gates as a manual checklist and state that they were skipped |
-| PDF reading | optional | degrade and note it |
+| PDF reading | optional | save the binary, then parse it with the host's PDF tool; if it cannot be parsed, record the URL + type as a gap — never a silent drop |
 | code reading | optional | degrade and note it |
 | subagent delegation | optional | run every axis inline |
 
@@ -103,7 +103,7 @@ procedure, and worked examples.
 | 3 | Tier | select `quick` or `normal` (§5) | — |
 | 4 | Plan | `quick`: internal key questions `kq1..kqn`. `normal`: named dimensions with non-overlapping scope, plus `plan.json` | dimensions must be independently startable |
 | 5 | Research | per dimension: search → candidate URL pool → open the originals → evaluate → find gaps → search again, at most 3 rounds | stop at the depth threshold |
-| 6 | Merge | concatenate `claims` / `sources` / `observations` / `writing_context` / `key_findings` from every `sub_reports/dN.evidence.json` into one `evidence.json` | ids stay unique; duplicate sources collapse to one entry |
+| 6 | Merge | `scripts/merge_evidence.py` folds every `sub_reports/dN.evidence.json` into one `evidence.json` | ids stay unique; duplicate sources collapse to one entry |
 | 7 | Gate ① | run the evidence validator on `evidence.json`, with `--plan` for a `normal` run | must report `ok` |
 | 8 | Write | one pass, inline citations, **no new facts** | statement strength must not exceed evidence |
 | 9 | Gate ② | render citations from the draft and the evidence | no orphan, no unresolved reference |
@@ -166,15 +166,21 @@ Write into `output_dir`:
 - `sources.md` — the normalized, de-duplicated source list.
 - `evidence.json` — the structured evidence behind every claim.
 - `citations.json` — the citation map emitted by the renderer.
+- `.work/` — middleware (not a delivery core): `plan.json` (normal tier only),
+  `report.src.md`, `sub_reports/dN.evidence.json`.
+
+`content_review.py` is an optional, warn-only self-check (`--report` +
+`--evidence`); it never blocks delivery.
 
 The report's own `## Sources` and `## Observations` sections are written by the
 **renderer**, not by you: leave `report.src.md` ending with a `## Sources`
 heading and nothing after it. `sources.md` and the report's `## Sources` cover
 the same sources in two different forms.
 
-Return the four paths, plus the tier used, the coverage reached, and anything
-left uncovered. If the host cannot write files, return the report body only and
-say that nothing was persisted.
+Return the four artifact paths, plus the tier used, the coverage reached, the
+full manifest (including `.work/` contents), and every failed fetch (URL +
+type). If the host cannot write files, return the report body only and say that
+nothing was persisted.
 
 ## 11. Failure and retry
 

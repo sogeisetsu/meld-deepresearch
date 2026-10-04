@@ -159,21 +159,42 @@ def _cell(value):
     return text.replace("|", "\\|")
 
 
-def render_lines(records, duplicates):
-    """Build sources.md as a list of lines (no trailing newlines)."""
-    lines = [
-        "| id | title | quality | published_at | URL |",
-        "| --- | --- | --- | --- | --- |",
-    ]
+def render_lines(records, duplicates, show_source_type=False):
+    """Build sources.md as a list of lines (no trailing newlines).
+
+    A ``source_type`` column is added only when at least one source carries a
+    non-empty label, so a file that never uses the field renders byte-for-byte
+    as before.
+    """
+    if show_source_type:
+        lines = [
+            "| id | title | quality | source_type | published_at | URL |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+    else:
+        lines = [
+            "| id | title | quality | published_at | URL |",
+            "| --- | --- | --- | --- | --- |",
+        ]
     for record in records:
         source = record["first"]
-        lines.append("| {} | {} | {} | {} | {} |".format(
-            _cell(source.get("id")),
-            _cell(source.get("title")),
-            _cell(source.get("quality")),
-            _cell(source.get("published_at")),
-            _cell(record["display"]),
-        ))
+        if show_source_type:
+            lines.append("| {} | {} | {} | {} | {} | {} |".format(
+                _cell(source.get("id")),
+                _cell(source.get("title")),
+                _cell(source.get("quality")),
+                _cell(source.get("source_type") or ""),
+                _cell(source.get("published_at")),
+                _cell(record["display"]),
+            ))
+        else:
+            lines.append("| {} | {} | {} | {} | {} |".format(
+                _cell(source.get("id")),
+                _cell(source.get("title")),
+                _cell(source.get("quality")),
+                _cell(source.get("published_at")),
+                _cell(record["display"]),
+            ))
     if duplicates > 0:
         pairs = []
         for record in records:
@@ -276,7 +297,11 @@ def main(argv=None):
     records.sort(key=lambda record: (_quality_rank(record["first"]),
                                      record["first"]["id"]))
 
-    text = "\n".join(render_lines(records, duplicates)) + "\n"
+    show_source_type = any(
+        isinstance(source.get("source_type"), str) and source.get("source_type")
+        for source in sources
+    )
+    text = "\n".join(render_lines(records, duplicates, show_source_type)) + "\n"
     try:
         with open(args.output, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)

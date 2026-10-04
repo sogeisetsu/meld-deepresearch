@@ -37,7 +37,25 @@ Error codes
 E_JSON (always exit 2, including CLI usage errors) / E_SHAPE / E_ID_PATTERN /
 E_ID_UNIQUE / E_ENUM / E_REF_SOURCE / E_REF_OBSERVATION / E_REF_CLAIM /
 E_REF_KQ / E_FACTUAL_SOURCE / E_INTERPRETIVE_TWO / E_PROJECTIVE_BASIS /
-E_OBS_SHAPE / E_EMPTY / E_PLAN_DIM_UNKNOWN / E_PLAN_DIM_UNCOVERED.
+E_BACKGROUND_BASIS / E_FINDING_BACKGROUND / E_OBS_SHAPE / E_EMPTY /
+E_GAP_SHAPE / E_GAP_ENUM / E_GAP_REF / E_PLAN_DIM_UNKNOWN /
+E_PLAN_DIM_UNCOVERED.
+
+Optional schema additions (all backward-compatible; an old evidence.json with
+none of these still validates):
+    claims[].kind            may also be ``background`` (context that needs
+                             >=1 evidence item of any quality, is exempt from
+                             E_FACTUAL_SOURCE, need not answer a kqN, and may
+                             not back a key_finding).
+    sources[].source_type    optional label: official | academic | archive |
+                             press | oral | community | mixed. A label only —
+                             it never changes the ``credible`` threshold.
+    gaps[]                   optional top-level array of
+                             {id (gN), text, reason, cost, source_ids[]}.
+    plan.json genre          panorama | comparison | entity | chronicle |
+                             general (checked only with --plan).
+    plan dimensions[].must_have_materials[]
+                             [{text, status (obtained|missing|unknown), note?}].
 
 Warning codes
 -------------
@@ -73,17 +91,27 @@ DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[Tt ].+$")
 # F3: reachability is NOT machine-checked; only the absolute http(s) shape is.
 URL_RE = re.compile(r"^https?://\S+$")
 
-KINDS = ("factual", "interpretive", "projective")
+KINDS = ("factual", "interpretive", "projective", "background")
 POLARITIES = ("support", "refute", "neutral")
 QUOTE_TYPES = ("direct", "paraphrase", "numeric")
 QUALITIES = ("primary", "secondary", "tertiary")
 CREDIBLE_QUALITIES = ("primary", "secondary")
 OBSERVATION_KINDS = ("command", "measurement", "file", "inspection")
+# Optional source label (plan §3.6): a label only, never a pass/fail input.
+SOURCE_TYPES = ("official", "academic", "archive", "press", "oral",
+                "community", "mixed")
+# Structured gaps[] (plan §3.5).
+GAP_REASONS = ("no-source", "access-limited", "budget", "stale", "other")
+GAP_COSTS = ("cheap", "hard")
+GAP_ID_RE = re.compile(r"^g[1-9][0-9]*$")
+# plan.json additions (plan §3.3 / §3.7), checked only under --plan.
+PLAN_GENRES = ("panorama", "comparison", "entity", "chronicle", "general")
+MUST_HAVE_STATUSES = ("obtained", "missing", "unknown")
 
 TOP_LEVEL_KEYS = ("claims", "sources", "writing_context", "key_findings")
 # observations[] is optional: a file without first-hand evidence simply omits
 # it (or passes an empty array), and that is not an error.
-OPTIONAL_TOP_LEVEL_KEYS = ("observations",)
+OPTIONAL_TOP_LEVEL_KEYS = ("observations", "gaps")
 NON_EMPTY_KEYS = ("claims", "sources")
 SOURCE_KEYS = ("id", "url", "title", "quality", "published_at")
 CLAIM_KEYS = ("id", "text", "kind", "polarity", "topic_tag",
@@ -227,6 +255,14 @@ def _validate_sources(doc, errors):
                     "E_ENUM",
                     "'quality' must be one of %s" % "|".join(QUALITIES),
                     where + ".quality"))
+        if "source_type" in source:
+            source_type = source.get("source_type")
+            if source_type is not None and source_type not in SOURCE_TYPES:
+                errors.append(_entry(
+                    "E_ENUM",
+                    "'source_type' must be null or one of %s"
+                    % "|".join(SOURCE_TYPES),
+                    where + ".source_type"))
         if "published_at" in source:
             published = source.get("published_at")
             if published is not None and not (
@@ -434,12 +470,16 @@ def _validate_evidence(claim_where, evidence, source_meta, observation_ids,
 
 
 def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
-    """Validate claims[]; return (claim_ids, axes, answered_kqs, has_refute)."""
+    """Validate claims[].
+
+    Returns ``(claim_ids, axes, answered_kqs, has_refute, background_ids)``.
+    """
     claim_ids = set()
     seen = set()
     axes = []
     answered = set()
     has_refute = False
+    background_ids = set()
 
     claims = doc.get("claims")
     if not isinstance(claims, list):
@@ -470,6 +510,8 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
                 seen.add(claim_id)
                 claim_ids.add(claim_id)
                 axes.append((index, claim_id.split(".")[0]))
+                if claim.get("kind") == "background":
+                    background_ids.add(claim_id)
 
         text = claim.get("text")
         if "text" in claim and not _non_empty(text):
@@ -548,6 +590,16 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
                     hint="smallest safe fix: add at least one evidence item "
                          "(any quality tier) showing what the projection is "
                          "based on, or drop the projection."))
+        elif kind == "background" and evidence_ok:
+            evidence = claim.get("evidence")
+            if not isinstance(evidence, list) or len(evidence) < 1:
+                errors.append(_entry(
+                    "E_BACKGROUND_BASIS",
+                    "background claim needs at least one evidence item "
+                    "(any quality tier, or an observation)", where,
+                    hint="smallest safe fix: add at least one evidence item "
+                         "sourced from a source or observation, or drop the "
+                         "background claim."))
         elif kind == "interpretive" and evidence_ok:
             # F5: two distinct origins — a source_id with its own url, or an
             # observation_id.
@@ -591,7 +643,7 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
                     "the evidence shows, not what anyone should do"
                     % match.group(0), where))
 
-    return claim_ids, axes, answered, has_refute
+    return claim_ids, axes, answered, has_refute, background_ids
 
 
 def _validate_writing_context(doc, source_ids, errors):
@@ -670,7 +722,7 @@ def _validate_writing_context(doc, source_ids, errors):
                             "applies_to entry must be dN or dN.cM", item_where))
 
 
-def _validate_key_findings(doc, claim_ids, errors):
+def _validate_key_findings(doc, claim_ids, background_ids, errors):
     findings = doc.get("key_findings")
     if not isinstance(findings, list):
         return
@@ -704,6 +756,15 @@ def _validate_key_findings(doc, claim_ids, errors):
                     errors.append(_entry(
                         "E_SHAPE", "claim id must be a non-empty string",
                         item_where))
+                elif item in background_ids:
+                    errors.append(_entry(
+                        "E_FINDING_BACKGROUND",
+                        "claim id '%s' is a 'background' claim and may not "
+                        "back a key finding" % item, item_where,
+                        hint="smallest safe fix: reference a non-background "
+                             "claim, or promote the background claim to a "
+                             "factual/interpretive finding if it is load-"
+                             "bearing."))
                 elif item not in claim_ids:
                     errors.append(_entry(
                         "E_REF_CLAIM",
@@ -711,6 +772,76 @@ def _validate_key_findings(doc, claim_ids, errors):
                         "file" % item, item_where,
                         hint="smallest safe fix: reference a claim id that "
                              "exists, or drop this entry from claim_ids[]."))
+
+
+def _validate_gaps(doc, source_ids, errors):
+    """Validate the optional top-level gaps[] array (plan §3.5)."""
+    gaps = doc.get("gaps")
+    if gaps is None:
+        return
+    if not isinstance(gaps, list):
+        # validate() already reports the top-level shape error.
+        return
+    seen = set()
+    for index, gap in enumerate(gaps):
+        where = "gaps[%d]" % index
+        if not isinstance(gap, dict):
+            errors.append(_entry("E_GAP_SHAPE", "gap must be an object", where))
+            continue
+        for key in ("id", "text", "reason", "cost"):
+            if key not in gap:
+                errors.append(_entry(
+                    "E_GAP_SHAPE", "missing required field '%s'" % key,
+                    "%s.%s" % (where, key)))
+
+        gap_id = gap.get("id")
+        if "id" in gap:
+            if not _non_empty(gap_id):
+                errors.append(_entry(
+                    "E_GAP_SHAPE", "'id' must be a non-empty string",
+                    where + ".id"))
+            elif not GAP_ID_RE.match(gap_id):
+                errors.append(_entry(
+                    "E_GAP_SHAPE",
+                    "'id' must match gN (1-based, no leading zeros), e.g. g1",
+                    where + ".id"))
+            elif gap_id in seen:
+                errors.append(_entry(
+                    "E_GAP_SHAPE", "duplicate gap id '%s'" % gap_id,
+                    where + ".id"))
+            else:
+                seen.add(gap_id)
+
+        if "text" in gap and not _non_empty(gap.get("text")):
+            errors.append(_entry(
+                "E_GAP_SHAPE", "'text' must be a non-empty string",
+                where + ".text"))
+        if "reason" in gap and gap.get("reason") not in GAP_REASONS:
+            errors.append(_entry(
+                "E_GAP_ENUM", "'reason' must be one of %s"
+                % "|".join(GAP_REASONS), where + ".reason"))
+        if "cost" in gap and gap.get("cost") not in GAP_COSTS:
+            errors.append(_entry(
+                "E_GAP_ENUM", "'cost' must be one of %s" % "|".join(GAP_COSTS),
+                where + ".cost"))
+        if "source_ids" in gap:
+            value = gap.get("source_ids")
+            if not isinstance(value, list):
+                errors.append(_entry(
+                    "E_GAP_SHAPE", "'source_ids' must be an array",
+                    where + ".source_ids"))
+            else:
+                for offset, item in enumerate(value):
+                    item_where = "%s.source_ids[%d]" % (where, offset)
+                    if not _non_empty(item):
+                        errors.append(_entry(
+                            "E_GAP_SHAPE",
+                            "source id must be a non-empty string", item_where))
+                    elif item not in source_ids:
+                        errors.append(_entry(
+                            "E_GAP_REF",
+                            "source_id '%s' does not resolve to an entry in "
+                            "sources[]" % item, item_where))
 
 
 def _cross_check_plan(plan, axes, answered, errors, warnings):
@@ -722,6 +853,11 @@ def _cross_check_plan(plan, axes, answered, errors, warnings):
         errors.append(_entry(
             "E_SHAPE", "plan must contain a 'dimensions' array", "dimensions"))
         return
+    if "genre" in plan and plan.get("genre") is not None and \
+            plan.get("genre") not in PLAN_GENRES:
+        errors.append(_entry(
+            "E_ENUM", "plan 'genre' must be one of %s"
+            % "|".join(PLAN_GENRES), "genre"))
 
     dimension_ids = []
     key_questions = []
@@ -760,6 +896,32 @@ def _cross_check_plan(plan, axes, answered, errors, warnings):
                         question_where + ".id"))
                 else:
                     key_questions.append((question_where, question_id))
+
+        if "must_have_materials" in dimension:
+            materials = dimension.get("must_have_materials")
+            if not isinstance(materials, list):
+                errors.append(_entry(
+                    "E_SHAPE", "'must_have_materials' must be an array",
+                    where + ".must_have_materials"))
+            else:
+                for offset, material in enumerate(materials):
+                    material_where = "%s.must_have_materials[%d]" % (
+                        where, offset)
+                    if not isinstance(material, dict):
+                        errors.append(_entry(
+                            "E_SHAPE", "must-have material must be an object",
+                            material_where))
+                        continue
+                    if not _non_empty(material.get("text")):
+                        errors.append(_entry(
+                            "E_SHAPE", "'text' must be a non-empty string",
+                            material_where + ".text"))
+                    if "status" in material and material.get("status") not in \
+                            MUST_HAVE_STATUSES:
+                        errors.append(_entry(
+                            "E_ENUM", "'status' must be one of %s"
+                            % "|".join(MUST_HAVE_STATUSES),
+                            material_where + ".status"))
 
     declared = set(dimension_ids)
     for claim_index, axis in axes:
@@ -831,10 +993,11 @@ def validate(doc, plan):
 
     source_meta = _validate_sources(doc, errors)
     observation_ids = _validate_observations(doc, errors)
-    claim_ids, axes, answered, has_refute = _validate_claims(
+    claim_ids, axes, answered, has_refute, background_ids = _validate_claims(
         doc, source_meta, observation_ids, errors, warnings)
     _validate_writing_context(doc, set(source_meta), errors)
-    _validate_key_findings(doc, claim_ids, errors)
+    _validate_key_findings(doc, claim_ids, background_ids, errors)
+    _validate_gaps(doc, set(source_meta), errors)
 
     if not has_refute:
         warnings.append(_entry(

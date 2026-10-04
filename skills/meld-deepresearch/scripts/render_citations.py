@@ -28,6 +28,22 @@ Marker format:
     neither family is an **orphan** and is left un-replaced so a human can
     find it.
 
+    Three render modes:
+      * default        ``[[N]](#ref-N)`` with a first-occurrence cite anchor
+                       ``<a id="cite-N"></a>`` and a backlink ``[↩](#cite-N)``
+                       on each reference line — clickable, works on any
+                       Markdown host that allows inline HTML.
+      * ``--footnotes`` GFM footnotes ``[^N]`` / ``[^oN]`` with definitions
+                       ``[^N]: ...`` (a reader with footnote support renders
+                       the jump itself).
+      * ``--legacy-plain`` the old plain ``[N]`` / ``[ON]`` text, kept for
+                       byte-for-byte backward compatibility.
+
+    The gate judgement is unchanged: an orphan (id in neither array) still
+    fails, and in anchor/legacy mode any leftover ``[^`` marker also fails.
+    In ``--footnotes`` mode the ``[^N]`` markers are expected, so only orphans
+    fail.
+
 Results:
     stdout is one JSON object: ``{"ok": bool, "citation_count": N,
     "observation_count": N, "orphans": [...], "uncited": [...]}``.
@@ -54,8 +70,9 @@ import re
 import sys
 
 MARKER_RE = re.compile(r"\[\^([^\]]*)\]")
-SOURCES_HEADING_RE = re.compile(r"^## Sources[^\n]*", re.MULTILINE)
-OBSERVATIONS_HEADING_RE = re.compile(r"^## Observations[^\n]*", re.MULTILINE)
+SOURCES_HEADING_RE = re.compile(r"^## (?:Sources|来源)[^\n]*", re.MULTILINE)
+OBSERVATIONS_HEADING_RE = re.compile(
+    r"^## (?:Observations|观测记录)[^\n]*", re.MULTILINE)
 # Observation ids follow the contract pattern ``oN`` (1-based, no leading
 # zeros); anything else is treated as a source id.
 OBSERVATION_ID_RE = re.compile(r"^o\d+$")
@@ -134,6 +151,16 @@ def build_parser():
         default=None,
         help="citations.json path (default: citations.json next to --output)",
     )
+    parser.add_argument(
+        "--footnotes",
+        action="store_true",
+        help="render GFM footnotes ([^N]) instead of clickable anchors",
+    )
+    parser.add_argument(
+        "--legacy-plain",
+        action="store_true",
+        help="render the old plain [N]/[ON] text (no links)",
+    )
     return parser
 
 
@@ -196,36 +223,66 @@ def assign_numbers(report_text, by_source_id, by_observation_id):
     return source_numbers, observation_numbers, orphans
 
 
-def substitute_markers(report_text, source_numbers, observation_numbers):
-    """Replace resolvable markers with [N] / [ON]; leave orphans visible."""
+def substitute_markers(report_text, source_numbers, observation_numbers, mode):
+    """Replace resolvable markers per ``mode``; leave orphans visible.
+
+    ``mode`` is ``"anchor"`` (default), ``"footnotes"`` or ``"legacy"``.
+    """
+    source_cited = set()
+    observation_cited = set()
 
     def replace(match):
         marker_id = match.group(1).strip()
         if not marker_id:
             return match.group(0)
         if marker_id in source_numbers:
-            return "[%d]" % source_numbers[marker_id]
+            number = source_numbers[marker_id]
+            if mode == "legacy":
+                return "[%d]" % number
+            if mode == "footnotes":
+                return "[^%d]" % number
+            link = "[[%d]](#ref-%d)" % (number, number)
+            if number in source_cited:
+                return link
+            source_cited.add(number)
+            return '<a id="cite-%d"></a>%s' % (number, link)
         if marker_id in observation_numbers:
-            return "[O%d]" % observation_numbers[marker_id]
+            number = observation_numbers[marker_id]
+            if mode == "legacy":
+                return "[O%d]" % number
+            if mode == "footnotes":
+                return "[^o%d]" % number
+            link = "[[O%d]](#oref-%d)" % (number, number)
+            if number in observation_cited:
+                return link
+            observation_cited.add(number)
+            return '<a id="ocite-%d"></a>%s' % (number, link)
         return match.group(0)
 
     return MARKER_RE.sub(replace, report_text)
 
 
-def reference_line(number, source):
+def reference_line(number, source, mode):
     title = str(source.get("title") or "")
     url = str(source.get("url") or "")
     quality = str(source.get("quality") or "unknown")
     published_at = source.get("published_at")
     if published_at in (None, ""):
         published_at = "unknown"
-    return "[%d] %s — %s (%s, %s)" % (number, title, url, quality, published_at)
+    body = "%s — %s (%s, %s)" % (title, url, quality, published_at)
+    if mode == "footnotes":
+        return "[^%d]: %s" % (number, body)
+    if mode == "legacy":
+        return "[%d] %s" % (number, body)
+    return '<a id="ref-%d"></a>[%d] %s [↩](#cite-%d)' % (
+        number, number, body, number)
 
 
-def build_sources_section(text, numbers, by_id):
+def build_sources_section(text, numbers, by_id, mode):
     """Replace everything after the ## Sources heading, or append the heading."""
     ordered = sorted(numbers.items(), key=lambda item: item[1])
-    lines = [reference_line(number, by_id[source_id]) for source_id, number in ordered]
+    lines = [reference_line(number, by_id[source_id], mode)
+             for source_id, number in ordered]
     block = "\n".join(lines)
 
     heading = SOURCES_HEADING_RE.search(text)
@@ -244,7 +301,7 @@ def build_sources_section(text, numbers, by_id):
     return body
 
 
-def observation_line(number, observation):
+def observation_line(number, observation, mode):
     method = str(observation.get("method") or "")
     environment = observation.get("environment")
     if environment in (None, ""):
@@ -252,17 +309,23 @@ def observation_line(number, observation):
     captured_at = observation.get("captured_at")
     if captured_at in (None, ""):
         captured_at = "unknown"
-    return "[O%d] %s — %s (captured %s)" % (number, method, environment, captured_at)
+    body = "%s — %s (captured %s)" % (method, environment, captured_at)
+    if mode == "footnotes":
+        return "[^o%d]: %s" % (number, body)
+    if mode == "legacy":
+        return "[O%d] %s" % (number, body)
+    return '<a id="oref-%d"></a>[O%d] %s [↩](#ocite-%d)' % (
+        number, number, body, number)
 
 
-def build_observations_section(text, numbers, by_id):
+def build_observations_section(text, numbers, by_id, mode):
     """Append ## Observations, or rebuild the content after an existing one.
 
     Only called when at least one observation is cited.
     """
     ordered = sorted(numbers.items(), key=lambda item: item[1])
     lines = [
-        observation_line(number, by_id[observation_id])
+        observation_line(number, by_id[observation_id], mode)
         for observation_id, number in ordered
     ]
     block = "\n".join(lines)
@@ -294,14 +357,21 @@ def main(argv=None):
     source_numbers, observation_numbers, orphans = assign_numbers(
         report_text, by_id, obs_by_id
     )
-    rendered = substitute_markers(report_text, source_numbers, observation_numbers)
-    rendered = build_sources_section(rendered, source_numbers, by_id)
+    mode = "footnotes" if args.footnotes else (
+        "legacy" if args.legacy_plain else "anchor")
+    rendered = substitute_markers(
+        report_text, source_numbers, observation_numbers, mode)
+    rendered = build_sources_section(rendered, source_numbers, by_id, mode)
     if observation_numbers:
         rendered = build_observations_section(
-            rendered, observation_numbers, obs_by_id
+            rendered, observation_numbers, obs_by_id, mode
         )
 
-    unresolved = "[^" in rendered
+    if mode == "footnotes":
+        # [^N] / [^N]: are expected in this mode; only orphans fail.
+        unresolved = bool(orphans)
+    else:
+        unresolved = MARKER_RE.search(rendered) is not None
     uncited = [
         source_id for source_id in ordered_ids if source_id not in source_numbers
     ] + [

@@ -1,0 +1,16 @@
+{
+  "genre": "chronicle",
+  "dimensions": [
+    {
+      "id": "d1",
+      "key_questions": [
+        {"id": "kq1", "text": "What does the primary archive establish about the timeline?"},
+        {"id": "kq2", "text": "Where do the press accounts disagree with the archive?"}
+      ],
+      "must_have_materials": [
+        {"text": "The station archive entry", "status": "obtained", "note": "s1"},
+        {"text": "At least one independent press account", "status": "obtained", "note": "s2"}
+      ]
+    }
+  ]
+}

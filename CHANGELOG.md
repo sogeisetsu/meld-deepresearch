@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Genre templates** (`skills/meld-deepresearch/templates/genres/`): a report
+  can append a genre-specific structure — panorama, comparison (with a required
+  comparison matrix), entity / due-diligence, or chronicle (history) — chosen at
+  plan time via `plan.json` `genre`. Required sections never change; a genre
+  only adds.
+- **Structured gaps.** `evidence.json` gains an optional `gaps[]` array
+  (`id` / `text` / `reason` / `cost`) so a reader can tell "no source exists"
+  from "access was limited" from "the budget ran out". New codes `E_GAP_SHAPE`
+  / `E_GAP_ENUM` / `E_GAP_REF`.
+- **`background` claims.** A new claim kind carries context (period, people,
+  prior events) with any-tier evidence, is exempt from `E_FACTUAL_SOURCE`, and
+  may not back a `key_finding` (`E_FINDING_BACKGROUND`).
+- **Source-type labels.** `sources[].source_type`
+  (`official | academic | archive | press | oral | community | mixed`) labels
+  the kind of source; it never changes the credibility threshold.
+- **`merge_evidence.py`** — folds per-axis `sub_reports/*.evidence.json` into
+  one `evidence.json`, de-duplicating sources by URL and re-pointing references.
+- **`content_review.py`** — an optional, warn-only content self-check (required
+  sections, heading language, uncited numbers, gaps versus report).
+- **Clickable citations.** `render_citations.py` now emits `[[N]](#ref-N)`
+  anchors with backlinks by default, and adds `--footnotes` (GFM footnotes) and
+  `--legacy-plain` (the previous plain text).
+- **Source-class routing guidance** for academic and developer axes, and
+  optional **text (Mermaid) diagrams** required to be evidence-bound.
+- **`plan.json` `must_have_materials[]`** — an axis-level checklist whose
+  missing items must be written to `gaps[]`.
+
+### Changed
+
+- `.work/` now holds the run middleware (`plan.json`, `report.src.md`,
+  `sub_reports/`), leaving the four top-level artifacts as the deliverables.
+- `dedupe_sources.py` adds a `source_type` column only when a source uses it.
+
 ## [0.2.0] - 2026-10-04
 
 ### Added

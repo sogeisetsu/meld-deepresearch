@@ -7,7 +7,7 @@ and enum values here are **exact** — the validator matches them literally.
 
 ## Top-level shape
 
-`evidence.json` is one JSON object with five arrays:
+`evidence.json` is one JSON object with five arrays (plus one optional array):
 
 | Array | What it holds |
 |---|---|
@@ -16,13 +16,15 @@ and enum values here are **exact** — the validator matches them literally.
 | `observations[]` | First-hand evidence gathered by the run itself (commands, measurements, files, inspections) |
 | `writing_context[]` | Scope, sample, method and availability caveats, kept out of claims |
 | `key_findings[]` | Derived synthesis that points back to claims; adds no new facts |
+| `gaps[]` | **Optional.** Structured unknowns: what could not be covered and why |
 
 (`evidence[]` is nested inside each claim; it is not a top-level array.)
 
-`observations[]` is **optional**: a run with no first-hand evidence may omit it
-altogether or pass an empty array, and neither is an error. When it is present
-it must be an array; `claims`, `sources`, `writing_context` and `key_findings`
-are always required.
+`observations[]` and `gaps[]` are **optional**: a run with no first-hand evidence
+may omit `observations[]` altogether or pass an empty array, and a run with
+nothing structured to report may omit `gaps[]`; neither is an error. When
+present they must be arrays; `claims`, `sources`, `writing_context` and
+`key_findings` are always required.
 
 ## ID conventions
 
@@ -48,11 +50,11 @@ need is *one* `kqN` that both answer.
 |---|---|---|---|---|
 | `id` | string | yes | pattern `dN.cM` | Unique claim id |
 | `text` | string | yes | non-empty | The statement, one atomic assertion |
-| `kind` | string | yes | `factual` \| `interpretive` \| `projective` | Fact / interpretation / projection |
+| `kind` | string | yes | `factual` \| `interpretive` \| `projective` \| `background` | Fact / interpretation / projection / context |
 | `polarity` | string | yes | `support` \| `refute` \| `neutral` | Which side of the question the claim takes |
 | `topic_tag` | string | yes | non-empty | Free tag grouping claims by topic |
 | `answers_key_question` | string \| null | yes | `kqN` or `null` | Key question this claim answers, if any |
-| `evidence[]` | array | yes | ≥ 1 evidence item: for `factual` one that resolves to a `primary`/`secondary` source **or** to an observation; for `interpretive` ≥ 2 distinct origins; for `projective` ≥ 1 item | Supporting snippets; see below |
+| `evidence[]` | array | yes | ≥ 1 evidence item: for `factual` one that resolves to a `primary`/`secondary` source **or** to an observation; for `interpretive` ≥ 2 distinct origins; for `projective` ≥ 1 item (any tier); for `background` ≥ 1 item (any tier) | Supporting snippets; see below |
 
 ### `evidence[]` (inside a claim)
 
@@ -133,6 +135,7 @@ web source backing it (an observation counts as first-hand, so this passes):
 | `title` | string | yes | non-empty | Source title |
 | `quality` | string | yes | `primary` \| `secondary` \| `tertiary` | Evidence tier (see below) |
 | `published_at` | string \| null | yes | ISO date `YYYY-MM-DD`, or `null` when unknown | Publication date; `null` means unknown, never guessed |
+| `source_type` | string \| null | no | `official` \| `academic` \| `archive` \| `press` \| `oral` \| `community` \| `mixed`, or `null` | Optional label for the kind of source. **A label only — it never changes the `quality`-based `credible` threshold.** |
 
 ### `writing_context[]`
 
@@ -166,6 +169,21 @@ was read.
 
 `key_findings` is a **derived layer**: it may combine claims but introduces no
 fact absent from the claims it cites.
+
+### `gaps[]` (optional)
+
+| Field | Type | Required | Allowed values | Meaning |
+|---|---|---|---|---|
+| `id` | string | yes | pattern `gN` (1-based, no leading zeros), unique in the file | Gap id |
+| `text` | string | yes | non-empty | The unknown, in one sentence |
+| `reason` | string | yes | `no-source` \| `access-limited` \| `budget` \| `stale` \| `other` | Why it is unresolved |
+| `cost` | string | yes | `cheap` \| `hard` | How expensive closing it would be |
+| `source_ids[]` | array | no | ids in `sources[]` (may be empty) | Sources that bear on the gap |
+
+`reason` separates "the material does not exist publicly" (`no-source`) from
+"it exists but could not be opened" (`access-limited`) from "the budget ran
+out" (`budget`), so a reader can tell a real absence from a self-imposed limit.
+The report's `## Gaps & Unknowns` section is generated from `gaps[]`.
 
 ## Rules (errors fail the run; warnings do not)
 
@@ -222,12 +240,24 @@ fact absent from the claims it cites.
 8. **Missing `refute` coverage is a WARNING, not an error.** If no claim in the
    file has `polarity: refute`, the validator reports a warning (falsification
    was probably not attempted) but does not fail on it alone.
+9. **`background` needs context evidence, not credibility.** A `background`
+   claim (period, place, people, prior events) carries at least one evidence
+   item of **any** quality tier, or an observation, and is **exempt** from rule
+   1. It need not answer a `kqN` (`answers_key_question` may be `null`). A
+   `background` claim may **not** back a `key_finding` — that is
+   `E_FINDING_BACKGROUND`.
+10. **`gaps[]` shape.** Each gap carries `id` (`gN`), `text`, `reason` and
+    `cost`; a missing or malformed field is `E_GAP_SHAPE`, a bad `reason`/`cost`
+    is `E_GAP_ENUM`, and every `source_ids[]` entry must resolve to `sources[]`
+    (`E_GAP_REF`).
 
 **Error codes** (`ok: false`, exit 1): `E_SHAPE`, `E_ID_PATTERN`,
 `E_ID_UNIQUE`, `E_ENUM`, `E_REF_SOURCE`, `E_REF_OBSERVATION`, `E_REF_CLAIM`,
 `E_REF_KQ`, `E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`, `E_PROJECTIVE_BASIS`,
-`E_OBS_SHAPE`, `E_EMPTY` — plus `E_JSON` for unusable input (exit 2), and the
-`--plan` codes `E_PLAN_DIM_UNKNOWN` / `E_PLAN_DIM_UNCOVERED`.
+`E_BACKGROUND_BASIS`, `E_FINDING_BACKGROUND`, `E_OBS_SHAPE`, `E_EMPTY`,
+`E_GAP_SHAPE`, `E_GAP_ENUM`, `E_GAP_REF` — plus `E_JSON` for unusable input
+(exit 2), and the `--plan` codes `E_PLAN_DIM_UNKNOWN` /
+`E_PLAN_DIM_UNCOVERED`.
 **Warning codes** (`ok` stays `true`): `W_NORMATIVE` (rule 4), `W_NO_FINDINGS`
 and `W_NO_REFUTE` (rules 7 and 8), `W_KQ_UNANSWERED` when `--plan` is used, and
 `W_SAME_PUBLISHER` when an `interpretive` claim's distinct urls all share one
@@ -242,10 +272,11 @@ The validator's stdout shape is a single JSON object
 `{"ok": bool, "errors": [...], "warnings": [...]}`, sorted by `code` then
 `where`; `ok` is `true` if and only if `errors` is empty.
 
-Each entry is `{"code", "message", "where"}` plus an **optional `hint`** — a
+| each entry is `{"code", "message", "where"}` plus an **optional `hint`** — a
 "smallest safe fix" suggestion present only on error codes that have one clear
 corrective action (`E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`, `E_PROJECTIVE_BASIS`,
-`E_REF_SOURCE`, `E_REF_OBSERVATION`, `E_REF_CLAIM`, `E_PLAN_DIM_UNKNOWN`,
+`E_BACKGROUND_BASIS`, `E_FINDING_BACKGROUND`, `E_REF_SOURCE`,
+`E_REF_OBSERVATION`, `E_REF_CLAIM`, `E_PLAN_DIM_UNKNOWN`,
 `E_PLAN_DIM_UNCOVERED`). `hint` is additive: a consumer keyed on
 `code`/`where` is unaffected, and a run that must repair itself reads `hint` to
 apply the one fix most likely to clear the error without dropping a claim it did
@@ -285,6 +316,7 @@ The research plan produced during the Plan phase, consumed by
 ```json
 {
   "tier": "normal",
+  "genre": "general",
   "dimensions": [
     {
       "id": "d1",
@@ -293,18 +325,30 @@ The research plan produced during the Plan phase, consumed by
       "source_classes": ["primary", "secondary"],
       "depth": "free-text stopping threshold description",
       "time_sensitivity": "window | sensitive | stable",
-      "key_questions": [{"id": "kq1", "text": "the question"}]
+      "key_questions": [{"id": "kq1", "text": "the question"}],
+      "must_have_materials": [
+        {"text": "the material the axis must obtain", "status": "obtained", "note": "where it came from"}
+      ]
     }
   ]
 }
 ```
 
-`check_evidence.py --plan` reads **only** `dimensions[].id` and
-`dimensions[].key_questions[].id` — those two are the machine-checked contract
-(claim axes must be declared, every dimension must be covered, every declared
-key question must be answered). Every other field (`tier`, `name`,
-`scope_ownership`, `source_classes`, `depth`, `time_sensitivity`, and each
-key question's `text`) is human-readable metadata that the validator ignores.
+`check_evidence.py --plan` reads `dimensions[].id`, `dimensions[].key_questions[].id`,
+`genre` (enum) and `dimensions[].must_have_materials[]` (shape + `status` enum) —
+the machine-checked contract (claim axes must be declared, every dimension must
+be covered, every declared key question must be answered, `genre` is in its
+enum, and each must-have material has a `status` in
+`obtained | missing | unknown`). Every other field (`tier`, `name`,
+`scope_ownership`, `source_classes`, `depth`, `time_sensitivity`, and each key
+question's `text`) is human-readable metadata that the validator ignores.
+
+`genre` is one of `panorama | comparison | entity | chronicle | general`
+(default `general`); it selects a genre template at write time (see
+`report-template.md`). `must_have_materials[]` is the axis's checklist of the
+material it must actually obtain: at wrap-up, every `missing` item must be
+written to `gaps[]`, and the delivery message reports "key material: obtained X
+/ missing Y".
 
 **One source needed by two axes (C7).** The owning axis declares it in its
 `scope_ownership` (e.g. *"owns example.org/announcements/\*"*) so the two

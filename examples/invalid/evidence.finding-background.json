@@ -1,0 +1,51 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "The report's subject ran a newspaper that was shut down before the event.",
+      "kind": "background",
+      "polarity": "support",
+      "topic_tag": "background",
+      "answers_key_question": null,
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "The paper was closed in 1913, three years before the event.",
+          "quote_type": "paraphrase"
+        }
+      ]
+    },
+    {
+      "id": "d1.c2",
+      "text": "The railway station is where the subject was last seen in public.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "timeline",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "Witnesses place the subject on the platform shortly before the shots.",
+          "quote_type": "direct"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "s1",
+      "url": "https://example.org/archive/station",
+      "title": "Archive note on the station",
+      "quality": "primary",
+      "published_at": "2026-01-01",
+      "source_type": "archive"
+    }
+  ],
+  "writing_context": [],
+  "key_findings": [
+    {
+      "finding": "A background-only claim is wrongly used to support a key finding.",
+      "claim_ids": ["d1.c1"]
+    }
+  ]
+}

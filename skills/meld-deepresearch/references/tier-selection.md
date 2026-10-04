@@ -10,6 +10,12 @@ Details of *how* to research after the tier is chosen: `protocol.md`.
 | `quick` | Single research line, in-memory key questions `kq1..kqn`, no plan file, small budget. |
 | `normal` | Named, independently searchable dimensions written to `plan.json`, cross-dimension synthesis, larger budget. |
 
+**Genre.** The report genre (`plan.json` `genre`) is chosen in the plan stage.
+`normal` runs record it explicitly (`panorama` / `comparison` / `entity` /
+`chronicle` / `general`); `quick` runs imply `general`. Genre only selects an
+append template (see `report-template.md`); it never changes the tier or the
+budget.
+
 ## 2. Decision table
 
 | Tier | Conditions (any one ⇒ that tier) |
