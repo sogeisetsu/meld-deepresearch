@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.work/` now holds the run middleware (`plan.json`, `report.src.md`,
   `sub_reports/`), leaving the four top-level artifacts as the deliverables.
 - `dedupe_sources.py` adds a `source_type` column only when a source uses it.
+- `content_review.py`'s `W_REVIEW_SUMMARY_DENSE` now counts English sentences
+  too (it previously split only on CJK punctuation, so it never fired on an
+  English paragraph); `W_REVIEW_SUMMARY_LONG` remains a conservative, line-based
+  screen for wrapped English prose.
 - CI's script self-test now covers `merge_evidence.py` (including a
   writing-context collision regression), `content_review.py`, the
   chronicle-genre example, every negative fixture, and the new
