@@ -239,7 +239,7 @@ def assign_numbers(report_text, by_source_id, by_observation_id):
 def substitute_markers(report_text, source_numbers, observation_numbers, mode):
     """Replace resolvable markers per ``mode``; leave orphans visible.
 
-    ``mode`` is ``"anchor"`` (default), ``"footnotes"`` or ``"legacy"``.
+    ``mode`` is ``"footnotes"`` (default), ``"anchor"`` or ``"legacy"``.
     """
     source_cited = set()
     observation_cited = set()

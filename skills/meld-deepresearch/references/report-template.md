@@ -102,14 +102,7 @@ Two marker families, cited exactly alike:
   one line per cited observation in the form
   `[ON] method — environment (captured YYYY-MM-DD)`. The writer never writes
   this section either — same ownership rule as `## Sources`.
-- Gate ② vocabulary, matching `render_citations.py` exactly:
-  - **orphan** — a `[^sN]` marker whose id is **absent from `sources[]`**, or a
-    `[^oN]` marker whose id is **absent from `observations[]`** → gate ② fails.
-  - **unresolved** — a marker left un-replaced (empty id, or a residual `[^`
-    in the rendered output) → gate ② fails.
-  - **uncited** — a source in `sources[]` or an observation in
-    `observations[]` that the report never cites →
-    **warning only**, never a failure.
+- Gate ② vocabulary (orphan / unresolved / uncited) is defined in references/protocol.md §9.
 - **`sources.md` is not `## Sources`.** `sources.md` is the standalone
   de-duplicated source table (a deliverable produced by `dedupe_sources.py`);
   the report's `## Sources` is the numbered citation list produced by the

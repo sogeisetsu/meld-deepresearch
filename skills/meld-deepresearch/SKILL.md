@@ -108,21 +108,11 @@ The full loop, budgets and stop rules are in `references/protocol.md`.
 
 ## 7. Evidence and citation rules
 
-Non-negotiable, and enforced by the validator:
+Non-negotiable, enforced by the validator — the full schema, allowed values and every hard rule live in `references/evidence-contract.md`:
 
-- Every claim carries at least one piece of evidence: a web source **or** a first-hand observation.
-- A `factual` claim needs a `primary` or `secondary` source, or a recorded observation.
-- An `interpretive` claim needs at least two **distinct** origins — distinct sources (id *and* URL) or distinct observations.
-- A search-result snippet is **never** evidence — open the original page and verify it first.
-- Counter-evidence is searched on purpose: failed cases, dissenting sources, and claims that cannot be verified.
-- Anything unverifiable is labelled `unknown`, never guessed.
-- A run that ends with no `refute` claim at all is suspicious; the validator warns about it.
-
-First-hand evidence (a command you ran, a measurement, a file you inspected) goes
-in `observations[]`, is cited as `[^oN]`, and must be reproducible.
-
-The full schema, allowed values, and every hard rule live in
-`references/evidence-contract.md`.
+- Every claim carries evidence — a web source **or** a reproducible first-hand `observations[]` entry cited `[^oN]`; a search-result snippet is never evidence.
+- A `factual` claim needs a `primary`/`secondary` source or an observation; an `interpretive` claim needs two **distinct** origins; anything unverifiable is labelled `unknown`.
+- Counter-evidence is searched on purpose; a run with no `refute` claim at all draws a validator warning.
 
 ## 8. Budget and stop conditions
 
@@ -137,19 +127,11 @@ what was not covered. Never loop indefinitely.
 
 ## 9. Self-check gate (hard)
 
-Before delivering, run the gate commands exactly as listed in
-`references/protocol.md` §9, from this skill's own directory. For a `normal` run,
-gate ① also takes `--plan`.
+Before delivering, run the gate commands exactly as listed in `references/protocol.md` §9 (gate ① also takes `--plan` on a `normal` run):
 
-- Gate ① passes only when the validator reports `ok` (warnings alone do not fail it).
-- Gate ② passes only when nothing is orphaned or unresolved. An **orphan** is a
-  marker whose id is missing from `sources[]` or `observations[]`; an
-  **unresolved** marker is one left un-replaced. A source or observation that is
-  never cited is only a warning.
-- If a gate fails: fix once and re-run. If it still fails, **STOP** and report
-  honestly — do not deliver a failing report.
-- If the host has no command execution, walk the gates by hand and state that
-  they were skipped.
+- Gate ① passes only when the validator reports `ok` (warnings do not fail it); gate ② fails on an **orphan** or **unresolved** marker — vocabulary defined in `references/protocol.md` §9.
+- If a gate fails: fix once and re-run. If it still fails, **STOP** and report honestly — do not deliver a failing report.
+- If the host has no command execution, walk the gates by hand and state that they were skipped.
 
 ## 10. Deliverables
 
@@ -179,11 +161,8 @@ nothing was persisted.
 
 ## 11. Failure and retry
 
-Each stage (plan / research / merge / write / render) may be retried **once**,
-then stop and report the failing stage, the artifact paths produced so far, and
-the last error — never pretend a run completed. Apply the
-symptom → first fix → fallback table in `references/protocol.md` §10 instead of
-inventing a recovery.
+Each stage may be retried **once**, then stop and report the failing stage, the artifact paths produced so far, and the last error — never pretend a run completed.
+Apply the symptom → first fix → fallback table in `references/protocol.md` §10 instead of inventing a recovery.
 
 ## 12. Non-negotiables
 

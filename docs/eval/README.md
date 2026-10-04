@@ -111,7 +111,7 @@ apples-to-apples comparison.
 | License | MIT | MIT (repo) | MIT |
 | Install | `npx skills add` / `gh skill install` / manual copy; ~6 hosts | `git clone` + copy to OpenClaw/hermes only | `git clone` + copy to Claude Code/OpenCode/Codex; `pip install pyyaml`; needs `OPENCODE_ENABLE_EXA=1` |
 | Orchestration | **Single agent, inline**; delegation optional, never required; no skill chaining | **Multi-agent controller** dispatching ~9 specialist roles, parallel work packages; reuses sibling-skill *scripts* | **Sequential `/research*` command chain**, with **parallel per-item agents** inside `/research-deep` |
-| Hard gates | 2 (`check_evidence.py`, `render_citations.py`), 13 error codes | per-role validators + render gate + supplement gate | `validate_json.py` schema check |
+| Hard gates | 2 (`check_evidence.py`, `render_citations.py`), 18 rule-error `E_*` codes plus `E_JSON` (input) and 2 `--plan` codes — 21 `E_*` total | per-role validators + render gate + supplement gate | `validate_json.py` schema check |
 | Budget / stop rules | explicit (quick 8/5/3, normal 25/15/3, stop + list gaps) | modes quick/normal/heavy + retry caps; fetch budgets not enumerated | `unknown` at this level of detail |
 | Forced refutation | yes — mandatory, `W_NO_REFUTE` warning | explicit refutation mandate `unknown` from the SKILL.md excerpt | `unknown` |
 | HTML / chart rendering | none (by design) | `sn-md-to-html-report` + chart generation | none |
