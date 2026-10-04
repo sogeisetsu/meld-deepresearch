@@ -6,15 +6,28 @@ English.
 
 ## Skeleton (exact order)
 
-1. `# Title`
-2. `## Executive Summary`
-3. `## Findings`
-4. `## Contradictions & Counter-evidence`
-5. `## Gaps & Unknowns`
-6. `## Sources`
-7. `## Observations` — **conditional and renderer-owned**: appended after
-   `## Sources` only when the report cites at least one observation; the writer
-   never writes it (same ownership rule as `## Sources`)
+Required sections are always present, in this order, under these titles. Write
+the report in the user's language: the Chinese form is given where it exists,
+and any other language keeps this order (translating the titles is fine).
+
+| # | English | Chinese |
+|---|---|---|
+| 1 | `# Title` | `# 标题` |
+| 2 | `## Executive Summary` | `## 摘要` |
+| 3 | `## Findings` | `## 主要发现` |
+| 4 | `## Contradictions & Counter-evidence` | `## 矛盾与反证` |
+| 5 | `## Gaps & Unknowns` | `## 未知与缺口` |
+| 6 | `## Sources` | `## 来源` |
+| 7 | `## Observations` | `## 观测记录` |
+
+Sections 6 and 7 are **renderer-owned**: `## Sources` is regenerated wholesale,
+and `## Observations` is appended only when at least one observation is cited.
+The writer never writes either; the renderer matches both the English and the
+Chinese heading forms.
+
+**Genre templates only APPEND.** A genre template (see *Genre templates* below)
+adds sections *after* `## Findings`; it never removes, reorders or renames the
+required sections above.
 
 | Section | What belongs here |
 |---|---|
@@ -25,6 +38,33 @@ English.
 | `## Gaps & Unknowns` | Questions the evidence could not answer, each labeled `unknown` with the reason (no source found, access limited, data stale) — never a guess |
 | `## Sources` | Owned by `render_citations.py`: numbered citation list for every source the report cites, regenerated wholesale by the renderer. The writer ends `report.src.md` with this heading and nothing after it |
 | `## Observations` | Owned by `render_citations.py`: appended **only when at least one observation is cited**, one line per cited observation — `[ON] method — environment (captured YYYY-MM-DD)`. The writer never writes this section |
+
+## Genre templates
+
+A genre is chosen at plan time (`plan.json` `genre`) and only *adds* sections
+after `## Findings`. The four templates live in `templates/genres/`:
+
+| Genre | Appends after `## Findings` |
+|---|---|
+| `panorama` | Background & current state, Core dimension 1..N, Synthesis, Outlook, Appendix |
+| `comparison` | Evaluation basis (needs / dimensions / weights), Option overview, **Comparison matrix — a table is required**, Per-dimension analysis, Recommendation, Risks & limits |
+| `entity` | Subject profile, Operations, Financials, Legal / compliance, Team, Red flags, Conclusion & recommendation |
+| `chronicle` | **Background & people** (consumes `background` claims), Timeline, Key-node analysis, Evidence & disputes, Conclusion & aftermath, Appendix |
+
+`general` (the default) appends nothing. A genre template never replaces or
+renames a required section.
+
+## Uncertainty grading (D3)
+
+Every disagreement in `## Contradictions & Counter-evidence` carries one of
+three explicit grades — never a binary verdict:
+
+- `已确认` / **confirmed** — independent origins agree, or one primary source settles it.
+- `存在争议` / **in dispute** — credible sources disagree and the run cannot adjudicate.
+- `无法证实` / **unconfirmed** — the point cannot be checked from reachable evidence.
+
+The grade sits next to the disputed point and is re-checked in the quality
+self-check. It adds no schema field: it is a writing rule over existing claims.
 
 ## Inline citation mechanism
 
@@ -88,6 +128,10 @@ Two marker families, cited exactly alike:
   asserting a single view.
 - **Label the unknown.** Unanswered items are written as `unknown`, never
   filled by plausibility.
+- **Diagrams are optional and evidence-bound.** A diagram is a text-based
+  Mermaid fence (```` ```mermaid ````) whose data points all come from cited
+  claims; never invent a data point to make a chart look complete. Binary
+  image or chart rendering is out of scope for this skill.
 
 ## Quality self-check (four dimensions)
 

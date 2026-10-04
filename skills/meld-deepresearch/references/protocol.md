@@ -9,7 +9,7 @@ Execution rules for `meld-deepresearch`. `SKILL.md` decides *whether* to run and
 | Probe / anchor / clarify / tier select | see `SKILL.md` | in-memory anchors, `assumptions` |
 | Plan | quick: `kq1..kqn` in memory; normal: named dimensions | normal only: `plan.json` |
 | **Research (this file, §2–§7)** | per-axis loop | `sub_reports/dN.evidence.json` |
-| **Merge (this file, §9)** | concatenate the five top-level arrays from every axis file | `evidence.json` |
+| **Merge (this file, §9)** | `merge_evidence.py` folds every axis file into one | `evidence.json` |
 | Gate ① | evidence validator on the **merged** `evidence.json` (normal: plus `--plan`) | `{"ok": true}` |
 | Write | one-shot draft, inline citations, no new facts | `report.src.md` |
 | Gate ② | citation renderer | `report.md`, `citations.json` |
@@ -35,6 +35,17 @@ Exact rules — all mandatory:
 2. **Maintain a candidate URL pool per axis:** merge new results into the pool → normalize the URL → de-duplicate → sort by source quality (`primary` > `secondary` > `tertiary`), then relevance, then recency. Fetch from the top of the pool; never re-fetch a URL already consumed.
 3. **Search-result snippets are NEVER evidence.** A claim may only be trusted after the original page has been opened and the snippet checked against it (numbers, dates, polarity, exact wording all verified). Snippets exist only to decide what to fetch next.
 4. Each fetched page yields candidate claims written to that axis's evidence file (`sub_reports/dN.evidence.json`), with `source_id`, `snippet`, and `quote_type` per `evidence-contract.md`.
+5. **Route by source class (academic / developer axes).** For an academic or
+   scientific axis, prefer repositories generic search can reach (arXiv,
+   PubMed, SSRN, Google Scholar, official venue pages): adapt the query with
+   venue / year / field terms, open the paper and read the section that
+   matters rather than the abstract alone; when the paper cites the work a
+   claim rests on, fetching that cited URL is a legitimate candidate (rule 1)
+   and a way to walk the reference chain. For a developer / code axis, prefer
+   GitHub, Stack Overflow, Hacker News and code/model hubs, and read the file
+   or thread itself. This is query-and-routing guidance only: it needs no API
+   key and adds no dependency. Platform-internal `code:` search and
+   citation-count ranking stay deliberately out of scope.
 
 ## 3. Mandatory refutation
 
@@ -116,7 +127,12 @@ After each round, write down **what is still unknown** for this axis:
 - numbers missing a time stamp where §4 case 2 applies;
 - expected counter-evidence not yet searched for.
 
-The next round's queries target this gap list first. Any gap still open when the axis or the budget stops goes to the report's `Gaps & Unknowns` section, labeled `unknown`.
+The next round's queries target this gap list first. Any gap still open when the
+axis or the budget stops is recorded as a structured `gaps[]` entry
+(`evidence-contract.md`) with `reason` (`no-source` / `access-limited` /
+`budget` / `stale` / `other`) and `cost` (`cheap` / `hard`), and rendered into
+the report's `## Gaps & Unknowns` section. State the reason honestly: a page
+that could not be opened is `access-limited`, not `no-source`.
 
 ## 8. Budget and stop conditions
 
@@ -156,9 +172,11 @@ the raise: only the fetch budget and the distinct-source floor can move.
 
 ### Merge (after every axis, before gate ①)
 
-Concatenate the five top-level arrays — `claims`, `sources`, `observations`,
-`writing_context`, `key_findings` — from every `sub_reports/dN.evidence.json`
-into a single `<output_dir>/evidence.json`:
+Run
+`scripts/merge_evidence.py --subreports <output_dir>/.work/sub_reports --output <output_dir>/evidence.json`.
+It folds the six contract arrays — `claims`, `sources`, `observations`,
+`writing_context`, `key_findings`, `gaps` — from every
+`sub_reports/dN.evidence.json` into one `evidence.json`:
 
 - **Ids stay unique after merging.** The prefix discipline already makes this
   true: claims are `dN.cM` and writing contexts are `dN.wM` (axis-scoped),
@@ -207,11 +225,16 @@ relative to it. Set `OUTDIR` to the run's output directory first, and use
 ```bash
 OUTDIR="meld-deepresearch-reports/2026-09-29-my-topic-ab12"
 
-python scripts/check_evidence.py "$OUTDIR/evidence.json"
-python scripts/check_evidence.py "$OUTDIR/evidence.json" --plan "$OUTDIR/plan.json"   # normal tier
-python scripts/render_citations.py --report "$OUTDIR/report.src.md" --evidence "$OUTDIR/evidence.json" --output "$OUTDIR/report.md"
+python scripts/merge_evidence.py --subreports "$OUTDIR/.work/sub_reports" --output "$OUTDIR/evidence.json"
+python scripts/check_evidence.py "$OUTDIR/evidence.json" --plan "$OUTDIR/.work/plan.json"   # normal tier
+python scripts/render_citations.py --report "$OUTDIR/.work/report.src.md" --evidence "$OUTDIR/evidence.json" --output "$OUTDIR/report.md"
 python scripts/dedupe_sources.py --evidence "$OUTDIR/evidence.json" --output "$OUTDIR/sources.md"
+python scripts/content_review.py --report "$OUTDIR/report.md" --evidence "$OUTDIR/evidence.json"   # optional, warn-only
 ```
+
+`merge_evidence.py` and `content_review.py` are new; `content_review.py` is
+optional and only warns. A `quick` run has no `plan.json`, so it omits the
+`--plan` flag.
 
 - Gate failure ⇒ **fix once and re-run** (at most one re-run per gate).
 - Second failure ⇒ **stop and report honestly** (failing stage, artifact paths, last error). Do not deliver a report that failed a gate.
@@ -228,14 +251,20 @@ Default output directory:
 
 ```
 meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/
-├── report.md
-├── sources.md
-├── evidence.json                 # merged from sub_reports/ (§9): sources[] + observations[]
-├── citations.json
-├── plan.json                     # normal tier only
-├── report.src.md                 # write-stage draft (pre-citation-render)
-└── sub_reports/dN.evidence.json  # per-axis intermediate evidence
+├── report.md                 # delivered: rendered report
+├── sources.md                # delivered: de-duplicated source table
+├── evidence.json             # delivered: merged evidence
+├── citations.json            # delivered: citation map
+└── .work/                    # middleware (not a delivery core)
+    ├── plan.json             # normal tier only
+    ├── report.src.md         # write-stage draft (pre-citation-render)
+    └── sub_reports/dN.evidence.json   # per-axis intermediate evidence
 ```
+
+The four top-level files are the deliverables; `.work/` holds the middleware.
+The delivery message **must list the full manifest** — the four artifacts, the
+`.work/` contents that exist, and every failed fetch (URL + type) — so a reader
+can see exactly what was produced and what was skipped.
 
 - `{slug}` is a short kebab-case digest of the topic; `{hex4}` is 4 random hex digits for uniqueness. **When the user supplies an output directory, it replaces this default naming entirely** — no `{slug}` or `{hex4}` is appended; the run writes to the user's path exactly as given.
 - **First-hand evidence** — commands run, measurements taken, files inspected on

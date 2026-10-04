@@ -1,0 +1,102 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "The subject ran a newspaper that had already closed three years before the event.",
+      "kind": "background",
+      "polarity": "support",
+      "topic_tag": "background",
+      "answers_key_question": null,
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "The paper ceased publication in 1913.",
+          "quote_type": "paraphrase"
+        }
+      ]
+    },
+    {
+      "id": "d1.c2",
+      "text": "The station opened in 1901.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "timeline",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "The station opened in 1901 and served the northern line.",
+          "quote_type": "direct"
+        }
+      ]
+    },
+    {
+      "id": "d1.c3",
+      "text": "Press accounts place the last public sighting at the station platform.",
+      "kind": "interpretive",
+      "polarity": "support",
+      "topic_tag": "timeline",
+      "answers_key_question": "kq2",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "Archive photographs show the platform as it was in the period.",
+          "quote_type": "paraphrase"
+        },
+        {
+          "source_id": "s2",
+          "snippet": "Witnesses reported the subject on the platform shortly before the shots.",
+          "quote_type": "paraphrase"
+        }
+      ]
+    },
+    {
+      "id": "d1.c4",
+      "text": "A widely repeated claim that the newspaper was still publishing in 1916 is contradicted by the archive.",
+      "kind": "factual",
+      "polarity": "refute",
+      "topic_tag": "background",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "The archive's last issue is dated 1913.",
+          "quote_type": "direct"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "s1",
+      "url": "https://example.org/archive/station-1913",
+      "title": "Station archive entry",
+      "quality": "primary",
+      "published_at": "1913-06-01",
+      "source_type": "archive"
+    },
+    {
+      "id": "s2",
+      "url": "https://press.example.com/1916/reconstruction",
+      "title": "Press reconstruction of the timeline",
+      "quality": "secondary",
+      "published_at": "1916-02-10",
+      "source_type": "press"
+    }
+  ],
+  "writing_context": [],
+  "key_findings": [
+    {
+      "finding": "The archive fixes the opening year and the newspaper's closure, and a press account corroborates the last sighting.",
+      "claim_ids": ["d1.c2", "d1.c3"]
+    }
+  ],
+  "gaps": [
+    {
+      "id": "g1",
+      "text": "The private conversation immediately before the event is undocumented.",
+      "reason": "no-source",
+      "cost": "hard"
+    }
+  ]
+}

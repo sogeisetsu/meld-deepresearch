@@ -1,0 +1,44 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "The archive entry records the station's opening year.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "timeline",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "The station opened in 1901.",
+          "quote_type": "paraphrase"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "s1",
+      "url": "https://example.org/archive/station",
+      "title": "Archive note on the station",
+      "quality": "primary",
+      "published_at": "2026-01-01"
+    }
+  ],
+  "writing_context": [],
+  "key_findings": [
+    {
+      "finding": "The station opening year is documented.",
+      "claim_ids": ["d1.c1"]
+    }
+  ],
+  "gaps": [
+    {
+      "id": "g1",
+      "text": "The private conversation before the event is undocumented.",
+      "reason": "no-source",
+      "cost": "cheap",
+      "source_ids": ["s9"]
+    }
+  ]
+}

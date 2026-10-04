@@ -26,7 +26,8 @@ meld-deepresearch/                    # repository root
 │   └── meld-deepresearch/            # the skill directory (contents listed in the note below)
 ├── examples/                         # example artifacts, used by CI
 │   ├── sample-run/                   # one complete illustrative run: report.src.md, report.md, sources.md, evidence.json, citations.json, plan.json
-│   └── invalid/                      # negative fixtures: five broken evidence.json files + one orphan-citation draft
+│   ├── chronicle-run/                # a chronicle-genre run: background claims, gaps[], source_type, plan genre + must_have_materials
+│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + one orphan-citation draft
 └── .github/                          # GitHub configuration
     └── workflows/                    # CI: validate.yml (spec check + end-to-end script self-test)
 ```
@@ -38,14 +39,18 @@ keep the tree at depth 2).** All entries exist:
 skills/meld-deepresearch/
 ├── SKILL.md                          # the entry point: frontmatter (name/description/license/metadata) + workflow
 ├── references/                       # progressive-disclosure detail, loaded on demand by the model
-│   ├── protocol.md                   # per-axis loop, mandatory refutation, time-sensitivity, merge step, budgets, gates, artifacts
-│   ├── evidence-contract.md          # claims / evidence / sources / writing_context / key_findings schema, plan.json, hard rules
-│   ├── tier-selection.md             # auto quick-vs-normal decision rules with worked examples
-│   └── report-template.md            # report skeleton, citation mechanism, quality self-check
+│   ├── protocol.md                   # per-axis loop, source-class routing, mandatory refutation, time-sensitivity, merge, gaps[], budgets, gates, artifacts
+│   ├── evidence-contract.md          # claims / evidence / sources / observations / writing_context / key_findings / gaps schema, plan.json, hard rules
+│   ├── tier-selection.md             # auto quick-vs-normal decision rules, genre note, worked examples
+│   └── report-template.md            # report skeleton (zh/en titles), genre templates, uncertainty grading, citation mechanism, self-check
+├── templates/                        # genre append-templates, chosen at plan time
+│   └── genres/                       # panorama.md, comparison.md, entity.md, chronicle.md
 └── scripts/                          # Python 3 stdlib only, no dependencies
-    ├── check_evidence.py             # hard gate: validate evidence.json against the evidence contract; each actionable error carries an optional "hint" (smallest safe fix)
-    ├── render_citations.py           # footnotes -> numbered citations; emits report.md + citations.json
-    └── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md
+    ├── check_evidence.py             # hard gate: validate evidence.json (incl. background, gaps[], source_type, --plan genre/must_have_materials); errors may carry a "hint"
+    ├── render_citations.py           # markers -> clickable anchors/backlinks (default), GFM footnotes, or legacy plain; emits report.md + citations.json
+    ├── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md (optional source_type column)
+    ├── merge_evidence.py             # fold sub_reports/*.evidence.json into one evidence.json, folding duplicate sources and re-pointing references
+    └── content_review.py             # warn-only content self-review (sections, language, uncited numbers, gaps); never blocks delivery
 ```
 
 ---

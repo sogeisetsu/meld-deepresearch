@@ -102,6 +102,13 @@ Each run produces four artifacts under
 | `evidence.json` | Structured claims, evidence, sources, and boundaries |
 | `citations.json` | The citation map used to render `report.md` |
 
+Alongside them sits `.work/`, the **middleware** (not a delivery core):
+`plan.json` (normal tier only), the pre-render `report.src.md`, and the
+per-axis `sub_reports/dN.evidence.json`. The four top-level files are what you
+deliver; `.work/` is what makes the run reproducible and lets `--plan` validation
+and re-rendering happen. A quick run with no plan and no re-render need can stop
+at the four artifacts.
+
 If the host has no filesystem access, the report is returned inline instead.
 
 ## How it works
@@ -110,14 +117,15 @@ If the host has no filesystem access, the report is returned inline instead.
 probe capabilities
   -> anchor language / format / output dir
   -> clarify (1-3 questions, or write explicit assumptions)
-  -> choose tier (quick | normal)
-  -> plan (normal: named research axes)
+  -> choose tier (quick | normal) and genre
+  -> plan (normal: named research axes + must-have materials)
   -> research loop: search -> URL pool -> fetch -> read -> evaluate -> gaps
-  -> merge per-axis evidence  ->  evidence.json
-  -> self-check (hard gate: evidence validator)
-  -> write report  ->  report.src.md
+  -> merge per-axis evidence (merge_evidence.py)  ->  evidence.json
+  -> self-check (hard gate: evidence validator; normal adds --plan)
+  -> write report  ->  .work/report.src.md
   -> render citations (hard gate: no orphan/unresolved)  ->  report.md + citations.json
   -> build sources.md (URL normalization + de-duplication)
+  -> optional content review (warn-only)
   -> deliver report.md + sources.md + evidence.json + citations.json
 ```
 
