@@ -67,10 +67,17 @@ stated in the final output — never deliver a silently degraded report.
 
 ## 3. Request anchors
 
-Fix three anchors before researching:
+Fix four anchors before researching:
 
 - `language` — the language of the final report; **follow the user**.
 - `format` — default `report`.
+- `structure` — if the request names a chapter count, an outline, or a required
+  section list (e.g. "分为 5–6 个章节"), that structure is **binding**: the report's
+  numbered top-level chapters match it. The skeleton and genre templates are the
+  default only when the request is silent. Discipline material (method,
+  contradictions, gaps, observations) folds into those chapters or one
+  non-numbered appendix — it never inflates the requested chapter count — and
+  internal identifiers (`kqN`, `dN`, axis codes) never appear in the body.
 - `output_dir` — default `meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`; a user-supplied directory replaces that naming entirely.
 
 ## 4. Clarify before researching
