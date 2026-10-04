@@ -31,7 +31,7 @@ cycles.
 
 Exact rules — all mandatory:
 
-1. **Search before Fetch.** Never fetch a URL that did not come out of a search result, a cited reference inside an already-fetched page, or an explicit user-supplied link. No candidate URL ⇒ no fetch.
+1. **Search before Fetch.** Never fetch a URL that did not come out of a search result, a cited reference inside an already-fetched page, or an explicit user-supplied link. No candidate URL ⇒ no fetch. **Never construct or guess a URL from a pattern** (`/docs/latest/...`, `/blog/2026/...`): a guessed URL that 404s is still a fetch attempt and is charged to the budget (§8).
 2. **Maintain a candidate URL pool per axis:** merge new results into the pool → normalize the URL → de-duplicate → sort by source quality (`primary` > `secondary` > `tertiary`), then relevance, then recency. Fetch from the top of the pool; never re-fetch a URL already consumed.
 3. **Search-result snippets are NEVER evidence.** A claim may only be trusted after the original page has been opened and the snippet checked against it (numbers, dates, polarity, exact wording all verified). Snippets exist only to decide what to fetch next.
 4. Each fetched page yields candidate claims written to that axis's evidence file (`sub_reports/dN.evidence.json`), with `source_id`, `snippet`, and `quote_type` per `evidence-contract.md`.
@@ -132,7 +132,9 @@ axis or the budget stops is recorded as a structured `gaps[]` entry
 (`evidence-contract.md`) with `reason` (`no-source` / `access-limited` /
 `budget` / `stale` / `other`) and `cost` (`cheap` / `hard`), and rendered into
 the report's `## Gaps & Unknowns` section. State the reason honestly: a page
-that could not be opened is `access-limited`, not `no-source`.
+that could not be opened is `access-limited`, not `no-source`, and a page that
+opened but yielded no usable text (an unparsable PDF, an empty body) is
+`access-limited` too, not `other`.
 
 ## 8. Budget and stop conditions
 
@@ -241,9 +243,25 @@ optional and only warns. A `quick` run has no `plan.json`, so it omits the
 
 ## 10. Failure and retry
 
-- Stages with a retry budget of **1** each: plan, research, merge, write, render.
-- Retry once with a corrected approach. If it fails again, stop and report the failing stage, the artifact paths on disk, and the last error message.
-- Never spin, never fake completion, never claim deliverables that do not exist.
+Stages with a retry budget of **1** each: plan, research, merge, write, render.
+Retry once with a corrected approach; if it fails again, stop and report the
+failing stage, the artifact paths on disk, and the last error message. Never
+spin, never fake completion, never claim deliverables that do not exist.
+
+Apply the matching row of this table instead of inventing a recovery:
+
+| Symptom | First fix | Still failing / no fix available |
+|---|---|---|
+| A **blocking** capability is missing (`SKILL.md` §2) | — | 🔴 **STOP**; tell the user which capability is missing |
+| An axis returns nothing usable | re-query with different terms, and route by source class (§2 rule 5) | record that axis's unfilled questions in `gaps[]`; continue the other axes |
+| A source will not open (403 / paywall / bot-wall) | record the attempt and an `availability` caveat per §4a | mark the dependent claim `unknown`; never cite a snippet as if the page were read |
+| A page opened but parses to nothing (PDF, empty body) | try an alternate reachable copy of the same material | record the gap with `reason: access-limited` |
+| A URL was guessed from a pattern and 404s | do not retry it; fetch only from the candidate pool (§2 rule 1) | — (the guess already spent budget; note it in the fetch log) |
+| Gate ① fails | read the error's `hint`, apply the smallest safe fix, re-run once | 🔴 **STOP**; report the error — never deliver a failing `evidence.json` |
+| Gate ② fails (orphan / unresolved marker) | fix the marker or add the missing source, then re-render once | 🔴 **STOP**; report the error |
+| Two ids collide after merge | re-key per §9, then re-run gate ① | 🔴 **STOP** |
+| Fetch budget exhausted (§8) | — | 🔴 **STOP**; return the best coverage reached and the explicit uncovered list |
+| Any stage fails twice | — | 🔴 **STOP**; report the failing stage, the artifacts produced, and the last error |
 
 ## 11. Artifacts and directories
 

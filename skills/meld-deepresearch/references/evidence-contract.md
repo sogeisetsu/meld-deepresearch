@@ -317,6 +317,7 @@ The research plan produced during the Plan phase, consumed by
 {
   "tier": "normal",
   "genre": "general",
+  "assumptions": ["what the run assumed when the host could not ask the user"],
   "dimensions": [
     {
       "id": "d1",
@@ -339,9 +340,11 @@ The research plan produced during the Plan phase, consumed by
 the machine-checked contract (claim axes must be declared, every dimension must
 be covered, every declared key question must be answered, `genre` is in its
 enum, and each must-have material has a `status` in
-`obtained | missing | unknown`). Every other field (`tier`, `name`,
-`scope_ownership`, `source_classes`, `depth`, `time_sensitivity`, and each key
-question's `text`) is human-readable metadata that the validator ignores.
+`obtained | missing | unknown`). Every other field (`tier`, `assumptions`,
+`name`, `scope_ownership`, `source_classes`, `depth`, `time_sensitivity`, and
+each key question's `text`) is human-readable metadata that the validator
+ignores. `assumptions[]` is where a `normal` run records the scope assumptions
+it made when the host could not ask the user (see `SKILL.md` §4).
 
 `genre` is one of `panorama | comparison | entity | chronicle | general`
 (default `general`); it selects a genre template at write time (see
