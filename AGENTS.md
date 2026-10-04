@@ -117,8 +117,8 @@ python skills/meld-deepresearch/scripts/check_evidence.py \
 # (a source shared across axes folds to one id with references re-pointed)
 python skills/meld-deepresearch/scripts/merge_evidence.py \
   --subreports examples/merge-run/sub_reports \
-  --output /tmp/merge-run.json
-python skills/meld-deepresearch/scripts/check_evidence.py /tmp/merge-run.json
+  --output .work/tmp/merge-run.json
+python skills/meld-deepresearch/scripts/check_evidence.py .work/tmp/merge-run.json
 
 # warn-only content self-review (always exit 0)
 python skills/meld-deepresearch/scripts/content_review.py \

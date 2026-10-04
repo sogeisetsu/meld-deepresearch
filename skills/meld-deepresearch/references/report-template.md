@@ -81,8 +81,8 @@ Two marker families, cited exactly alike:
 - `[^sN]` — a **source**: `sN` is an id in `evidence.json`'s `sources[]`.
 - `[^oN]` — a **first-hand observation**: `oN` is an id in
   `evidence.json`'s `observations[]` (a command run, a measurement taken, a
-  file inspected). Observations are evidence like any other; the renderer turns
-  `[^oN]` into `[ON]`.
+  file inspected). Observations are evidence like any other; the renderer keeps
+  `[^oN]` in the default GFM-footnote mode (`--legacy-plain` renders `[ON]`).
 - A later script (`render_citations.py`) converts markers into numbered
   citations and emits `citations.json`. **The default output is GFM footnotes**
   (`[^N]` / `[^oN]` plus definitions) so that a GFM renderer such as GitHub
@@ -99,9 +99,11 @@ Two marker families, cited exactly alike:
   so the host renders its own numbered footnotes block.
 - **`render_citations.py` owns `## Observations` too:** it appends that section
   after `## Sources` **only when the report cites at least one observation**,
-  one line per cited observation in the form
-  `[ON] method — environment (captured YYYY-MM-DD)`. The writer never writes
-  this section either — same ownership rule as `## Sources`.
+  one line per cited observation. In the default GFM-footnote mode the heading
+  is removed and each line becomes
+  `[^oN]: method — environment (captured YYYY-MM-DD)`; `--legacy-plain` uses
+  `[ON] method — ...`. The writer never writes this section either — same
+  ownership rule as `## Sources`.
 - Gate ② vocabulary (orphan / unresolved / uncited) is defined in references/protocol.md §9.
 - **`sources.md` is not `## Sources`.** `sources.md` is the standalone
   de-duplicated source table (a deliverable produced by `dedupe_sources.py`);
