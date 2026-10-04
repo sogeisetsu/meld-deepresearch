@@ -28,9 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one `evidence.json`, de-duplicating sources by URL and re-pointing references.
 - **`content_review.py`** — an optional, warn-only content self-check (required
   sections, heading language, uncited numbers, gaps versus report).
-- **Clickable citations.** `render_citations.py` now emits `[[N]](#ref-N)`
-  anchors with backlinks by default, and adds `--footnotes` (GFM footnotes) and
-  `--legacy-plain` (the previous plain text).
 - **Source-class routing guidance** for academic and developer axes, and
   optional **text (Mermaid) diagrams** required to be evidence-bound.
 - **`plan.json` `must_have_materials[]`** — an axis-level checklist whose
