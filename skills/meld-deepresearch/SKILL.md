@@ -161,7 +161,7 @@ nothing was persisted.
 
 ## 11. Failure and retry
 
-Each stage may be retried **once**, then stop and report the failing stage, the artifact paths produced so far, and the last error — never pretend a run completed.
+Each pipeline stage (plan / research / merge / write / render) may be retried **once**, then stop and report the failing stage, the artifact paths produced so far, and the last error — never pretend a run completed.
 Apply the symptom → first fix → fallback table in `references/protocol.md` §10 instead of inventing a recovery.
 
 ## 12. Non-negotiables

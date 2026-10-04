@@ -37,7 +37,7 @@ required sections above.
 | `## Contradictions & Counter-evidence` | **Mandatory, never empty, and it opens with the strongest counter-evidence.** The first line is `**Strongest counter-evidence:**` naming the single most damaging refuting finding against the report's main answer, and why it is the strongest. Then the remaining disagreements, each carrying its uncertainty grade. If genuinely nothing contradicts, say so explicitly, still under that line, and cite what was checked |
 | `## Gaps & Unknowns` | Questions the evidence could not answer, each labeled `unknown` with the reason (no source found, access limited, data stale) — never a guess |
 | `## Sources` | Owned by `render_citations.py`: numbered citation list for every source the report cites, regenerated wholesale by the renderer. The writer ends `report.src.md` with this heading and nothing after it |
-| `## Observations` | Owned by `render_citations.py`: appended **only when at least one observation is cited**, one line per cited observation — `[ON] method — environment (captured YYYY-MM-DD)`. The writer never writes this section |
+| `## Observations` | Owned by `render_citations.py`: appended **only when at least one observation is cited**, one line per cited observation — default GFM mode drops the heading and emits `[^oN]: method — environment (captured YYYY-MM-DD)`; `--legacy-plain` uses `[ON] method — …`. The writer never writes this section |
 
 ## Genre templates
 
@@ -104,7 +104,7 @@ Two marker families, cited exactly alike:
   `[^oN]: method — environment (captured YYYY-MM-DD)`; `--legacy-plain` uses
   `[ON] method — ...`. The writer never writes this section either — same
   ownership rule as `## Sources`.
-- Gate ② vocabulary (orphan / unresolved / uncited) is defined in references/protocol.md §9.
+- Gate ② vocabulary (orphan / unresolved / uncited) is defined in `protocol.md` §9.
 - **`sources.md` is not `## Sources`.** `sources.md` is the standalone
   de-duplicated source table (a deliverable produced by `dedupe_sources.py`);
   the report's `## Sources` is the numbered citation list produced by the
