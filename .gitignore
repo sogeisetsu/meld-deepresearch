@@ -40,3 +40,6 @@ meld-deepresearch-reports/
 ZH/CHANGELOG-ZH.md
 ZH/SKILL-ZH.md
 
+# Local git worktrees (kept inside the repo so agents need no external-dir grant)
+.worktrees/
+
