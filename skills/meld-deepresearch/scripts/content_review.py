@@ -44,6 +44,11 @@ CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 CITATION_MARK_RE = re.compile(r"\[\^?[so]?\d+\]|\[O\d+\]|\[\[\d+\]\]|\[\^o\d+\]")
 NUMBER_RE = re.compile(r"\d[\d,]*(?:\.\d+)?\s*%?")
 YEAR_RE = re.compile(r"^(?:19|20)\d{2}$")
+# The report template requires the single strongest refutation to be called out
+# on its own line; either language form satisfies it.
+STRONGEST_RE = re.compile(r"最强反方|最强反证|strongest counter", re.IGNORECASE)
+SUMMARY_SENTENCE_LIMIT = 140
+FOOTNOTE_DEF_RE = re.compile(r"^\[\^\d+\]:", re.MULTILINE)
 
 # canonical slot -> (english form, chinese form); order is the required order.
 SLOTS = (
@@ -94,11 +99,35 @@ def check_sections(report, warnings):
     return found
 
 
+def section_body(report, slot_index):
+    """Return the body text under the heading for ``slot_index`` (may be "")."""
+    lines = []
+    capturing = False
+    for line in report.splitlines():
+        match = HEADING_RE.match(line)
+        if match:
+            index, _ = slot_for(match.group(1))
+            if index == slot_index:
+                capturing = True
+                continue
+            if capturing:
+                break
+            continue
+        if capturing:
+            lines.append(line)
+    return "\n".join(lines)
+
+
 def check_report(report, evidence, warnings):
     is_cjk = bool(CJK_RE.search(report))
     found = check_sections(report, warnings)
 
     present = {index for index, _, _ in found}
+    # In the default GFM-footnote mode the renderer drops the standalone
+    # "## Sources" heading and emits [^N]: definitions instead, so a footnote
+    # block satisfies the sources slot.
+    if FOOTNOTE_DEF_RE.search(report):
+        present.add(SLOTS.index(("sources", "来源")))
     for index in range(REQUIRED_SLOTS):
         if index not in present:
             warnings.append(_warn(
@@ -154,6 +183,40 @@ def check_report(report, evidence, warnings):
             "evidence.json carries gaps[] but the report has no "
             "'Gaps & Unknowns' section",
             "$"))
+
+    # Strongest counter-evidence must be called out on its own line.
+    if not STRONGEST_RE.search(report):
+        warnings.append(_warn(
+            "W_REVIEW_NO_STRONGEST_COUNTER",
+            "no explicit 'strongest counter-evidence' callout found; "
+            "Contradictions & Counter-evidence should open with a "
+            "'Strongest counter-evidence:' line",
+            "$"))
+
+    # Executive Summary should read as short, plain sentences.
+    summary = section_body(report, 0)
+    for sentence in re.split(r"[。！？!?]\s*|\n+", summary):
+        stripped = sentence.strip()
+        if len(stripped) > SUMMARY_SENTENCE_LIMIT:
+            warnings.append(_warn(
+                "W_REVIEW_SUMMARY_LONG",
+                "Executive Summary has a %d-character sentence; split it into "
+                "shorter ones" % len(stripped),
+                "Executive Summary"))
+            break
+
+    # Executive Summary should be a TL;DR (short bullets), not a dense paragraph.
+    summary_lines = [line for line in summary.splitlines() if line.strip()]
+    has_bullets = any(
+        re.match(r"\s*(?:[-*+]|\d+[.)])\s+", line) for line in summary_lines)
+    sentence_count = len(
+        [s for s in re.split(r"[。！？!?]\s*", summary) if s.strip()])
+    if not has_bullets and sentence_count > 4:
+        warnings.append(_warn(
+            "W_REVIEW_SUMMARY_DENSE",
+            "Executive Summary is a %d-sentence paragraph; use 3-5 short "
+            "bullets, one figure per line, instead" % sentence_count,
+            "Executive Summary"))
 
 
 def _warn(code, message, where):

@@ -175,8 +175,10 @@ Write into `output_dir`:
 
 The report's own `## Sources` and `## Observations` sections are written by the
 **renderer**, not by you: leave `report.src.md` ending with a `## Sources`
-heading and nothing after it. `sources.md` and the report's `## Sources` cover
-the same sources in two different forms.
+heading and nothing after it. The renderer emits GFM footnotes by default, so the
+rendered `report.md` carries a footnote block instead of that heading — the host
+wires the numbered superscript and its back-link itself. `sources.md` and the
+report's citation block cover the same sources in two different forms.
 
 Return the four artifact paths, plus the tier used, the coverage reached, the
 full manifest (including `.work/` contents), and every failed fetch (URL +

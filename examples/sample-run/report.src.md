@@ -36,6 +36,10 @@ Growth is explained mainly by build-time wins rather than by marketing activity
 
 ## Contradictions & Counter-evidence
 
+**Strongest counter-evidence:** the adoption figure is a single snapshot, not
+an archived time series, so "adoption accelerated" may be partly an artifact of
+which snapshot was taken [^s2]. Treat the growth curve as `unknown`.
+
 A widely repeated claim that the 2.0 release removed plugin support is
 contradicted by the release notes and is not supported by the comparison
 writeup [^s1] [^s3].

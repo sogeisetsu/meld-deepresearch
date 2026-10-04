@@ -35,8 +35,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   optional **text (Mermaid) diagrams** required to be evidence-bound.
 - **`plan.json` `must_have_materials[]`** — an axis-level checklist whose
   missing items must be written to `gaps[]`.
+- **Citations that jump on a sanitising renderer.** `render_citations.py` now
+  emits **GFM footnotes by default**, so GitHub and other GFM renderers wire the
+  numbered superscript and its back-link themselves instead of depending on
+  `<a id>` anchors, which many renderers strip. `--anchors` restores the old
+  `[[N]](#ref-N)` form and `--legacy-plain` the bare `[N]` text.
 
 ### Changed
+
+- `report-template.md` now requires the **Executive Summary to be a 3–5 bullet
+  TL;DR** (answer first, one figure per line, strongest counter-evidence by the
+  third line) and a `**Strongest counter-evidence:**` line opening
+  `## Contradictions & Counter-evidence`, so the single most damaging refutation
+  is never buried. It also tells the writer to keep an analysis of *what a number
+  means* on a primary/secondary origin, not only on a blog or tertiary aggregator.
+- `content_review.py` gained `W_REVIEW_NO_STRONGEST_COUNTER`,
+  `W_REVIEW_SUMMARY_LONG` and `W_REVIEW_SUMMARY_DENSE`, and now accepts GFM
+  footnote definitions in place of a standalone `## Sources` heading.
 
 - `.work/` now holds the run middleware (`plan.json`, `report.src.md`,
   `sub_reports/`), leaving the four top-level artifacts as the deliverables.

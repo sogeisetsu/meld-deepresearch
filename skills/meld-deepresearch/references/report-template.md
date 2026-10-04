@@ -32,9 +32,9 @@ required sections above.
 | Section | What belongs here |
 |---|---|
 | `# Title` | Specific, scope-revealing (topic + angle), not a generic label |
-| `## Executive Summary` | 3–6 sentences: the answer, the biggest caveat, the confidence level; grounded in `key_findings[]`; **any figure stated here carries a `[^sN]` or `[^oN]` marker** — summarising `key_findings[]` without markers is allowed only when the ES states no figures |
+| `## Executive Summary` | **A TL;DR, not a dense paragraph.** Use 3–5 short bullets (or at most 4 sentences); each line carries at most one figure and reads on its own. Order: ① the direct answer ② the single strongest piece of supporting evidence ③ **the strongest counter-evidence — by the third line, never buried** ④ the confidence level and the biggest caveat. Do not restate Findings verbatim or stack many figures into one line. A reader who reads only this block must get the answer and the main doubt |
 | `## Findings` | One finding per subsection/bullet, each carrying inline citations; may be grouped by axis `dN` |
-| `## Contradictions & Counter-evidence` | **Mandatory, never empty.** Sources that disagree, failed or disconfirmed claims, and why the report leaned one way; if genuinely nothing contradicts, say so explicitly and cite what was checked |
+| `## Contradictions & Counter-evidence` | **Mandatory, never empty, and it opens with the strongest counter-evidence.** The first line is `**Strongest counter-evidence:**` naming the single most damaging refuting finding against the report's main answer, and why it is the strongest. Then the remaining disagreements, each carrying its uncertainty grade. If genuinely nothing contradicts, say so explicitly, still under that line, and cite what was checked |
 | `## Gaps & Unknowns` | Questions the evidence could not answer, each labeled `unknown` with the reason (no source found, access limited, data stale) — never a guess |
 | `## Sources` | Owned by `render_citations.py`: numbered citation list for every source the report cites, regenerated wholesale by the renderer. The writer ends `report.src.md` with this heading and nothing after it |
 | `## Observations` | Owned by `render_citations.py`: appended **only when at least one observation is cited**, one line per cited observation — `[ON] method — environment (captured YYYY-MM-DD)`. The writer never writes this section |
@@ -84,13 +84,19 @@ Two marker families, cited exactly alike:
   file inspected). Observations are evidence like any other; the renderer turns
   `[^oN]` into `[ON]`.
 - A later script (`render_citations.py`) converts markers into numbered
-  citations and emits `citations.json`.
+  citations and emits `citations.json`. **The default output is GFM footnotes**
+  (`[^N]` / `[^oN]` plus definitions) so that a GFM renderer such as GitHub
+  shows a numbered superscript that jumps on its own — no inline HTML, nothing
+  for an HTML sanitiser to strip. `--anchors` opts into the older
+  `[[N]](#ref-N)` + `<a id>` form, and `--legacy-plain` into bare `[N]` text.
 - **The model never hand-numbers citations** and never invents `[1]`-style
   markers or a manual bibliography; numbering belongs to the script.
 - **`render_citations.py` owns `## Sources`:** it regenerates everything after
   that heading (appending the heading only if the draft lacks it).
   `report.src.md` must **end with a `## Sources` heading and nothing after
-  it** — the writer never writes the list itself.
+  it** — the writer never writes the list itself. In the default GFM-footnote
+  mode the heading is **removed** and the list becomes `[^N]: ...` definitions,
+  so the host renders its own numbered footnotes block.
 - **`render_citations.py` owns `## Observations` too:** it appends that section
   after `## Sources` **only when the report cites at least one observation**,
   one line per cited observation in the form
@@ -126,6 +132,19 @@ Two marker families, cited exactly alike:
   strength by itself.
 - **Attribute and hedge.** Contested points name who says what instead of
   asserting a single view.
+- **Write plainly and short.** The Executive Summary is a TL;DR, not a paragraph:
+  3–5 bullets, one figure per line, each line readable on its own. If a line needs
+  a second read to parse, split it. Never restate the Findings verbatim — the
+  summary states the answer and the doubt, the body supplies the detail.
+- **Lead with the strongest counter-evidence.** The single most damaging
+  refutation appears **in the Executive Summary by the third line** and again as
+  the opening `**Strongest counter-evidence:**` line of `## Contradictions &
+  Counter-evidence`. Never bury it at the bottom of a long list.
+- **Keep analytical claims on strong ground.** A conclusion about *what a number
+  means* (a unit mismatch, a selection effect, a causal reading) is `interpretive`:
+  it should rest on at least one primary or secondary origin, not only on a blog
+  or a tertiary aggregator. If only weak origins exist, either soften it to a
+  labelled interpretation or mark the point `unknown`.
 - **Label the unknown.** Unanswered items are written as `unknown`, never
   filled by plausibility.
 - **Diagrams are optional and evidence-bound.** A diagram is a text-based
@@ -152,6 +171,8 @@ Ask each question before delivering; fix the report, not the answers.
 | Cite every factual statement and every number with `[^sN]` or `[^oN]`, including figures in the Executive Summary | Leave a marker orphaned (id absent from `sources[]` / `observations[]`) or unresolved (left un-replaced) |
 | Cite a first-hand observation with `[^oN]` and record its method so it is reproducible — a command must be re-runnable | Rest on an observation nobody could repeat: an unrecorded command, or a method with no `method`/`command` detail |
 | State counter-evidence and where the disagreement lies | Present only the confirming side |
+| Put the strongest counter-evidence on its own `**Strongest counter-evidence:**` line, up front | Bury the strongest refutation as the last bullet of a long list |
+| Keep the Executive Summary short and plain — answer first, one idea per sentence | Cram many figures and clauses into one run-on sentence |
 | Report what the evidence shows | State recommendations or prescriptions as findings |
 | Write unanswered items as `unknown` with a reason | Guess or silently drop a question |
 | Let the script number the citations and emit `## Sources` | Hand-number citations or write a reference list by hand — the renderer owns `## Sources` |

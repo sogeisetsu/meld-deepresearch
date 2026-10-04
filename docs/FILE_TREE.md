@@ -47,10 +47,10 @@ skills/meld-deepresearch/
 │   └── genres/                       # panorama.md, comparison.md, entity.md, chronicle.md
 └── scripts/                          # Python 3 stdlib only, no dependencies
     ├── check_evidence.py             # hard gate: validate evidence.json (incl. background, gaps[], source_type, --plan genre/must_have_materials); errors may carry a "hint"
-    ├── render_citations.py           # markers -> clickable anchors/backlinks (default), GFM footnotes, or legacy plain; emits report.md + citations.json
+    ├── render_citations.py           # markers -> GFM footnotes (default), clickable anchors (--anchors), or legacy plain; emits report.md + citations.json
     ├── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md (optional source_type column)
     ├── merge_evidence.py             # fold sub_reports/*.evidence.json into one evidence.json, folding duplicate sources and re-pointing references
-    └── content_review.py             # warn-only content self-review (sections, language, uncited numbers, gaps); never blocks delivery
+    └── content_review.py             # warn-only content self-review (sections, language, uncited numbers, gaps, strongest-counter callout, summary length); never blocks delivery
 ```
 
 ---
