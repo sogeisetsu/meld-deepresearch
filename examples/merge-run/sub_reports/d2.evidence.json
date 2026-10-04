@@ -1,0 +1,47 @@
+{
+  "claims": [
+    {
+      "id": "d2.c1",
+      "text": "The 42-unit figure rests on the shared report and one independent origin.",
+      "kind": "interpretive",
+      "polarity": "support",
+      "topic_tag": "shared-figure",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s9",
+          "snippet": "Figure: 42 units.",
+          "quote_type": "numeric"
+        },
+        {
+          "source_id": "s2",
+          "snippet": "Independent confirmation of 42 units.",
+          "quote_type": "paraphrase"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "s9",
+      "url": "https://shared.example.org/report",
+      "title": "Shared report",
+      "quality": "primary",
+      "published_at": "2026-01-05"
+    },
+    {
+      "id": "s2",
+      "url": "https://other.example.net/confirm",
+      "title": "Independent confirmation",
+      "quality": "secondary",
+      "published_at": "2026-02-01"
+    }
+  ],
+  "writing_context": [],
+  "key_findings": [
+    {
+      "finding": "Axis two finds a second independent origin for the shared figure.",
+      "claim_ids": ["d2.c1"]
+    }
+  ]
+}

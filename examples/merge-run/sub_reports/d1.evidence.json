@@ -1,0 +1,59 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "The shared report states the figure as 42 units.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "shared-figure",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "Figure: 42 units.",
+          "quote_type": "numeric"
+        }
+      ]
+    },
+    {
+      "id": "d1.c2",
+      "text": "A second source disputes the 42-unit figure.",
+      "kind": "factual",
+      "polarity": "refute",
+      "topic_tag": "shared-figure",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "The 42-unit figure is disputed by later measurements.",
+          "quote_type": "paraphrase"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "s1",
+      "url": "https://shared.example.org/report",
+      "title": "Shared report",
+      "quality": "primary",
+      "published_at": "2026-01-05"
+    }
+  ],
+  "writing_context": [
+    {
+      "id": "d1.w1",
+      "kind": "scope",
+      "text": "Only the 2026 edition was read.",
+      "source_ids": ["s1"],
+      "applies_to": ["d1.c1"],
+      "use": "Qualify the figure as edition-specific."
+    }
+  ],
+  "key_findings": [
+    {
+      "finding": "Axis one corroborates the shared figure and records a dispute.",
+      "claim_ids": ["d1.c1", "d1.c2"]
+    }
+  ]
+}

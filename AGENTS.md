@@ -108,17 +108,38 @@ python skills/meld-deepresearch/scripts/render_citations.py \
 python skills/meld-deepresearch/scripts/dedupe_sources.py \
   --evidence examples/sample-run/evidence.json \
   --output examples/sample-run/sources.md
+
+# positive: the chronicle-genre example must be valid
+python skills/meld-deepresearch/scripts/check_evidence.py \
+  examples/chronicle-run/evidence.json --plan examples/chronicle-run/plan.json
+
+# positive: merging the two-axis fixture must yield a gate-passing file
+# (a source shared across axes folds to one id with references re-pointed)
+python skills/meld-deepresearch/scripts/merge_evidence.py \
+  --subreports examples/merge-run/sub_reports \
+  --output /tmp/merge-run.json
+python skills/meld-deepresearch/scripts/check_evidence.py /tmp/merge-run.json
+
+# warn-only content self-review (always exit 0)
+python skills/meld-deepresearch/scripts/content_review.py \
+  --report examples/sample-run/report.md \
+  --evidence examples/sample-run/evidence.json
 ```
 
 Negative fixtures in `examples/invalid/` must each fail for exactly their own
 reason: `evidence.unknown-source.json` → `E_REF_SOURCE`, `evidence.tertiary-only.json`
 → `E_FACTUAL_SOURCE`, `evidence.single-source-interpretive.json` →
-`E_INTERPRETIVE_TWO`, `evidence.bad-observation.json` → `E_REF_OBSERVATION`
+`E_INTERPRETIVE_TWO`, `evidence.bad-observation.json` → `E_REF_OBSERVATION`,
+`evidence.finding-background.json` → `E_FINDING_BACKGROUND`,
+`evidence.gap-bad-enum.json` → `E_GAP_ENUM`, `evidence.gap-bad-ref.json` →
+`E_GAP_REF`, `evidence.gap-bad-shape.json` → `E_GAP_SHAPE`
 (all exit 1); `evidence.no-refute.json` → `ok: true` with
-`W_NO_REFUTE` (exit 0).
+`W_NO_REFUTE` (exit 0). `report.orphan.src.md` fails gate ② (exit 1).
 
 CI additionally checks: frontmatter field lengths, English-only `description`,
-and that no host-specific tool names appear anywhere in `skills/`.
+and that no host-specific tool names appear anywhere in `skills/`. Its script
+self-test runs every command above plus `content_review.py`, the collision
+regression for `merge_evidence.py`, and the orphan-citation fixture.
 
 ## Development plan
 
