@@ -78,3 +78,52 @@ chapter count/outline/tone, the report body must follow it; the genre template i
 only a default; evidence-discipline material (method, contradictions, gaps,
 observations) folds into a non-numbered appendix rather than extra chapters; no
 internal identifiers in the body.
+
+## Skill changes (round 1 → round 2)
+
+Commit `639f408` — "fix(skill): honor a requested report structure and register":
+
+- `SKILL.md` §3: added a `structure` anchor (a requested chapter count / outline
+  is binding; skeleton + genre are the default only).
+- `references/report-template.md`: new "Requested structure overrides the
+  skeleton" section — fold discipline material into a non-numbered appendix,
+  match the requested register/length, no internal `kqN`/`dN` codes in the body;
+  plus an updated instruction-following self-check row and a Do/Don't row.
+
+Doc-only, zero-dependency, single skill — within every hard constraint. The
+skill's own gates still pass on `examples/sample-run/`; `SKILL.md` is 187 lines.
+
+## Round 2 (after the structure fix)
+
+- Output: `test/runs/example2/round2/`. Structure now **6 numbered chapters +
+  1 non-numbered appendix** (matches "5–6 章节"); genre `general`.
+- tier `normal`; fetch 22/25, 15 distinct sources, 32 claims, 17 observations, 5 gaps.
+- Gates independently re-run: ① `{"ok": true}`; ② `{"ok": true, "citation_count": 15,
+  "observation_count": 17, "orphans": [], "uncited": []}`.
+
+| pass | order | total A | total B |
+|---|---|---|---|
+| 1 | A=baseline · B=meld2 | 18 | 24 |
+| 2 | A=meld2 · B=baseline | 25 | 16 |
+| 3 | A=baseline · B=meld2 | 16 | 25 |
+
+Median across the three round-2 passes:
+
+| axis | baseline (median) | meld (median) |
+|---|---|---|
+| A Coverage | 5 | 5 |
+| B Depth | 3 | 5 |
+| C Factual accuracy | 2 | 5 |
+| D Provenance | 2 | 5 |
+| E Instruction-following | 4 | 5 |
+| **total** | **18** | **25** |
+
+Per-pass totals — baseline 18/16/16, meld 24/25/25.
+
+## Verdict — round 2: PASS
+
+**PASS** — meld ≥ baseline on every in-scope axis (25 ≥ 18). The round-1 E gap
+is closed: after the structure fix the body has 6 numbered chapters and the E
+median is meld 5 vs baseline 4. Residual E variance (meld scored 4 once, 5 twice)
+is judges weighing meld's citation density/length against "简洁"; the same
+passes docked the baseline's short length. No further skill change needed.

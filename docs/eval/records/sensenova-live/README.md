@@ -155,5 +155,21 @@ committed).
 - [x] Protocol v1
 - [x] T1 round 1 live run — done (`test/runs/example1/round1/`)
 - [x] T1 scoring — **PASS** (meld 28 vs baseline 14, median of 3 blind passes) → [`example1.md`](example1.md)
-- [ ] T2 round 1 live run — **in progress**
-- [ ] T2 scoring
+- [x] T2 round 1 live run — done (`test/runs/example2/round1/`)
+- [x] T2 round 1 scoring — **FAIL on E** (meld 24 vs baseline 18; E 4 vs 5)
+- [x] T2 fix applied (commit `639f408`, `structure` anchor)
+- [x] T2 round 2 live run — done (`test/runs/example2/round2/`, 6 chapters)
+- [x] T2 round 2 scoring — **PASS** (meld 25 vs baseline 18 median)
+
+## 13. Result
+
+| Example | Round | meld (median) | baseline (median) | Verdict |
+|---|---|---|---|---|
+| T1 embodied-AI landscape | 1 | 28 / 30 | 14 / 30 | **PASS** |
+| T2 employee performance | 1 | 24 / 25 | 18 / 25 | FAIL on E |
+| T2 employee performance | 2 | 25 / 25 | 18 / 25 | **PASS** |
+
+Both examples are not-inferior after one in-scope skill fix (commit `639f408`).
+Every run recorded its skill SHA + file hashes (`run-meta.json`); every verdict is
+the median of 3 blind `oracle` passes; both gates and sampled citation links were
+re-run independently by the orchestrator.
