@@ -51,7 +51,8 @@ skills/meld-deepresearch/
     ├── render_citations.py           # markers -> GFM footnotes (default), clickable anchors (--anchors), or legacy plain; emits report.md + citations.json
     ├── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md (optional source_type column)
     ├── merge_evidence.py             # fold sub_reports/*.evidence.json into one evidence.json, folding duplicate sources and re-pointing references
-    └── content_review.py             # warn-only content self-review (sections, language, uncited numbers, gaps, strongest-counter callout, summary length); never blocks delivery
+    ├── content_review.py             # warn-only content self-review (sections, language, uncited numbers, gaps, strongest-counter callout, summary length); never blocks delivery
+    └── read_table.py                 # stdlib-only local .xlsx/.csv reader -> JSON/CSV, with --selftest; turns supplied data files into reproducible observations[]
 ```
 
 ---

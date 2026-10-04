@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   numbered superscript and its back-link themselves instead of depending on
   `<a id>` anchors, which many renderers strip. `--anchors` restores the old
   `[[N]](#ref-N)` form and `--legacy-plain` the bare `[N]` text.
+- **`read_table.py`** — a stdlib-only reader for **local** `.xlsx` / `.csv`
+  files (with a built-in `--selftest`), so a run handed data files turns them
+  into reproducible first-hand `observations[]` instead of guessing or needing a
+  third-party spreadsheet library. Sheet mapping, shared/inline strings, sparse
+  cells and Excel serial dates are handled. See `references/protocol.md` §2a.
 
 ### Changed
 

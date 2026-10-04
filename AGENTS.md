@@ -125,6 +125,9 @@ python skills/meld-deepresearch/scripts/content_review.py \
   --report examples/sample-run/report.md \
   --evidence examples/sample-run/evidence.json
 
+# local-table reader self-test (stdlib only; builds a fixture xlsx in memory)
+python skills/meld-deepresearch/scripts/read_table.py --selftest
+
 # gate ② must reject blank markers in the default (GFM-footnote) mode
 # (expected output {"ok": false, ...}, exit 1)
 python skills/meld-deepresearch/scripts/render_citations.py \
