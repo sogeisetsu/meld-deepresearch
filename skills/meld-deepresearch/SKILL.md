@@ -24,6 +24,7 @@ directory** — the directory that contains this `SKILL.md`.
 - `references/evidence-contract.md` — the `evidence.json` schema and its hard rules.
 - `references/tier-selection.md` — how to pick `quick` versus `normal`.
 - `references/report-template.md` — report skeleton and the quality self-check.
+- `templates/genres/` — append-templates per genre (panorama / comparison / entity / chronicle), selected via `plan.json` `genre`.
 
 ## 1. When to use this skill
 
@@ -60,9 +61,9 @@ Probe the host before planning and hold the result in memory:
 | code reading | optional | degrade and note it |
 | subagent delegation | optional | run every axis inline |
 
-A missing **blocking** capability stops the run: pause and tell the user. A
-**degradable** one lets the run continue, but the limitation must be stated in
-the final output — never deliver a silently degraded report.
+**STOP:** a missing **blocking** capability pauses the run — tell the user and
+stop. A **degradable** one lets the run continue, but the limitation must be
+stated in the final output — never deliver a silently degraded report.
 
 ## 3. Request anchors
 
@@ -153,8 +154,8 @@ gate ① also takes `--plan`.
   marker whose id is missing from `sources[]` or `observations[]`; an
   **unresolved** marker is one left un-replaced. A source or observation that is
   never cited is only a warning.
-- If a gate fails: fix once and re-run. If it still fails, **stop and report
-  honestly** — do not deliver a failing report.
+- If a gate fails: fix once and re-run. If it still fails, **STOP** and report
+  honestly — do not deliver a failing report.
 - If the host has no command execution, walk the gates by hand and state that
   they were skipped.
 
