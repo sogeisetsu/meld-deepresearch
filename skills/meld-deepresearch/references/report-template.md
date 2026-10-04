@@ -96,7 +96,7 @@ Two marker families, cited exactly alike:
   `report.src.md` must **end with a `## Sources` heading and nothing after
   it** — the writer never writes the list itself. In the default GFM-footnote
   mode the heading is **removed** and the list becomes `[^N]: ...` definitions,
-  so the host renders its own numbered footnotes block.
+  so the GFM renderer wires them into its own numbered footnotes block.
 - **`render_citations.py` owns `## Observations` too:** it appends that section
   after `## Sources` **only when the report cites at least one observation**,
   one line per cited observation. In the default GFM-footnote mode the heading

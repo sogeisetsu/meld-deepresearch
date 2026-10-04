@@ -48,6 +48,20 @@ YEAR_RE = re.compile(r"^(?:19|20)\d{2}$")
 # on its own line; either language form satisfies it.
 STRONGEST_RE = re.compile(r"最强反方|最强反证|strongest counter", re.IGNORECASE)
 SUMMARY_SENTENCE_LIMIT = 140
+
+
+# Sentence enders for the Executive-Summary checks: full/half-width CJK
+# terminators plus English ``.!?`` when followed by whitespace and a
+# sentence-starting character (or end of text). The English half is
+# deliberately conservative so decimals (``3.7B``), versions (``v2.0``) and
+# dotted abbreviations (``example.org``, ``U.S. officials``) are not read as
+# sentence breaks.
+_SENTENCE_END = re.compile(r"[。！？!?]+|(?<=[.!?])(?=\s+[A-Z0-9\"'(\[]|\s*$)")
+
+
+def _summary_sentences(text):
+    """Split an Executive Summary into sentences (CJK- and English-aware)."""
+    return [s for s in (p.strip() for p in _SENTENCE_END.split(text)) if s]
 FOOTNOTE_DEF_RE = re.compile(r"^\[\^\d+\]:", re.MULTILINE)
 
 # canonical slot -> (english form, chinese form); order is the required order.
@@ -194,6 +208,10 @@ def check_report(report, evidence, warnings):
             "$"))
 
     # Executive Summary should read as short, plain sentences.
+    # W_REVIEW_SUMMARY_LONG is a conservative screen: it splits on CJK sentence
+    # enders and on physical line breaks, so for wrapped English prose it
+    # degrades to a per-line check. W_REVIEW_SUMMARY_DENSE below is the primary
+    # English signal.
     summary = section_body(report, 0)
     for sentence in re.split(r"[。！？!?]\s*|\n+", summary):
         stripped = sentence.strip()
@@ -209,8 +227,7 @@ def check_report(report, evidence, warnings):
     summary_lines = [line for line in summary.splitlines() if line.strip()]
     has_bullets = any(
         re.match(r"\s*(?:[-*+]|\d+[.)])\s+", line) for line in summary_lines)
-    sentence_count = len(
-        [s for s in re.split(r"[。！？!?]\s*", summary) if s.strip()])
+    sentence_count = len(_summary_sentences(summary))
     if not has_bullets and sentence_count > 4:
         warnings.append(_warn(
             "W_REVIEW_SUMMARY_DENSE",

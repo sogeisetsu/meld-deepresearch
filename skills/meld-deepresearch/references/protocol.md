@@ -215,8 +215,9 @@ Gate ② vocabulary, matching `render_citations.py` exactly:
   → gate ② fails.
 - **Unresolved** = a marker left un-replaced (an empty id, or a residual `[^`
   marker) → gate ② fails. In the default GFM-footnote mode the rendered `[^N]` /
-  `[^oN]` markers are expected, so only orphans fail; the residual-`[^` check
-  applies to `--anchors` / `--legacy-plain`.
+  `[^oN]` markers are expected, so a residual-`[^` scan is meaningless there:
+  orphans and blank markers (`[^]` / `[^ ]`, an empty id after `strip()`) fail
+  instead; the residual-`[^` check applies to `--anchors` / `--legacy-plain`.
 - **Uncited** = a source in `sources[]` or an observation in `observations[]`
   that the report never cites → **warning only**, never a failure.
 

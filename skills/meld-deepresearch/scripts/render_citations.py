@@ -37,7 +37,8 @@ Marker format:
                        wires the jump and back-link itself, so it needs no
                        inline HTML and survives HTML sanitising. The standalone
                        ``## Sources`` / ``## Observations`` headings are dropped
-                       in this mode (the host renders its own footnotes block).
+                       in this mode (the GFM renderer builds its own footnotes
+                       block).
       * ``--anchors``  ``[[N]](#ref-N)`` with a first-occurrence cite anchor
                        ``<a id="cite-N"></a>`` and a backlink ``[↩](#cite-N)``
                        on each reference line — clickable on hosts that keep
@@ -46,10 +47,12 @@ Marker format:
       * ``--legacy-plain`` the old plain ``[N]`` / ``[ON]`` text, kept for
                        byte-for-byte backward compatibility.
 
-    The gate judgement is unchanged: an orphan (id in neither array) still
-    fails, and in anchor/legacy mode any leftover ``[^`` marker also fails.
-    In ``--footnotes`` mode the ``[^N]`` markers are expected, so only orphans
-    fail.
+    The gate judgement: an orphan (id in neither array) still fails in every
+    mode. In anchor/legacy mode any leftover ``[^`` marker also fails. In the
+    default footnotes mode the rendered ``[^N]`` markers are expected, so the
+    residual check cannot be used there; instead a marker whose captured id is
+    empty after ``strip()`` (``[^]`` / ``[^ ]``) is detected in the rendered
+    output and fails as unresolved, alongside orphans.
 
 Results:
     stdout is one JSON object: ``{"ok": bool, "citation_count": N,
@@ -224,7 +227,11 @@ def assign_numbers(report_text, by_source_id, by_observation_id):
     for match in MARKER_RE.finditer(report_text):
         marker_id = match.group(1).strip()
         if not marker_id:
-            continue  # empty marker -> unresolved, caught by the residual check
+            # empty marker -> unresolved: anchor/legacy modes catch it via the
+            # residual-[^ scan below; footnotes mode has no residual scan (its
+            # [^N] markers are expected), so it is caught by an explicit
+            # blank-marker scan of the rendered output instead.
+            continue
         family = resolve_marker(marker_id, by_source_id, by_observation_id)
         if family == "source":
             if marker_id not in source_numbers:
@@ -344,8 +351,8 @@ def build_observations_section(text, numbers, by_id, mode):
     """Append ## Observations, or rebuild the content after an existing one.
 
     Only called when at least one observation is cited. In ``footnotes`` mode
-    the heading is dropped: the host renders both marker families in one
-    footnotes block.
+    the heading is dropped: the GFM renderer wires both marker families into
+    one footnotes block.
     """
     ordered = sorted(numbers.items(), key=lambda item: item[1])
     lines = [
@@ -398,9 +405,16 @@ def main(argv=None):
         )
 
     if mode == "footnotes":
-        # [^N] / [^N]: are expected in this mode; only orphans fail.
-        unresolved = bool(orphans)
+        # [^N] / [^N]: are expected in this mode, so a residual scan would be
+        # meaningless. Fail instead on any marker whose id is empty after
+        # strip() ([^] / [^ ]) — those are neither numbered nor substituted.
+        blank = any(
+            not match.group(1).strip() for match in MARKER_RE.finditer(rendered)
+        )
+        unresolved = bool(orphans) or blank
     else:
+        # anchor/legacy mode: every substituted marker lost its ``[^`` prefix,
+        # so any residual ``[^`` (blank or unresolved) is a failure.
         unresolved = MARKER_RE.search(rendered) is not None
     uncited = [
         source_id for source_id in ordered_ids if source_id not in source_numbers
