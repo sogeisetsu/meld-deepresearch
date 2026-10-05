@@ -26,12 +26,7 @@
     }
   ],
   "writing_context": [],
-  "key_findings": [
-    {
-      "finding": "The station opening year is documented.",
-      "claim_ids": ["d1.c1"]
-    }
-  ],
+  "key_findings": [],
   "gaps": [
     {
       "id": "g1",

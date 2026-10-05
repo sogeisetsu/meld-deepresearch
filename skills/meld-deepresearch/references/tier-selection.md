@@ -65,16 +65,16 @@ Apply in order; stop at the first decisive answer:
 
 | Aspect | `quick` | `normal` |
 |---|---|---|
-| Fetch budget | ≤ 8 | ≤ 25 |
+| Fetch budget (soft, extendable ×2 — `protocol.md` §8) | ≤ 12 | ≤ 40 |
 | Distinct sources floor | ≥ 5 | ≥ 15 |
-| Rounds per axis | ≤ 3 | ≤ 3 |
+| Rounds per axis | ≤ 4 | ≤ 5 |
 | Plan artifact | none (key questions `kq1..kqn` stay in memory) | `plan.json` with named dimensions, `scope_ownership`, source classes, `depth`, time-sensitivity |
 | Dimension naming | none | every axis `dN` named up front; evidence per axis in `sub_reports/dN.evidence.json` |
 | Expected structure | brief report, fewer sections | full report: per-dimension findings, contradictions, gaps |
 | Multi-perspective seeding | one line + one refutation angle | several perspectives seeded up front (see `protocol.md` §6) |
 
-Budgets and stop conditions are defined in `protocol.md` §8 and apply
-unchanged once the tier is fixed.
+Budgets, the soft-cap extension mechanism and all stop conditions are defined
+in `protocol.md` §8 and apply unchanged once the tier is fixed.
 
 ## 6. Mid-run upgrade
 
@@ -84,7 +84,7 @@ pretend it is still quick:
 - Stop the current line, re-apply §3, and if a `normal` condition now matches,
   switch to `normal`: create `plan.json`, name the dimensions found so far,
   and keep the evidence already collected (do not discard fetches already
-  spent — they count against the `normal` budget of 25).
+  spent — they count against the `normal` budget of 40).
 - Downgrade never happens automatically; only the user can downgrade.
 - Record in the run output: `tier`, whether it was overridden by the user,
   whether/when it was upgraded, and the reason.

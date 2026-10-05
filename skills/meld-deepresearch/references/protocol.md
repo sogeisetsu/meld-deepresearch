@@ -12,12 +12,14 @@ Execution rules for `meld-deepresearch`. `SKILL.md` decides *whether* to run and
 | **Merge (this file, §9)** | `merge_evidence.py` folds every axis file into one | `evidence.json` |
 | Gate ① | evidence validator on the **merged** `evidence.json` (normal: plus `--plan`) | `{"ok": true}` |
 | Write | one-shot draft, inline citations, no new facts | `report.src.md` |
-| Gate ② | citation renderer | `report.md`, `citations.json` |
-| Deliver | 4 artifacts + coverage note | see §11 |
+| Gate ② | citation renderer, **both files in one run** | `report.cited.md` + `report.md`, `citations.json` |
+| Content review | `content_review.py --clean` on the reading copy | `{"ok": true}` |
+| Deliver | 5 artifacts + coverage note | see §11 |
 
 ## 2. The per-axis research loop
 
-Each axis `dN` runs the same loop, at most **3 rounds**:
+Each axis `dN` runs the same loop, at most the rounds-per-axis cap for its tier
+(`quick` ≤ 4, `normal` ≤ 5 — §8):
 
 ```
 Search -> candidate URL pool -> Fetch -> read the ORIGINAL page
@@ -26,7 +28,7 @@ Search -> candidate URL pool -> Fetch -> read the ORIGINAL page
 
 **One round = one search → fetch → evaluate cycle for an axis:** the search
 that refills the candidate pool, every fetch made from that pool, and the
-evaluation that follows (§5). The ≤3-rounds-per-axis cap in §8 counts these
+evaluation that follows (§5). The rounds-per-axis cap in §8 counts these
 cycles.
 
 Exact rules — all mandatory:
@@ -35,19 +37,61 @@ Exact rules — all mandatory:
 2. **Maintain a candidate URL pool per axis:** merge new results into the pool → normalize the URL → de-duplicate → sort by source quality (`primary` > `secondary` > `tertiary`), then relevance, then recency. Fetch from the top of the pool; never re-fetch a URL already consumed.
 3. **Search-result snippets are NEVER evidence.** A claim may only be trusted after the original page has been opened and the snippet checked against it (numbers, dates, polarity, exact wording all verified). Snippets exist only to decide what to fetch next.
 4. Each fetched page yields candidate claims written to that axis's evidence file (`sub_reports/dN.evidence.json`), with `source_id`, `snippet`, and `quote_type` per `evidence-contract.md`.
-5. **Route by source class (academic / developer axes).** For an academic or
-   scientific axis, prefer repositories generic search can reach (arXiv,
-   PubMed, SSRN, Google Scholar, official venue pages): adapt the query with
-   venue / year / field terms, open the paper and read the section that
-   matters rather than the abstract alone; when the paper cites the work a
-   claim rests on, fetching that cited URL is a legitimate candidate (rule 1)
-   and a way to walk the reference chain. For a developer / code axis, prefer
-   GitHub, Stack Overflow, Hacker News and code/model hubs, and read the file
-   or thread itself. This is query-and-routing guidance only: it needs no API
-   key and adds no dependency. Platform-internal `code:` search and
+5. **Route by source class (academic / historical / developer axes).** For an
+   academic, scientific or historical axis the **scholarly layer runs through
+   `skills/meld-search-academic`** (`§2a`): `search.py` to find papers,
+   `paper.py` to read the section that matters — not just the abstract, which
+   is only a snippet (rule 3) — and `refTree.py` to walk a reference or
+   citation chain; fetching a URL a paper itself cites stays a legitimate
+   candidate under rule 1. When that skill or its dependencies are unavailable,
+   degrade to generic search over arXiv / PubMed / SSRN / Google Scholar /
+   official venue pages with venue, year and field terms in the query — the
+   routing rule still holds, only the tooling degrades. For a developer / code
+   axis, prefer GitHub, Stack Overflow, Hacker News and code/model hubs, and
+   read the file or thread itself. Platform-internal code search and
    citation-count ranking stay deliberately out of scope.
 
-## 2a. Local data files are first-hand evidence
+## 2a. Cross-skill hand-offs and local data files
+
+This repository ships cooperating skills. A hand-off is allowed **only** along
+the two documented routes below; anything else stays inside this skill. Every
+hand-off is recorded in the run log (which skill, why, what it returned).
+
+**→ `meld-da` (spreadsheet / data analysis).** When the request supplies local
+table files (`.xlsx`, `.csv`, `.tsv`) *and* asks for analysis, cleaning,
+filtering, aggregation, statistics, visualization or a formatted export, run
+`skills/meld-da`'s workflow instead of improvising a few lines of pandas. It
+owns multi-sheet reading, the large-file gate, cleaning, group-by/pivot
+aggregation and chart/export steps. What comes back still enters this skill's
+evidence as `observations[]` — see §2b.
+
+**→ `meld-search-academic` (papers, citation trees).** For an **academic,
+scientific or historical subject this route is mandatory for the scholarly
+layer**: general web search may frame the topic, but the papers, their full
+text and their reference/citation chains come from its three entry points —
+`scripts/search.py` (find papers), `scripts/paper.py` (sections + full text),
+`scripts/refTree.py` (references and citations). Open the paper and read the
+section that matters; an abstract alone is a snippet (§2 rule 3). Its
+playwright/camoufox tier is optional: when those are absent it degrades to the
+official APIs and then to generic web search — never abort the run for a
+missing optional dependency.
+
+Hand-off rules, in all cases:
+
+1. **Direction and degradation.** A hand-off goes one way and back; no skill
+   may *require* the other to be installed. If the target skill or its
+   dependency is missing, degrade to this skill's own loop and record the
+   degradation in the run log — never stop.
+2. **Evidence stays in this skill's contract.** A figure or quote produced by
+   the target skill becomes an `observations[]` entry (with the exact
+   re-runnable command) or a `sources[]` entry (with the URL actually opened).
+   The target skill's own output files are never cited as evidence.
+3. **Budgets still apply.** Reading a local file or running a hand-off is not
+   a web fetch and is not charged to §8; fetches made *after* the hand-off are.
+4. **No host tool names.** Describe the hand-off by skill directory
+   (`skills/meld-da/...`), never by a host-specific tool name.
+
+### Local data files are first-hand evidence
 
 When the request **supplies local data files** (`.xlsx`, `.csv`, `.tsv`) instead
 of, or in addition to, a web question, read them on the host rather than
@@ -57,7 +101,10 @@ searching for their contents:
    `python scripts/read_table.py <file> [--sheet <name|index>] [--all-sheets] [--max-rows N] [--format json]`.
    It handles shared/inline strings, sparse cells, booleans and Excel serial
    dates, and maps sheets through the workbook relationships (never a hard-coded
-   `sheet1.xml`).
+   `sheet1.xml`). This is the **zero-dependency reading layer**: it inspects and
+   extracts. The `meld-da` hand-off above is the **analysis layer** (cleaning,
+   aggregation, charts, export) and may add third-party packages — the two are
+   complementary, and neither replaces the other.
 2. **Record the exact command as an `observations[]` entry** (`kind:
    "inspection"`, with a re-runnable `command`), and cite every figure computed
    from the file with `[^oN]`. The tool output is first-hand evidence, not a web
@@ -133,7 +180,7 @@ At the end of every round, judge the axis on three dimensions:
 - **Recency** — does the evidence satisfy the time case chosen in §4?
 - **Verifiability** — could a reader click the citation and confirm the claim? Claims failing this are dropped or marked `unknown`.
 
-Then decide whether the axis is **saturated**: stop it early when its `depth` threshold from the plan is met (all key questions `kqN` for the axis answered, refutation pass done, no open gap that a new search would plausibly close). Otherwise continue to the next round, up to the 3-round cap.
+Then decide whether the axis is **saturated**: stop it early when its `depth` threshold from the plan is met (all key questions `kqN` for the axis answered, refutation pass done, no open gap that a new search would plausibly close). Otherwise continue to the next round, up to the rounds-per-axis cap for the tier (§8).
 
 ## 6. Multi-perspective seeding and scope ownership
 
@@ -162,10 +209,13 @@ opened but yielded no usable text (an unparsable PDF, an empty body) is
 
 ## 8. Budget and stop conditions
 
-| Tier | Fetch budget | Distinct sources | Rounds per axis |
+The budget is a **soft cap**: it disciplines the run instead of ending it
+mid-question.
+
+| Tier | Fetch budget (soft) | Distinct sources | Rounds per axis |
 |---|---|---|---|
-| `quick` | ≤ 8 | ≥ 5 | ≤ 3 |
-| `normal` | ≤ 25 | ≥ 15 | ≤ 3 |
+| `quick` | ≤ 12 | ≥ 5 | ≤ 4 |
+| `normal` | ≤ 40 | ≥ 15 | ≤ 5 |
 
 - Budget is counted across the whole run; axes share it.
 - **Every fetch attempt counts against the fetch budget, including failed
@@ -173,9 +223,36 @@ opened but yielded no usable text (an unparsable PDF, an empty body) is
   cost a network round-trip still cost budget; do not retry past the cap.
 - **Searches are not charged to the fetch budget.** They are counted separately
   as rounds — one round = one search → fetch → evaluate cycle (§2) — and are
-  bound by the ≤3-rounds-per-axis limit, not by the fetch budget.
-- **When the budget is exhausted: STOP.** Return the best coverage achieved so far and **explicitly list what was not covered** (per-axis gaps from §7). Never loop forever, never take "just one more round" past the cap.
-- If the source floor cannot be reached inside the fetch budget, report the shortfall honestly instead of padding with snippet-only or duplicate sources.
+  bound by the rounds-per-axis limit, not by the fetch budget.
+- **Reading a local file or running a cross-skill hand-off (§2a) is never
+  charged** to the fetch budget.
+- If the source floor cannot be reached inside the fetch budget, report the
+  shortfall honestly instead of padding with snippet-only or duplicate sources.
+
+### Extension when the budget runs out but key questions are still open
+
+Exhausting the cap is a signal, not an automatic stop — but neither is it
+permission to run forever:
+
+1. **Check the open list first.** List the key questions (`kqN`) still
+   unanswered and the gaps (§7) that a further search could plausibly close.
+   If that list is empty, **STOP** exactly as before: return the best coverage
+   reached and state what was not covered.
+2. **If the list is not empty, extend automatically — at most 2 extension
+   rounds.** Each extension round is logged in `run-log.md` with three lines:
+   - **new sources** added in this round (ids + one line each),
+   - **still unresolved** — the exact questions that remain open,
+   - **cost** — fetches and rounds spent by this extension.
+3. **After the 2nd extension, the open questions stop being researched and
+   become `uncertainty`.** Record each as a `gaps[]` entry and label the
+   dependent claims `unknown` in the report. Never fill the hole with a
+   plausible guess, a snippet, or a stronger verb than the evidence carries.
+4. **Never loop past 2 extensions**, never restart a third one because the
+   answer "should be out there", and never present an unverified figure to
+   avoid admitting a gap.
+
+Every extension (including a refused one) also appears in the coverage note
+delivered to the user (§11).
 
 ### Raising the cap (wide topics only)
 
@@ -191,8 +268,10 @@ not a prohibition, so it may be **raised mid-run** under two conditions:
   new numbers where the assumptions live (§11): `plan.json` for a `normal` run,
   the delivery message for a `quick` run.
 
-The ≤3-rounds-per-axis limit and the stop-on-exhaustion rule are **not** part of
-the raise: only the fetch budget and the distinct-source floor can move.
+A raise and an extension are different things: a raise moves the numbers for
+the whole run, an extension is the bounded 2-round continuation above. Both are
+logged; neither changes the tier. The stop-on-exhaustion rule after 2
+extensions is **not** part of either.
 
 ## 9. Merge and hard gates
 
@@ -257,23 +336,39 @@ OUTDIR="meld-deepresearch-reports/2026-09-29-my-topic-ab12"
 
 python scripts/merge_evidence.py --subreports "$OUTDIR/.work/sub_reports" --output "$OUTDIR/evidence.json"
 python scripts/check_evidence.py "$OUTDIR/evidence.json" --plan "$OUTDIR/.work/plan.json"   # normal tier
-python scripts/render_citations.py --report "$OUTDIR/.work/report.src.md" --evidence "$OUTDIR/evidence.json" --output "$OUTDIR/report.md"
+python scripts/render_citations.py \
+  --report "$OUTDIR/.work/report.src.md" \
+  --evidence "$OUTDIR/evidence.json" \
+  --output "$OUTDIR/report.cited.md" \
+  --clean-output "$OUTDIR/report.md"
 python scripts/dedupe_sources.py --evidence "$OUTDIR/evidence.json" --output "$OUTDIR/sources.md"
-python scripts/content_review.py --report "$OUTDIR/report.md" --evidence "$OUTDIR/evidence.json"   # optional, warn-only
+python scripts/content_review.py --report "$OUTDIR/report.md" --clean --evidence "$OUTDIR/evidence.json"
 ```
 
-`merge_evidence.py` and `content_review.py` are new; `content_review.py` is
-optional and only warns. A `quick` run has no `plan.json`, so it omits the
+One renderer invocation produces **both** report files: `report.cited.md` keeps
+the markers and the full reference block (that is what gate ② judges and what a
+reviewer clicks), while `report.md` is the marker-free reading copy whose first
+line links to the cited one. Never edit one by hand to match the other —
+re-run the renderer.
+
+`content_review.py --clean` reviews the reading copy: structural problems are
+warnings, but **one hit of the runtime-failure blacklist fails the run**
+(`E_RUNTIME_TERM`, exit 1 — the token list is in the script's docstring and in
+`report-template.md`). Run it without `--clean` on `report.cited.md` only when
+you want the marker-dependent checks (uncited numbers); technical detail is
+allowed to stay in the cited copy. `merge_evidence.py` and `content_review.py`
+are the newest scripts. A `quick` run has no `plan.json`, so it omits the
 `--plan` flag. `render_citations.py` renders GFM footnotes by default (the
 renderer wires the jump itself, so it survives HTML sanitising); add `--anchors`
-only when the target host keeps inline `<a id>` anchors.
-Optional flags: `content_review.py --llm` records (it does not perform) a
-host-side LLM judge review, with `--model <provider/model>` naming the
-provider/model; `render_citations.py --citations <path>` writes the citation
-map somewhere other than next to `--output`.
+only when the target host keeps inline `<a id>` anchors. Optional flags:
+`content_review.py --llm` records (it does not perform) a host-side LLM judge
+review, with `--model <provider/model>` naming the provider/model;
+`render_citations.py --citations <path>` writes the citation map somewhere
+other than next to `--output`.
 
 - Gate failure ⇒ **fix once and re-run** (at most one re-run per gate).
 - Second failure ⇒ **stop and report honestly** (failing stage, artifact paths, last error). Do not deliver a report that failed a gate.
+- **After any pre-delivery readability pass over the draft** (`report-template.md`), every gate above runs again from gate ①, and the renderer regenerates both files — an reorder is never delivered without a fresh green run.
 
 ## 10. Failure and retry
 
@@ -294,7 +389,7 @@ Apply the matching row of this table instead of inventing a recovery:
 | Gate ① fails | read the error's `hint`, apply the smallest safe fix, re-run once | 🔴 **STOP**; report the error — never deliver a failing `evidence.json` |
 | Gate ② fails (orphan / unresolved marker) | fix the marker or add the missing source, then re-render once | 🔴 **STOP**; report the error |
 | Two ids collide after merge | re-key per §9, then re-run gate ① | 🔴 **STOP** |
-| Fetch budget exhausted (§8) | — | 🔴 **STOP**; return the best coverage reached and the explicit uncovered list |
+| Fetch budget exhausted (§8) | extend at most 2 rounds while key questions remain open, logging each round (new sources / still unresolved / cost) | after 2 extensions 🔴 **STOP**; mark the still-open questions as `uncertainty` (`gaps[]` + `unknown`) and return the explicit uncovered list |
 | Any stage fails twice | — | 🔴 **STOP**; report the failing stage, the artifacts produced, and the last error |
 
 ## 11. Artifacts and directories
@@ -303,7 +398,8 @@ Default output directory:
 
 ```
 meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/
-├── report.md                 # delivered: rendered report
+├── report.md                 # delivered: clean reading copy (no markers)
+├── report.cited.md           # delivered: full version with markers + references
 ├── sources.md                # delivered: de-duplicated source table
 ├── evidence.json             # delivered: merged evidence
 ├── citations.json            # delivered: citation map
@@ -313,10 +409,13 @@ meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/
     └── sub_reports/dN.evidence.json   # per-axis intermediate evidence
 ```
 
-The four top-level files are the deliverables; `.work/` holds the middleware.
-The delivery message **must list the full manifest** — the four artifacts, the
-`.work/` contents that exist, and every failed fetch (URL + type) — so a reader
-can see exactly what was produced and what was skipped.
+The five top-level files are the deliverables; `.work/` holds the middleware.
+The two report files are produced together by one renderer run and must never
+drift apart: `report.md` is for reading (no citation markers, first line links
+to the cited copy), `report.cited.md` is for checking (markers, full reference
+block). The delivery message **must list the full manifest** — the five
+artifacts, the `.work/` contents that exist, and every failed fetch (URL +
+type) — so a reader can see exactly what was produced and what was skipped.
 
 - `{slug}` is a short kebab-case digest of the topic; `{hex4}` is 4 random hex digits for uniqueness. **When the user supplies an output directory, it replaces this default naming entirely** — no `{slug}` or `{hex4}` is appended; the run writes to the user's path exactly as given.
 - **First-hand evidence** — commands run, measurements taken, files inspected on

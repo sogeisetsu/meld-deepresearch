@@ -8,15 +8,23 @@
       "topic_tag": "release",
       "answers_key_question": "kq1",
       "evidence": [
-        {"source_id": "s4", "snippet": "The encyclopedic entry records the 2.0 release date as 2026-03-14.", "quote_type": "numeric"}
+        {
+          "source_id": "s4",
+          "snippet": "The encyclopedic entry records the 2.0 release date as 2026-03-14.",
+          "quote_type": "numeric"
+        }
       ]
     }
   ],
   "sources": [
-    {"id": "s4", "url": "https://encyclopedia.example.org/wiki/Nimbus_(software)", "title": "Nimbus (software)", "quality": "tertiary", "published_at": null}
+    {
+      "id": "s4",
+      "url": "https://encyclopedia.example.org/wiki/Nimbus_(software)",
+      "title": "Nimbus (software)",
+      "quality": "tertiary",
+      "published_at": null
+    }
   ],
   "writing_context": [],
-  "key_findings": [
-    {"finding": "The encyclopedic entry dates the Nimbus 2.0 release to 2026-03-14.", "claim_ids": ["d1.c1"]}
-  ]
+  "key_findings": []
 }

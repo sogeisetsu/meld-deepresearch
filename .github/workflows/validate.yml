@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  validate:
-    name: spec and scripts
+  core:
+    name: core (zero-dependency)
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repository
@@ -22,6 +22,8 @@ jobs:
         with:
           python-version: "3.12"
 
+      # No `pip install` anywhere in this job: everything here must work with
+      # a bare CPython, which is the portability guarantee the core skill makes.
       - name: Spec check
         run: |
           python3 - <<'PY'
@@ -31,51 +33,56 @@ jobs:
 
           problems = []
 
-          def check_frontmatter():
-              path = Path("skills/meld-deepresearch/SKILL.md")
+          def check_frontmatter(path):
               text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
               m = re.match(r"\A---\n(.*?)\n---\n", text, re.S)
               if not m:
-                  problems.append("SKILL.md: frontmatter block not found")
+                  problems.append("%s: frontmatter block not found" % path)
                   return
               fm = m.group(1)
 
               name_m = re.search(r"^name:[ \t]*(.+?)[ \t]*$", fm, re.M)
               if not name_m:
-                  problems.append("SKILL.md frontmatter: 'name' is missing")
+                  problems.append("%s frontmatter: 'name' is missing" % path)
               else:
                   name = name_m.group(1)
                   if len(name) > 64:
-                      problems.append("SKILL.md name is %d chars (max 64)" % len(name))
+                      problems.append("%s name is %d chars (max 64)" % (path, len(name)))
                   if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name):
-                      problems.append("SKILL.md name %r is not lowercase kebab-case" % name)
+                      problems.append("%s name %r is not lowercase kebab-case" % (path, name))
+                  if name != path.parent.name:
+                      problems.append("%s name %r does not match its directory %r" % (path, name, path.parent.name))
 
               desc_m = re.search(r"^description:[ \t]*(.+?)[ \t]*$", fm, re.M)
               if not desc_m:
-                  problems.append("SKILL.md frontmatter: 'description' is missing")
+                  problems.append("%s frontmatter: 'description' is missing" % path)
               else:
                   desc = desc_m.group(1)
                   if len(desc) >= 2 and desc[0] in "\"'" and desc[-1] == desc[0]:
                       desc = desc[1:-1]
                   if len(desc) > 1024:
-                      problems.append("SKILL.md description is %d chars (max 1024)" % len(desc))
+                      problems.append("%s description is %d chars (max 1024)" % (path, len(desc)))
                   if not desc.isascii():
-                      problems.append("SKILL.md description must be ASCII-only English")
+                      problems.append("%s description must be ASCII-only English" % path)
 
               lic_m = re.search(r"^license:[ \t]*(.+?)[ \t]*$", fm, re.M)
               if not lic_m or lic_m.group(1) != "MIT":
-                  problems.append("SKILL.md license must be MIT, found %r" % (lic_m.group(1) if lic_m else "<missing>"))
+                  problems.append("%s license must be MIT, found %r" % (path, lic_m.group(1) if lic_m else "<missing>"))
 
               meta_m = re.search(r"^metadata:[ \t]*\n((?:[ \t]+\S.*\n?)+)", fm, re.M)
               if not meta_m:
-                  problems.append("SKILL.md frontmatter: 'metadata' block is missing")
+                  problems.append("%s frontmatter: 'metadata' block is missing" % path)
               else:
                   author_m = re.search(r"^[ \t]+author:[ \t]*(.+?)[ \t]*$", meta_m.group(1), re.M)
                   author = author_m.group(1) if author_m else "<missing>"
                   if author != "sogeisetsu":
-                      problems.append("SKILL.md metadata.author must be sogeisetsu, found %r" % author)
+                      problems.append("%s metadata.author must be sogeisetsu, found %r" % (path, author))
 
-          check_frontmatter()
+          skill_files = sorted(Path("skills").glob("*/SKILL.md"))
+          if not skill_files:
+              problems.append("no skills/*/SKILL.md found")
+          for path in skill_files:
+              check_frontmatter(path)
 
           forbidden_tools = ["websearch", "WebFetch", "AskUserQuestion"]
           task_word = re.compile(r"\bTask\b")
@@ -98,7 +105,7 @@ jobs:
               for p in problems:
                   print("FAIL: %s" % p)
               sys.exit(1)
-          print("spec check passed")
+          print("spec check passed (%d skills)" % len(skill_files))
           PY
 
       - name: Script self-test
@@ -136,7 +143,6 @@ jobs:
             echo "PASS [${label}]"
           }
 
-          # assert_file <label> <path>
           assert_file() {
             if [ ! -s "$2" ]; then
               echo "FAIL [$1]: expected non-empty output file missing: $2"
@@ -144,7 +150,6 @@ jobs:
             fi
           }
 
-          # assert_contains <label> <path> <fixed-string>
           assert_contains() {
             if [ ! -f "$2" ] || ! grep -Fq -- "$3" "$2"; then
               echo "FAIL [$1]: file $2 did not contain expected text: $3"
@@ -152,149 +157,290 @@ jobs:
             fi
           }
 
-          step "check_evidence: valid sample run" 0 "" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/sample-run/evidence.json
+          assert_not_contains() {
+            if [ -f "$2" ] && grep -Fq -- "$3" "$2"; then
+              echo "FAIL [$1]: file $2 must not contain: $3"
+              status=1
+            fi
+          }
 
-          step "check_evidence: valid sample run with plan" 0 "" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/sample-run/evidence.json --plan examples/sample-run/plan.json
+          S=skills/meld-deepresearch/scripts
+
+          step "check_evidence: valid sample run" 0 '"ok": true' -- \
+            python3 $S/check_evidence.py examples/sample-run/evidence.json
+
+          step "check_evidence: valid sample run with plan" 0 '"ok": true' -- \
+            python3 $S/check_evidence.py examples/sample-run/evidence.json --plan examples/sample-run/plan.json
 
           step "check_evidence: unresolved observation id" 1 "E_REF_OBSERVATION" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.bad-observation.json
+            python3 $S/check_evidence.py examples/invalid/evidence.bad-observation.json
 
           step "check_evidence: unknown source id" 1 "E_REF_SOURCE" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.unknown-source.json
+            python3 $S/check_evidence.py examples/invalid/evidence.unknown-source.json
 
           step "check_evidence: factual backed only by tertiary source" 1 "E_FACTUAL_SOURCE" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.tertiary-only.json
+            python3 $S/check_evidence.py examples/invalid/evidence.tertiary-only.json
+
+          step "check_evidence: tertiary factual with downgrade annotation passes" 0 "W_DOWNGRADE" -- \
+            python3 $S/check_evidence.py examples/downgrade-run/evidence.json
 
           step "check_evidence: interpretive citing a single source" 1 "E_INTERPRETIVE_TWO" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.single-source-interpretive.json
+            python3 $S/check_evidence.py examples/invalid/evidence.single-source-interpretive.json
+
+          step "check_evidence: two tertiary origins cannot carry an interpretation" 1 "E_INTERPRETIVE_CREDIBLE" -- \
+            python3 $S/check_evidence.py examples/invalid/evidence.interpretive-tertiary-pair.json
+
+          step "check_evidence: key finding with a single origin" 1 "E_FINDING_BASIS" -- \
+            python3 $S/check_evidence.py examples/invalid/evidence.finding-single-source.json
 
           step "check_evidence: no refute claim warns but passes" 0 "W_NO_REFUTE" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.no-refute.json
+            python3 $S/check_evidence.py examples/invalid/evidence.no-refute.json
 
           step "check_evidence: background claim backs a key finding" 1 "E_FINDING_BACKGROUND" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.finding-background.json
+            python3 $S/check_evidence.py examples/invalid/evidence.finding-background.json
 
           step "check_evidence: gap with a bad reason enum" 1 "E_GAP_ENUM" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.gap-bad-enum.json
+            python3 $S/check_evidence.py examples/invalid/evidence.gap-bad-enum.json
 
           step "check_evidence: gap referencing an unknown source" 1 "E_GAP_REF" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.gap-bad-ref.json
+            python3 $S/check_evidence.py examples/invalid/evidence.gap-bad-ref.json
 
           step "check_evidence: gap missing a required field" 1 "E_GAP_SHAPE" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py examples/invalid/evidence.gap-bad-shape.json
+            python3 $S/check_evidence.py examples/invalid/evidence.gap-bad-shape.json
 
-          step "render_citations: valid sample report" 0 "" -- \
-            python3 skills/meld-deepresearch/scripts/render_citations.py \
+          # Dual output: one run writes the cited copy and the reading copy.
+          step "render_citations: valid sample report (dual output)" 0 '"ok": true' -- \
+            python3 $S/render_citations.py \
               --report examples/sample-run/report.src.md \
               --evidence examples/sample-run/evidence.json \
-              --output "${tmp}/report.md" \
+              --output "${tmp}/report.cited.md" \
+              --clean-output "${tmp}/report.md" \
               --citations "${tmp}/citations.json"
-          assert_file "render_citations: valid sample report" "${tmp}/report.md"
-          assert_file "render_citations: valid sample report" "${tmp}/citations.json"
-
-          # Three render modes must each produce their own marker form,
-          # otherwise a silent default flip (anchors <-> footnotes) goes
-          # unnoticed. Default mode: GFM footnote definitions and markers.
-          assert_contains "render_citations: default mode emits footnote definitions" \
-            "${tmp}/report.md" '[^1]:'
-          assert_contains "render_citations: default mode emits footnote markers" \
-            "${tmp}/report.md" '[^o1]:'
+          assert_file "render_citations: cited copy" "${tmp}/report.cited.md"
+          assert_file "render_citations: reading copy" "${tmp}/report.md"
+          assert_file "render_citations: citations map" "${tmp}/citations.json"
+          assert_contains "render_citations: cited copy keeps footnote definitions" \
+            "${tmp}/report.cited.md" '[^1]:'
+          assert_contains "render_citations: cited copy keeps observation definitions" \
+            "${tmp}/report.cited.md" '[^o1]:'
+          assert_not_contains "render_citations: reading copy carries no markers" \
+            "${tmp}/report.md" '[^'
+          assert_contains "render_citations: reading copy points at the cited copy" \
+            "${tmp}/report.md" 'report.cited.md'
 
           step "render_citations: anchors mode" 0 '"ok": true' -- \
-            python3 skills/meld-deepresearch/scripts/render_citations.py \
-              --anchors \
+            python3 $S/render_citations.py --anchors \
               --report examples/sample-run/report.src.md \
               --evidence examples/sample-run/evidence.json \
               --output "${tmp}/report.anchors.md" \
               --citations "${tmp}/citations.anchors.json"
-          assert_file "render_citations: anchors mode" "${tmp}/report.anchors.md"
           assert_contains "render_citations: anchors mode emits links" \
             "${tmp}/report.anchors.md" '[[1]](#ref-1)'
           assert_contains "render_citations: anchors mode emits cite anchors" \
             "${tmp}/report.anchors.md" '<a id="cite-1"></a>'
 
           step "render_citations: legacy-plain mode" 0 '"ok": true' -- \
-            python3 skills/meld-deepresearch/scripts/render_citations.py \
-              --legacy-plain \
+            python3 $S/render_citations.py --legacy-plain \
               --report examples/sample-run/report.src.md \
               --evidence examples/sample-run/evidence.json \
               --output "${tmp}/report.legacy.md" \
               --citations "${tmp}/citations.legacy.json"
-          assert_file "render_citations: legacy-plain mode" "${tmp}/report.legacy.md"
           assert_contains "render_citations: legacy-plain mode renders sources" \
             "${tmp}/report.legacy.md" '[1]'
           assert_contains "render_citations: legacy-plain mode renders observations" \
             "${tmp}/report.legacy.md" '[O1]'
 
-          # Blank markers ([^] / [^ ]) are neither numbered nor substituted;
-          # they must fail gate ② in the default GFM-footnote mode.
           step "render_citations: blank marker fails in default mode" 1 '"ok": false' -- \
-            python3 skills/meld-deepresearch/scripts/render_citations.py \
+            python3 $S/render_citations.py \
               --report examples/invalid/report.empty-marker.src.md \
               --evidence examples/invalid/evidence.no-refute.json \
-              --output "${tmp}/empty-marker.md" \
-              --citations "${tmp}/empty-marker.citations.json"
+              --output "${tmp}/empty.md" \
+              --citations "${tmp}/empty.citations.json"
 
-          step "render_citations: orphan marker fails" 1 "" -- \
-            python3 skills/meld-deepresearch/scripts/render_citations.py \
+          step "render_citations: orphan marker fails" 1 '"ok": false' -- \
+            python3 $S/render_citations.py \
               --report examples/invalid/report.orphan.src.md \
               --evidence examples/invalid/evidence.no-refute.json \
               --output "${tmp}/orphan.md" \
               --citations "${tmp}/orphan.citations.json"
 
-          step "dedupe_sources: valid sample evidence" 0 "" -- \
-            python3 skills/meld-deepresearch/scripts/dedupe_sources.py \
+          step "dedupe_sources: valid sample evidence" 0 '"ok": true' -- \
+            python3 $S/dedupe_sources.py \
               --evidence examples/sample-run/evidence.json \
               --output "${tmp}/sources.md"
           assert_file "dedupe_sources: valid sample evidence" "${tmp}/sources.md"
 
-          step "check_evidence: chronicle example with plan" 0 "" -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py \
-              examples/chronicle-run/evidence.json \
-              --plan examples/chronicle-run/plan.json
+          step "check_evidence: chronicle example with plan" 0 '"ok": true' -- \
+            python3 $S/check_evidence.py examples/chronicle-run/evidence.json --plan examples/chronicle-run/plan.json
 
           step "render_citations: chronicle example" 0 '"ok": true' -- \
-            python3 skills/meld-deepresearch/scripts/render_citations.py \
+            python3 $S/render_citations.py \
               --report examples/chronicle-run/report.src.md \
               --evidence examples/chronicle-run/evidence.json \
-              --output "${tmp}/chronicle.md" \
+              --output "${tmp}/chronicle.cited.md" \
+              --clean-output "${tmp}/chronicle.md" \
               --citations "${tmp}/chronicle.citations.json"
-          assert_file "render_citations: chronicle example" "${tmp}/chronicle.md"
+          assert_file "render_citations: chronicle reading copy" "${tmp}/chronicle.md"
 
           step "merge_evidence: fold a shared source across axes" 0 '"ok": true' -- \
-            python3 skills/meld-deepresearch/scripts/merge_evidence.py \
+            python3 $S/merge_evidence.py \
               --subreports examples/merge-run/sub_reports \
               --output "${tmp}/merge-run.json"
           assert_file "merge_evidence: fold a shared source across axes" "${tmp}/merge-run.json"
 
           step "merge_evidence: merged file passes gate one" 0 '"ok": true' -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py "${tmp}/merge-run.json"
+            python3 $S/check_evidence.py "${tmp}/merge-run.json"
 
-          # Regression: a colliding writing-context id must be re-keyed inside
-          # its own dN.wM family, never to a bare cN, or the merged file would
-          # fail gate one with E_ID_PATTERN.
           collide_reports="${tmp}/collide/sub_reports"
           mkdir -p "${collide_reports}"
           printf '%s\n' '{"claims":[{"id":"d1.c1","text":"a","kind":"factual","polarity":"support","topic_tag":"t","answers_key_question":null,"evidence":[{"source_id":"s1","snippet":"x","quote_type":"direct"}]}],"sources":[{"id":"s1","url":"https://collide.example/a","title":"a","quality":"primary","published_at":null}],"writing_context":[{"id":"d1.w1","kind":"scope","text":"a","source_ids":["s1"],"applies_to":["d1.c1"],"use":"u"}],"key_findings":[]}' > "${collide_reports}/d1.evidence.json"
           printf '%s\n' '{"claims":[{"id":"d2.c1","text":"b","kind":"factual","polarity":"support","topic_tag":"t","answers_key_question":null,"evidence":[{"source_id":"s2","snippet":"y","quote_type":"direct"}]}],"sources":[{"id":"s2","url":"https://collide.example/b","title":"b","quality":"primary","published_at":null}],"writing_context":[{"id":"d1.w1","kind":"scope","text":"b","source_ids":["s2"],"applies_to":["d2.c1"],"use":"u"}],"key_findings":[]}' > "${collide_reports}/d2.evidence.json"
           step "merge_evidence: colliding context ids stay dN.wM" 0 '"ok": true' -- \
-            python3 skills/meld-deepresearch/scripts/merge_evidence.py \
+            python3 $S/merge_evidence.py \
               --subreports "${collide_reports}" --output "${tmp}/collide.json"
           step "merge_evidence: collision result passes gate one" 0 '"ok": true' -- \
-            python3 skills/meld-deepresearch/scripts/check_evidence.py "${tmp}/collide.json"
+            python3 $S/check_evidence.py "${tmp}/collide.json"
 
-          step "content_review: sample report warns but never fails" 0 '"ok": true' -- \
-            python3 skills/meld-deepresearch/scripts/content_review.py \
+          # content_review: warn-only structural review of the cited copy…
+          step "content_review: cited copy warns but never fails" 0 '"ok": true' -- \
+            python3 $S/content_review.py \
+              --report examples/sample-run/report.cited.md \
+              --evidence examples/sample-run/evidence.json
+
+          # …and a hard gate on runtime-failure jargon in the reading copy.
+          step "content_review: reading copy is clean" 0 '"ok": true' -- \
+            python3 $S/content_review.py --clean \
               --report examples/sample-run/report.md \
+              --evidence examples/sample-run/evidence.json
+          step "render_citations: jargon fixture renders a reading copy" 0 '"ok": true' -- \
+            python3 $S/render_citations.py \
+              --report examples/invalid/report.runtime-jargon.src.md \
+              --evidence examples/sample-run/evidence.json \
+              --output "${tmp}/jargon.cited.md" \
+              --clean-output "${tmp}/jargon.md"
+          step "content_review: runtime jargon fails the reading copy" 1 "E_RUNTIME_TERM" -- \
+            python3 $S/content_review.py --clean \
+              --report "${tmp}/jargon.md" \
               --evidence examples/sample-run/evidence.json
 
           step "read_table: stdlib xlsx/csv selftest" 0 "read_table selftest: OK" -- \
-            python3 skills/meld-deepresearch/scripts/read_table.py --selftest
+            python3 $S/read_table.py --selftest
 
           if [ "${status}" -ne 0 ]; then
             echo "One or more self-test steps failed."
             exit 1
           fi
           echo "All self-test steps passed."
+
+      - name: Skill degrade-path unit tests (stdlib only)
+        run: |
+          set -uo pipefail
+          status=0
+          for t in skills/meld-da/tests/test_degrade.py \
+                   skills/meld-search-academic/tests/test_degrade.py; do
+            echo "-- $t"
+            if ! python3 "$t"; then
+              echo "FAIL [$t]"
+              status=1
+            fi
+          done
+          if [ "$status" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Degrade-path unit tests passed."
+
+  optional:
+    name: optional (third-party dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Install everything the two capability skills declare. A failure here is
+      # a network/index problem, never a code problem: the step is recorded,
+      # its reason is written to the job summary, and the dependent test steps
+      # are skipped instead of failing the build.
+      - name: Full install of declared dependencies
+        id: install
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          install_ok=true
+          {
+            echo "### Dependency install"
+            for req in skills/meld-search-academic/requirements.txt \
+                       skills/meld-search-academic/requirements-optional.txt \
+                       skills/meld-da/requirements.txt; do
+              echo "#### $req"
+              if python3 -m pip install --disable-pip-version-check -r "$req"; then
+                echo "- OK: $req"
+              else
+                echo "- FAILED (network/index): $req"
+                install_ok=false
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "install_ok=${install_ok}" >> "$GITHUB_OUTPUT"
+
+      - name: Browser runtime for the optional crawler tier
+        id: browser
+        continue-on-error: true
+        if: steps.install.outputs.install_ok == 'true'
+        run: |
+          python3 -m playwright install firefox || {
+            echo "playwright browser download failed (network) - crawler tier stays unavailable; official-API fallback covers it" >> "$GITHUB_STEP_SUMMARY"
+          }
+
+      - name: AST syntax check of every shipped script
+        run: |
+          python3 - <<'PY'
+          import ast, sys
+          from pathlib import Path
+          bad = []
+          for path in sorted(Path("skills").rglob("*.py")):
+              try:
+                  ast.parse(path.read_text(encoding="utf-8"))
+              except SyntaxError as exc:
+                  bad.append("%s: %s" % (path, exc))
+          if bad:
+              print("\n".join(bad))
+              sys.exit(1)
+          print("all scripts parse")
+          PY
+
+      - name: Degrade-path tests with dependencies present
+        if: steps.install.outputs.install_ok == 'true'
+        run: |
+          set -uo pipefail
+          status=0
+          for t in skills/meld-da/tests/test_degrade.py \
+                   skills/meld-search-academic/tests/test_degrade.py; do
+            echo "-- $t (with deps)"
+            if ! python3 "$t"; then
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Core scripts still run with third-party packages visible
+        if: steps.install.outputs.install_ok == 'true'
+        run: |
+          python3 skills/meld-deepresearch/scripts/check_evidence.py examples/sample-run/evidence.json
+          python3 skills/meld-deepresearch/scripts/read_table.py --selftest
+
+      - name: Record skip reason when the install could not run
+        if: steps.install.outputs.install_ok != 'true'
+        run: |
+          {
+            echo "### SKIPPED"
+            echo "Full-install tests were skipped because \`pip install\` failed"
+            echo "(network or package-index unavailability), not because of a"
+            echo "code problem. The core job still runs the stdlib-only"
+            echo "degrade-path unit tests, so both skills' fallback paths are"
+            echo "covered even when this job skips."
+          } >> "$GITHUB_STEP_SUMMARY"

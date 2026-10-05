@@ -1,0 +1,39 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "The aggregate index lists 12 active vendors (evidence insufficient / to verify: only an aggregator carries this figure).",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "vendor-count",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "12 active vendors are listed in the 2026 roundup.",
+          "quote_type": "numeric"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "s1",
+      "url": "https://encyclopedia.example.org/wiki/Vendor-market",
+      "title": "Vendor market roundup",
+      "quality": "tertiary",
+      "published_at": "2026-02-11"
+    }
+  ],
+  "writing_context": [
+    {
+      "id": "d1.w1",
+      "kind": "downgrade",
+      "text": "Evidence insufficient / to verify: the figure comes from an aggregator only and was not confirmed by a primary or secondary source.",
+      "source_ids": ["s1"],
+      "applies_to": ["d1.c1"],
+      "use": "Render the claim with an explicit 'insufficient evidence / to verify' downgrade marker next to it."
+    }
+  ],
+  "key_findings": []
+}

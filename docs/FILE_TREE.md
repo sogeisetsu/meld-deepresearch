@@ -22,15 +22,18 @@ meld-deepresearch/                    # repository root
 │   ├── og.png                        # 1200x630 social-preview card, referenced by og:image / twitter:image (regenerate from the live hero if the hero changes)
 │   ├── eval/                         # Deep Research evaluation standard + three-skill comparison + skill evaluations; records/ holds skill-creator-iterations/ and sensenova-live/ (frozen-baseline live comparison: protocol + per-example scores)
 │   └── .nojekyll                     # tells GitHub Pages to serve docs/ as-is instead of running Jekyll
-├── skills/                           # skill packages (this repo ships exactly one)
-│   └── meld-deepresearch/            # the skill directory (contents listed in the note below)
+├── skills/                           # skill packages (this repo ships three)
+│   ├── meld-deepresearch/            # core research/evidence/citation skill (contents in the note below)
+│   ├── meld-da/                      # Excel/spreadsheet analysis workflow: SKILL.md + capability/**/SKILL.md sub-skills + tests/ degrade unit test (port of SenseNova sn-da-excel-workflow)
+│   └── meld-search-academic/         # academic search/paper/refTree skill: SKILL.md, references/, scripts/, tests/ degrade unit test, requirements.txt + requirements-optional.txt (port of SenseNova sn-search-academic)
 ├── examples/                         # example artifacts, used by CI
-│   ├── sample-run/                   # one complete illustrative run: report.src.md, report.md, sources.md, evidence.json, citations.json, plan.json
+│   ├── sample-run/                   # one complete illustrative run: report.src.md, report.cited.md (markers), report.md (reading copy), sources.md, evidence.json, citations.json, plan.json
 │   ├── chronicle-run/                # a chronicle-genre run: background claims, gaps[], source_type, plan genre + must_have_materials
+│   ├── downgrade-run/                # positive fixture: a tertiary-only factual claim that passes because it carries its 'downgrade' annotation (W_DOWNGRADE)
 │   ├── merge-run/                    # a two-axis merge fixture: sub_reports/{d1,d2}.evidence.json share one URL, which folds to a single source id with references re-pointed
-│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + two gate-② drafts (orphan marker, blank marker)
+│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + gate-② drafts (orphan, blank) + a runtime-jargon reading copy
 └── .github/                          # GitHub configuration
-    └── workflows/                    # CI: validate.yml (spec check + end-to-end script self-test)
+    └── workflows/                    # CI: validate.yml — core job (zero-dep spec check + script self-test + degrade unit tests) and optional job (full dependency install, recorded skips)
 ```
 
 **Note — contents of `skills/meld-deepresearch/` (level 3; summarized here to
@@ -40,19 +43,19 @@ keep the tree at depth 2).** All entries exist:
 skills/meld-deepresearch/
 ├── SKILL.md                          # the entry point: frontmatter (name/description/license/compatibility/metadata) + workflow
 ├── references/                       # progressive-disclosure detail, loaded on demand by the model
-│   ├── protocol.md                   # per-axis loop, source-class routing, mandatory refutation, time-sensitivity, merge, gaps[], budgets, gates, failure/retry table, artifacts
-│   ├── evidence-contract.md          # claims / evidence / sources / observations / writing_context / key_findings / gaps schema, plan.json, hard rules
+│   ├── protocol.md                   # per-axis loop, cross-skill hand-offs (§2a), source-class routing, mandatory refutation, time-sensitivity, merge, gaps[], soft budgets + 2-round extension, gates, failure/retry table, artifacts
+│   ├── evidence-contract.md          # claims / evidence / sources / observations / writing_context / key_findings / gaps schema, plan.json, hard rules (incl. the tertiary 'downgrade' path and the key-finding basis)
 │   ├── tier-selection.md             # auto quick-vs-normal decision rules, genre note, worked examples
-│   └── report-template.md            # report skeleton (zh/en titles), genre templates, uncertainty grading, citation mechanism, self-check
+│   └── report-template.md            # structure by reader's cognitive task, dual output, readability pass, runtime-jargon rule, length tiers, citation mechanism, self-check
 ├── templates/                        # genre append-templates, chosen at plan time
 │   └── genres/                       # panorama.md, comparison.md, entity.md, chronicle.md
 └── scripts/                          # Python 3 stdlib only, no dependencies
     ├── check_evidence.py             # hard gate: validate evidence.json (incl. background, gaps[], source_type, --plan genre/must_have_materials); errors may carry a "hint"
-    ├── render_citations.py           # markers -> GFM footnotes (default), clickable anchors (--anchors), or legacy plain; emits report.md + citations.json
+    ├── render_citations.py           # markers -> GFM footnotes (default), anchors (--anchors), legacy plain (--legacy-plain); ONE run writes report.cited.md (markers) and report.md (marker-free reading copy) + citations.json
     ├── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md (optional source_type column)
     ├── merge_evidence.py             # fold sub_reports/*.evidence.json into one evidence.json, folding duplicate sources and re-pointing references
-    ├── content_review.py             # warn-only content self-review (sections, language, uncited numbers, gaps, strongest-counter callout, summary length); never blocks delivery
-    └── read_table.py                 # stdlib-only local .xlsx/.csv reader -> JSON/CSV, with --selftest; turns supplied data files into reproducible observations[]
+    ├── content_review.py             # structural self-review (warn-only) plus, with --clean, the runtime-failure blacklist that FAILS on run-failure jargon in report.md; also reports the prose ratio
+    └── read_table.py                 # stdlib-only local .xlsx/.csv reader -> JSON/CSV, with --selftest; the zero-dependency inspection layer that complements meld-da
 ```
 
 ---

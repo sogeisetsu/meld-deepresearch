@@ -1,7 +1,7 @@
 {
   "name": "meld-deepresearch",
-  "version": "0.2.0",
-  "description": "A lightweight, portable Agent Skill for verifiable, citation-backed deep research reports.",
+  "version": "0.3.0",
+  "description": "A lightweight, portable Agent Skill family for verifiable, citation-backed deep research reports.",
   "license": "MIT",
   "author": "sogeisetsu",
   "homepage": "https://github.com/sogeisetsu/meld-deepresearch",

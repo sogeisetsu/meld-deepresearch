@@ -1,0 +1,42 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "Two roundups together suggest the market doubled.",
+      "kind": "interpretive",
+      "polarity": "support",
+      "topic_tag": "market-size",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "The market is listed as doubled in the 2026 roundup.",
+          "quote_type": "paraphrase"
+        },
+        {
+          "source_id": "s2",
+          "snippet": "The same doubling appears in the vendor index.",
+          "quote_type": "paraphrase"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "s1",
+      "url": "https://encyclopedia.example.org/wiki/Market-2026",
+      "title": "Market encyclopedia 2026",
+      "quality": "tertiary",
+      "published_at": "2026-01-15"
+    },
+    {
+      "id": "s2",
+      "url": "https://directory.example.net/index",
+      "title": "Vendor directory index",
+      "quality": "tertiary",
+      "published_at": "2026-03-02"
+    }
+  ],
+  "writing_context": [],
+  "key_findings": []
+}

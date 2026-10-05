@@ -152,10 +152,13 @@ web source backing it (an observation counts as first-hand, so this passes):
 `dN.cM`, and the validator does **not** verify that the referenced axis or claim
 actually exists in this file.
 
-`kind` is an open tag, but two values carry meaning elsewhere and should be used
-verbatim: `availability` records an unreachable source class (see
+`kind` is an open tag, but three values carry meaning elsewhere and should be
+used verbatim: `availability` records an unreachable source class (see
 `protocol.md` §4a — a paywalled or bot-walled primary source you could not open),
-and `scope`/`sample`/`method` record the other standard caveats. Routing an
+`downgrade` marks a claim whose support is `tertiary`-only (rule 1 — the entry
+must list that claim id in `applies_to[]` and its `text`/`use` must tell the
+writer to show "insufficient evidence / to verify" to the reader), and
+`scope`/`sample`/`method` record the other standard caveats. Routing an
 access-blocked source into a `kind: "availability"` entry is how the run states
 "the conclusion rests on what was reachable" without pretending the blocked page
 was read.
@@ -187,25 +190,35 @@ The report's `## Gaps & Unknowns` section is generated from `gaps[]`.
 
 ## Rules (errors fail the run; warnings do not)
 
-1. **`factual` needs first-hand or credible evidence.** Every claim with
-   `kind: factual` carries at least one `evidence` item that resolves either to
-   a source with `quality` of `primary` or `secondary`, **or** to a valid entry
-   in `observations[]` — an observation is first-hand evidence, so it counts as
-   primary-grade for this rule. `tertiary` alone fails.
+1. **`factual` needs first-hand or credible evidence — or an explicit
+   downgrade.** Every claim with `kind: factual` carries at least one `evidence`
+   item that resolves either to a source with `quality` of `primary` or
+   `secondary`, **or** to a valid entry in `observations[]` — an observation is
+   first-hand evidence, so it counts as primary-grade for this rule. A claim
+   supported **only** by `tertiary` sources passes only when a
+   `writing_context[]` entry with `kind: "downgrade"` lists that claim id in its
+   `applies_to[]`; the writer must then show the downgrade ("insufficient
+   evidence / to verify") to the reader next to the claim. Without the
+   annotation the error is `E_FACTUAL_SOURCE`; with it the run continues and
+   reports `W_DOWNGRADE` so the downgrade is visible in the gate output too.
 2. **`projective` needs a basis.** Every claim with `kind: projective`
    carries at least one `evidence` item (source or observation, any quality
    tier) recording what the projection is based on. A projection with no source
    is an opinion, and is rejected.
-3. **`interpretive` needs two distinct, non-duplicate origins.** Every claim with
-   `kind: interpretive` has `evidence` items pointing at at least two
-   *different origins*, where an origin is either a distinct `source_id` whose
-   `url` is distinct from every other source origin (compared after `strip()`),
-   or a distinct `observation_id`. Fewer than two distinct resolvable origins,
-   or two or more `source_id`s that all share one identical `url` (a duplicate
-   source is one origin, not two), both fail. Note that this is only
-   *source-level* independence:
-   origin-level independence (same publisher publishing on different domains) is
-   a judgement the gate cannot enforce — see `protocol.md` §5.
+3. **`interpretive` needs two distinct, non-duplicate origins, at least one of
+   them credible.** Every claim with `kind: interpretive` has `evidence` items
+   pointing at at least two *different origins*, where an origin is either a
+   distinct `source_id` whose `url` is distinct from every other source origin
+   (compared after `strip()`), or a distinct `observation_id`. Fewer than two
+   distinct resolvable origins, or two or more `source_id`s that all share one
+   identical `url` (a duplicate source is one origin, not two), both fail as
+   `E_INTERPRETIVE_TWO`. **Additionally at least one origin must be `primary`/
+   `secondary` (or an observation)** — a `tertiary` source may be the second
+   origin but never the only pillar; two `tertiary` origins fail as
+   `E_INTERPRETIVE_CREDIBLE`. Note that this is only *source-level*
+   independence: origin-level independence (same publisher publishing on
+   different domains) is a judgement the gate cannot enforce — see
+   `protocol.md` §5.
 4. **No normative claims — best-effort heuristic, WARNING only (C5).** The skill
    states what the evidence shows, not what anyone should do. Because this
    cannot be decided mechanically, the validator only runs a
@@ -240,12 +253,15 @@ The report's `## Gaps & Unknowns` section is generated from `gaps[]`.
 8. **Missing `refute` coverage is a WARNING, not an error.** If no claim in the
    file has `polarity: refute`, the validator reports a warning (falsification
    was probably not attempted) but does not fail on it alone.
-9. **`background` needs context evidence, not credibility.** A `background`
-   claim (period, place, people, prior events) carries at least one evidence
-   item of **any** quality tier, or an observation, and is **exempt** from rule
-   1. It need not answer a `kqN` (`answers_key_question` may be `null`). A
-   `background` claim may **not** back a `key_finding` — that is
-   `E_FINDING_BACKGROUND`.
+9. **`background` needs context evidence, not credibility; key findings need a
+   real basis.** A `background` claim (period, place, people, prior events)
+   carries at least one evidence item of **any** quality tier, or an
+   observation, and is **exempt** from rule 1. It need not answer a `kqN`
+   (`answers_key_question` may be `null`). A `background` claim may **not** back
+   a `key_finding` — that is `E_FINDING_BACKGROUND`. A `key_finding` is a
+   load-bearing conclusion ("核心发现"): the claims it references must together
+   provide **at least two distinct origins with at least one `primary`/
+   `secondary` origin (or an observation)** — reported as `E_FINDING_BASIS`.
 10. **`gaps[]` shape.** Each gap carries `id` (`gN`), `text`, `reason` and
     `cost`; a missing or malformed field is `E_GAP_SHAPE`, a bad `reason`/`cost`
     is `E_GAP_ENUM`, and every `source_ids[]` entry must resolve to `sources[]`
@@ -253,28 +269,31 @@ The report's `## Gaps & Unknowns` section is generated from `gaps[]`.
 
 **Error codes** (`ok: false`, exit 1): `E_SHAPE`, `E_ID_PATTERN`,
 `E_ID_UNIQUE`, `E_ENUM`, `E_REF_SOURCE`, `E_REF_OBSERVATION`, `E_REF_CLAIM`,
-`E_REF_KQ`, `E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`, `E_PROJECTIVE_BASIS`,
-`E_BACKGROUND_BASIS`, `E_FINDING_BACKGROUND`, `E_OBS_SHAPE`, `E_EMPTY`,
-`E_GAP_SHAPE`, `E_GAP_ENUM`, `E_GAP_REF` — plus `E_JSON` for unusable input
-(exit 2), and the `--plan` codes `E_PLAN_DIM_UNKNOWN` /
-`E_PLAN_DIM_UNCOVERED`.
+`E_REF_KQ`, `E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`, `E_INTERPRETIVE_CREDIBLE`,
+`E_PROJECTIVE_BASIS`, `E_BACKGROUND_BASIS`, `E_FINDING_BACKGROUND`,
+`E_FINDING_BASIS`, `E_OBS_SHAPE`, `E_EMPTY`, `E_GAP_SHAPE`, `E_GAP_ENUM`,
+`E_GAP_REF` — plus `E_JSON` for unusable input (exit 2), and the `--plan` codes
+`E_PLAN_DIM_UNKNOWN` / `E_PLAN_DIM_UNCOVERED`.
 **Warning codes** (`ok` stays `true`): `W_NORMATIVE` (rule 4), `W_NO_FINDINGS`
-and `W_NO_REFUTE` (rules 7 and 8), `W_KQ_UNANSWERED` when `--plan` is used, and
-`W_SAME_PUBLISHER` when an `interpretive` claim's distinct urls all share one
-publisher root (a heuristic hint that they may be one outlet restating one
-story, never a failure).
+and `W_NO_REFUTE` (rules 7 and 8), `W_DOWNGRADE` when rule 1 is satisfied by a
+tertiary-only claim carrying its downgrade annotation, `W_KQ_UNANSWERED` when
+`--plan` is used, and `W_SAME_PUBLISHER` when an `interpretive` claim's distinct
+urls all share one publisher root (a heuristic hint that they may be one outlet
+restating one story, never a failure).
 There is no `E_NORMATIVE` any more: C5 downgraded rule 4 to `W_NORMATIVE`.
 
-So rules 1–3, 5 and 6 plus the `claims`/`sources` half of rule 7 land in
-`errors[]` and stop the run; rule 4, the `key_findings` half of rule 7 and
-rule 8 land in `warnings[]` while `ok` stays `true`.
+So rules 1–3, 5 and 6 plus the `claims`/`sources` half of rule 7 and the
+key-finding half of rule 9 land in `errors[]` and stop the run; rule 4, the
+`key_findings` half of rule 7, rule 8 and the `W_DOWNGRADE` path of rule 1 land
+in `warnings[]` while `ok` stays `true`.
 The validator's stdout shape is a single JSON object
 `{"ok": bool, "errors": [...], "warnings": [...]}`, sorted by `code` then
 `where`; `ok` is `true` if and only if `errors` is empty.
 
 | each entry is `{"code", "message", "where"}` plus an **optional `hint`** — a
 "smallest safe fix" suggestion present only on error codes that have one clear
-corrective action (`E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`, `E_PROJECTIVE_BASIS`,
+corrective action (`E_FACTUAL_SOURCE`, `E_INTERPRETIVE_TWO`,
+`E_INTERPRETIVE_CREDIBLE`, `E_FINDING_BASIS`, `E_PROJECTIVE_BASIS`,
 `E_BACKGROUND_BASIS`, `E_FINDING_BACKGROUND`, `E_REF_SOURCE`,
 `E_REF_OBSERVATION`, `E_REF_CLAIM`, `E_PLAN_DIM_UNKNOWN`,
 `E_PLAN_DIM_UNCOVERED`). `hint` is additive: a consumer keyed on
@@ -290,8 +309,9 @@ not need to drop. It is absent everywhere else, including on a clean pass.
 | `secondary` | Reporting or analysis *about* the thing | News report, review article, expert commentary |
 | `tertiary` | Aggregated or encyclopedic | Encyclopedia entry, roundup, aggregated index |
 
-`tertiary` sources may support `interpretive` claims (as one of two) but never
-carry a `factual` claim alone.
+`tertiary` sources may support `interpretive` claims (as one of two, never as
+the only pillar) and may support a `factual` claim only when the claim carries
+the `downgrade` annotation (rule 1).
 
 An observation is **not** a `sources[]` entry: it lives in `observations[]`,
 has no `url`, and is first-hand by construction, so it satisfies `factual`

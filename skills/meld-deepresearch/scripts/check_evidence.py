@@ -472,7 +472,10 @@ def _validate_evidence(claim_where, evidence, source_meta, observation_ids,
 def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
     """Validate claims[].
 
-    Returns ``(claim_ids, axes, answered_kqs, has_refute, background_ids)``.
+    Returns ``(claim_ids, axes, answered_kqs, has_refute, background_ids,
+    claim_basis)`` where ``claim_basis`` maps every claim id to
+    ``{"origins": set(...), "credible": bool}`` — the same numbers the
+    interpretive / key-finding rules are judged on.
     """
     claim_ids = set()
     seen = set()
@@ -480,10 +483,23 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
     answered = set()
     has_refute = False
     background_ids = set()
+    claim_basis = {}
+
+    # A 'downgrade' writing-context entry is the reader-facing annotation that
+    # lets a factual claim rest on tertiary-only support (§ evidence rules).
+    downgraded = set()
+    for context in doc.get("writing_context") or []:
+        if not isinstance(context, dict):
+            continue
+        if context.get("kind") != "downgrade":
+            continue
+        for item in context.get("applies_to") or []:
+            if isinstance(item, str):
+                downgraded.add(item)
 
     claims = doc.get("claims")
     if not isinstance(claims, list):
-        return claim_ids, axes, answered, has_refute, background_ids
+        return claim_ids, axes, answered, has_refute, background_ids, claim_basis
 
     for index, claim in enumerate(claims):
         where = "claims[%d]" % index
@@ -567,19 +583,38 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
         # its own; `interpretive` counts distinct origins, and one origin is
         # either a source (identified by its url) or an observation.
         origin_count = len(distinct_urls) + len(distinct_obs)
+        if isinstance(claim_id, str):
+            claim_basis[claim_id] = (
+                {("url:" + str(u)) for u in distinct_urls}
+                | {("obs:" + str(o)) for o in distinct_obs},
+                bool(credible or distinct_obs),
+            )
 
         if kind == "factual" and evidence_ok and not credible and not \
                 distinct_obs:
-            errors.append(_entry(
-                "E_FACTUAL_SOURCE",
-                "factual claim needs at least one evidence item backed by a "
-                "primary or secondary source, or by an observation", where,
-                hint="smallest safe fix: either change this claim's kind to "
-                     "'interpretive' (if it is really a reading of the sources) "
-                     "or add one evidence item resolving to a 'primary' or "
-                     "'secondary' source, or record the fact as an observation. "
-                     "Do not keep a 'factual' claim resting only on 'tertiary' "
-                     "sources."))
+            if isinstance(claim_id, str) and claim_id in downgraded:
+                # Tertiary-only support is allowed *only* with the explicit
+                # downgrade annotation, which the writer must surface in the
+                # report as "insufficient evidence / to verify".
+                warnings.append(_entry(
+                    "W_DOWNGRADE",
+                    "factual claim rests on tertiary-only support; the "
+                    "'downgrade' annotation is present, so the report must "
+                    "show it as insufficient evidence / to verify", where))
+            else:
+                errors.append(_entry(
+                    "E_FACTUAL_SOURCE",
+                    "factual claim needs at least one evidence item backed by "
+                    "a primary or secondary source, or by an observation — a "
+                    "tertiary-only claim must carry a 'downgrade' "
+                    "writing-context annotation", where,
+                    hint="smallest safe fix: either add one evidence item "
+                         "resolving to a 'primary' or 'secondary' source (or "
+                         "record the fact as an observation), or add a "
+                         "writing_context entry with kind 'downgrade', "
+                         "applies_to this claim id and reader-facing text "
+                         "('insufficient evidence / to verify'), or soften the "
+                         "claim to kind 'interpretive'."))
         elif kind == "projective" and evidence_ok:
             evidence = claim.get("evidence")
             if not isinstance(evidence, list) or len(evidence) < 1:
@@ -619,8 +654,21 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
                          "Two ids sharing one url do not count as two origins, "
                          "and re-publishing the same url under a new id does "
                          "not help."))
-            elif origin_count >= 2 and len(distinct_domains) == 1 and \
-                    len(distinct_urls) >= 2:
+            elif not (credible or distinct_obs):
+                # Two origins exist, but every one of them is `tertiary`: a
+                # tertiary source may be the second origin, never the only
+                # pillar — at least one origin must be primary/secondary (or a
+                # first-hand observation).
+                errors.append(_entry(
+                    "E_INTERPRETIVE_CREDIBLE",
+                    "interpretive claim needs at least two distinct origins "
+                    "with at least one 'primary' or 'secondary' source (or an "
+                    "observation); every origin here is 'tertiary'", where,
+                    hint="smallest safe fix: add one evidence item from a "
+                         "primary or secondary source (or an observation), or "
+                         "downgrade the wording to a labelled reading of the "
+                         "aggregates."))
+            elif len(distinct_domains) == 1 and len(distinct_urls) >= 2:
                 # Two or more distinct urls prop up the claim, but they all sit
                 # on one publisher root — often one wire story re-published.
                 # This is a heuristic, so it only ever warns.
@@ -643,7 +691,7 @@ def _validate_claims(doc, source_meta, observation_ids, errors, warnings):
                     "the evidence shows, not what anyone should do"
                     % match.group(0), where))
 
-    return claim_ids, axes, answered, has_refute, background_ids
+    return claim_ids, axes, answered, has_refute, background_ids, claim_basis
 
 
 def _validate_writing_context(doc, source_ids, errors):
@@ -722,10 +770,15 @@ def _validate_writing_context(doc, source_ids, errors):
                             "applies_to entry must be dN or dN.cM", item_where))
 
 
-def _validate_key_findings(doc, claim_ids, background_ids, errors):
+def _validate_key_findings(doc, claim_ids, background_ids, errors,
+                           claim_basis=None):
+    """Validate key_findings[]: references resolve, no background claim, and
+    the referenced claims together carry at least two distinct origins with at
+    least one primary/secondary origin (or an observation)."""
     findings = doc.get("key_findings")
     if not isinstance(findings, list):
         return
+    claim_basis = claim_basis or {}
     for index, finding in enumerate(findings):
         where = "key_findings[%d]" % index
         if not isinstance(finding, dict):
@@ -772,6 +825,36 @@ def _validate_key_findings(doc, claim_ids, background_ids, errors):
                         "file" % item, item_where,
                         hint="smallest safe fix: reference a claim id that "
                              "exists, or drop this entry from claim_ids[]."))
+
+            # A key finding is a load-bearing conclusion: the claims it stands
+            # on must together provide two distinct origins, at least one of
+            # them primary/secondary (or a first-hand observation).
+            resolved = [item for item in referenced
+                        if isinstance(item, str) and item in claim_ids
+                        and item not in background_ids]
+            declared = [item for item in referenced
+                        if isinstance(item, str) and item in claim_ids]
+            if claim_basis and len(resolved) == len(declared) and declared:
+                origins = set()
+                credible = False
+                for item in resolved:
+                    item_origins, item_credible = claim_basis.get(
+                        item, (set(), False))
+                    origins |= item_origins
+                    credible = credible or item_credible
+                if len(origins) < 2 or not credible:
+                    errors.append(_entry(
+                        "E_FINDING_BASIS",
+                        "key finding rests on %d distinct origin(s) with "
+                        "%s primary/secondary origin; it needs at least two "
+                        "distinct origins including one primary/secondary "
+                        "(or an observation)"
+                        % (len(origins), "no" if not credible else "at least one"),
+                        where,
+                        hint="smallest safe fix: reference more claims — a "
+                             "tertiary source may be the second origin but "
+                             "never the only pillar — or add a primary/"
+                             "secondary source behind one of the claims."))
 
 
 def _validate_gaps(doc, source_ids, errors):
@@ -993,10 +1076,10 @@ def validate(doc, plan):
 
     source_meta = _validate_sources(doc, errors)
     observation_ids = _validate_observations(doc, errors)
-    claim_ids, axes, answered, has_refute, background_ids = _validate_claims(
-        doc, source_meta, observation_ids, errors, warnings)
+    claim_ids, axes, answered, has_refute, background_ids, claim_basis = \
+        _validate_claims(doc, source_meta, observation_ids, errors, warnings)
     _validate_writing_context(doc, set(source_meta), errors)
-    _validate_key_findings(doc, claim_ids, background_ids, errors)
+    _validate_key_findings(doc, claim_ids, background_ids, errors, claim_basis)
     _validate_gaps(doc, set(source_meta), errors)
 
     if not has_refute:

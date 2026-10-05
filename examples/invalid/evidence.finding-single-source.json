@@ -1,0 +1,35 @@
+{
+  "claims": [
+    {
+      "id": "d1.c1",
+      "text": "The vendor shipped version 3.1 in March.",
+      "kind": "factual",
+      "polarity": "support",
+      "topic_tag": "release",
+      "answers_key_question": "kq1",
+      "evidence": [
+        {
+          "source_id": "s1",
+          "snippet": "Version 3.1 was released on 2026-03-04.",
+          "quote_type": "direct"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "s1",
+      "url": "https://vendor.example.com/releases/3-1",
+      "title": "Release notes 3.1",
+      "quality": "primary",
+      "published_at": "2026-03-04"
+    }
+  ],
+  "writing_context": [],
+  "key_findings": [
+    {
+      "finding": "The 3.1 release is the pivotal change of the cycle.",
+      "claim_ids": ["d1.c1"]
+    }
+  ]
+}

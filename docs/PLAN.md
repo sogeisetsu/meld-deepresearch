@@ -25,13 +25,13 @@
 ## 2. 设计哲学（不可违背）
 
 1. **纪律 > 编排。** 深研究的瓶颈是"结论能否回溯来源 + 有没有主动证伪"，不是 agent 数量。把纪律做成**硬约束**。
-2. **轻量即可移植。** 单 skill；脚本纯 Python 标准库；**工具名中性**；兼容各宿主路径占位符。
+2. **轻量即可移植。** 多 skill 并存但各自独立可装；`meld-deepresearch` 核心脚本纯 Python 标准库，能力技能（`meld-da`、`meld-search-academic`）可用第三方依赖但必须声明并可降级；**工具名中性**；兼容各宿主路径占位符。
 3. **文件即真相。** 原始检索与结构化证据**落盘**，主上下文只留结论，避免上下文黑洞。
 4. **能自检就不靠自觉。** 机械校验器当**硬门**（不通过不交付），替代"请务必引用"。
 5. **两档而非三档。** `quick` / `normal`，**由问题自动判定**；不做 heavy 多角色编排。
 6. **可核验优先于好看。** 每个数字可点到原始来源；查不到标 `unknown`，不装懂。
 7. **主动证伪是义务。** 反方证据与矛盾检测是**硬要求**。
-8. **单一事实源，零跨 skill 依赖。** skill 之间不能互相调用，因此绝不设计多 skill 联动。
+8. **单一事实源 + 文档化跨 skill 交接。** 证据契约与门禁只有 `meld-deepresearch` 一份；skill 之间**允许**沿 `protocol.md` §2a 写明的两条路线互相调用（`meld-da`、`meld-search-academic`），但任何 skill 都不得**依赖**另一个才可用——缺了就降级并记录。无文档的耦合仍禁止。
 9. **工具中立 + 能力分级。** 不写死工具名；能交互就先澄清，不能就写显式假设。
 10. **中文可用、国际可读。** 英文正文；输出语言跟随用户。
 11. **委派可选。** 宿主有子代理能力时**可以**按轴委派；没有就内联跑。**绝不强依赖子代理。**
@@ -375,7 +375,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 
 | 来源 | License | 借了什么（一句话） |
 |---|---|---|
-| OpenSenseNova/SenseNova-Skills（商汤，5.7k★） | MIT | 证据契约 + 校验器 + refute 义务 + 引用渲染（**核心**） |
+| OpenSenseNova/SenseNova-Skills（商汤，5.7k★） | MIT | 证据契约 + 校验器 + refute 义务 + 引用渲染（**核心**）；固定 commit `5abde96f` 全量移植 `sn-da-excel-workflow` → `skills/meld-da`、`sn-search-academic` → `skills/meld-search-academic`，`sn-research-report` 摘译进 `references/report-template.md` |
 | Weizhena/Deep-Research-skills（2.3k★） | MIT | 两阶段 + HITL + item×field 结构化 |
 | OpenAI Deep Research | 产品 | Plan-Act-Observe、逐 claim 引用 |
 | Anthropic multi-agent research | 产品 | 上下文隔离、归因代理 |
@@ -392,7 +392,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 | SalesforceAIResearch/enterprise-deep-research | 见仓库 | reflection 检测缺口、steering |
 | assafelovic/gpt-researcher | Apache-2.0 | planner/executor/publisher |
 | langchain-ai/open_deep_research | MIT | 极简可配置工作流 |
-| 199-biotechnologies/claude-deep-research-skill | — | 来源可信度评分 + 验证 |
+| 199-biotechnologies/claude-deep-research-skill | **无 LICENSE**（2026-10-05 实测：raw `LICENSE` 404、API `license: null`） | 仅参考**风格与结构**（轻量 SKILL.md、按需披露、README 简洁、分档字数）；**不抄任何代码或文本** |
 | **腾讯 混元 Hyra-1.0**（Hunyuan Research Agent，2026-07-21） | 见仓库 `Tencent-Hunyuan/hyra-results` | **递归自我改进 + The Bitter Lesson 轻量 Harness + 预算耗尽返回历史最优** |
 
 > Weizhena 与商汤均为 MIT，**可有出处地复用文本**；其余产品/非 MIT 仓库**只借鉴机制、不抄文本**。所有引用登记进 `NOTICE`。
@@ -404,7 +404,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 
 - ❌ 子代理 / 薄壳（只做 skill）
 - ❌ heavy 三档编排、9 角色工厂、进度 WebUI、PPT/HTML 交付
-- ❌ 跨 skill 依赖（不绑定任何 `sn-search-*` 之类）
+- ❌ **无文档的**跨 skill 耦合（只允许 `protocol.md` §2a 的两条交接路线；`sn-*` 之类外部 skill 名不得成为依赖）
 - ❌ 写死工具名 / POSIX-only 命令 / 指定模型
 
 ---
