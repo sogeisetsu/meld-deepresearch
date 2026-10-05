@@ -1,0 +1,16 @@
+# Optional dependencies for the meld-da skill's example code.
+# The host does not need these packages to read the skill's Markdown; install
+# them only when actually running the fenced example code blocks.
+# Note: meld-deepresearch's own core scripts (skills/meld-deepresearch/scripts)
+# stay Python-stdlib-only and never depend on anything listed here.
+pandas
+numpy
+openpyxl
+pyarrow
+matplotlib
+seaborn
+scipy
+scikit-learn
+ipython
+# Required by openpyxl for embedding images (ws.add_image) in exported reports
+Pillow

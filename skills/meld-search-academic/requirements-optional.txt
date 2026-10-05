@@ -1,0 +1,19 @@
+# OPTIONAL dependencies for meld-search-academic: browser-crawler degradation tier.
+#
+# requirements.txt (CORE) covers the official/public API paths and is always
+# installable. Everything in this file is OPTIONAL: it only enables the
+# crawler providers (arxiv_crawler_search.py, semantic_scholar_crawler_search.py,
+# semantic_scholar_crawler_refTree.py) as extra fallbacks.
+#
+# When these are missing, the skill degrades gracefully to the official APIs
+# and the host's general web search. Missing optional dependencies must never
+# abort the skill: pick another provider or the generic fallback instead.
+#
+# Install on top of the core list:
+#   python3 -m pip install -r requirements.txt
+#   python3 -m pip install -r requirements-optional.txt
+#   python3 -m playwright install firefox
+#
+# Note: the crawlers also need Node.js and an npm install of camoufox-js
+# (node_modules/camoufox-js) in the current directory or an ancestor.
+playwright>=1.40.0
