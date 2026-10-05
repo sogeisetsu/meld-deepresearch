@@ -10,25 +10,34 @@ the core research loop plus two optional capability skills.
 
 ## Install
 
-All three skills:
+Two one-liners can install these skills — **use whichever CLI you already
+have: they are alternatives, not two steps**:
+
+- `npx skills add` (the skills.sh CLI) needs **Node.js**.
+- `gh skill install` needs **GitHub CLI v2.90+** (the `gh skill` command is in
+  preview).
+
+All three skills — pick **one** of the two lines:
 
 ```bash
-npx skills add sogeisetsu/meld-deepresearch --all
-gh skill install sogeisetsu/meld-deepresearch --all
+npx skills add sogeisetsu/meld-deepresearch --all    # with Node.js
+gh skill install sogeisetsu/meld-deepresearch --all  # with GitHub CLI v2.90+
 ```
 
-Core skill only:
+Core skill only — the same two options, naming the single skill:
 
 ```bash
 npx skills add sogeisetsu/meld-deepresearch --skill meld-deepresearch
 gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
 ```
 
-Manual install: copy the skill directories from [`skills/`](skills/) into the
-host's skills directory (e.g. `~/.agents/skills/`).
+Manual install (no CLI): copy the skill directories from [`skills/`](skills/)
+into the host's skills directory (e.g. `~/.agents/skills/`).
 
 Notes:
 
+- `npx` and `gh` install the same skills through different tools — running both
+  would install them twice.
 - A bare `gh skill install owner/repo <name>` installs only that one named
   skill — pass `--all` to install all three.
 - Run non-interactively, `gh` defaults to `--agent github-copilot`, so pass

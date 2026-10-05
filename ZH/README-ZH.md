@@ -10,25 +10,31 @@
 
 ## 安装
 
-三个 skill 全部安装：
+有两条一行命令可以装，**用你已有的那个 CLI 即可——两者是二选一，不是两步**：
+
+- `npx skills add`（skills.sh CLI）需要 **Node.js**。
+- `gh skill install` 需要 **GitHub CLI v2.90+**（`gh skill` 命令目前处于预览阶段）。
+
+三个 skill 全部安装 —— 下列两行**只挑一行**：
 
 ```bash
-npx skills add sogeisetsu/meld-deepresearch --all
-gh skill install sogeisetsu/meld-deepresearch --all
+npx skills add sogeisetsu/meld-deepresearch --all    # 有 Node.js
+gh skill install sogeisetsu/meld-deepresearch --all  # 有 GitHub CLI v2.90+
 ```
 
-只装核心 skill：
+只装核心 skill —— 同样二选一，只是点名那一个 skill：
 
 ```bash
 npx skills add sogeisetsu/meld-deepresearch --skill meld-deepresearch
 gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
 ```
 
-手动安装：把 [`skills/`](../skills/) 下的各 skill 目录复制到主机的 skill
-目录（例如 `~/.agents/skills/`）。
+手动安装（不用 CLI）：把 [`skills/`](../skills/) 下的各 skill 目录复制到主机的
+skill 目录（例如 `~/.agents/skills/`）。
 
 说明：
 
+- `npx` 与 `gh` 是通过两种不同工具安装**同一批** skill——两条都跑会装两遍。
 - 裸用 `gh skill install owner/repo <name>` 只会安装那一个具名的 skill
   ——要装全部三个请加 `--all`。
 - 非交互运行时 `gh` 默认 `--agent github-copilot`，因此要传
