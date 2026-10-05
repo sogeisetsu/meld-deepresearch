@@ -16,8 +16,9 @@ the core research loop plus two optional capability skills.
   reported, not smoothed over.
 - Three hard gates stop a bad run: `check_evidence.py` validates the evidence
   contract, `render_citations.py` rejects orphan or unresolved markers, and
-  `content_review.py --clean` fails the reading copy on runtime-failure
-  jargon or a standalone discipline chapter that survived the weave.
+  `content_review.py --clean` fails the reading copy on four codes:
+  `E_RUNTIME_TERM`, `E_STANDALONE_SECTION`, `E_FAILURE_NARRATION`,
+  `E_APPARATUS_LEAK`.
 - Two effort tiers, `quick` and `normal`, selected from the question and
   overridable — no multi-agent machinery required.
 - One renderer run yields both report files: `report.md`, the reading copy
@@ -81,26 +82,45 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
 - **gate ①** — `check_evidence.py` on the merged file (plus `--plan` on
   `normal`); a failure stops the run.
 - **write** — one draft, `report.src.md`, from validated evidence only. It
-  opens with a header info block (report subject / scope / data cut-off /
-  date / basis) and a table of contents right under the title, and keeps
-  `## Contradictions & Counter-evidence` and `## Gaps & Unknowns` as
-  standalone chapters so they can be reviewed as such.
+  opens with a header info block (subject / report type / scope / data
+  cut-off / basis) as a bullet list — one item per rendered line, since
+  consecutive Markdown lines collapse into one paragraph — then a table of
+  contents that is a vertical list: one entry per line, each a descriptive,
+  content-bearing title covering every top-level section, never a single
+  line joined with `·`. A definitions-and-scope section comes before the
+  first finding, and generic container headings (`## Findings`,
+  `## 主要发现`) are replaced by content-bearing titles. The draft keeps
+  `## Contradictions & Counter-evidence` and `## Gaps & Unknowns` standalone
+  so the draft review can check them.
 - **draft review** — warn-only structural checks (section order and the
   expected chapters) run against the draft / cited copy.
-- **readability pass** — the two discipline chapters are woven into the
-  narrative instead of being left standing on their own; the
+- **readability pass** — the discipline material is woven in at any heading
+  level: `## Contradictions & Counter-evidence`, `## Gaps & Unknowns`,
+  `## Observations` and H3 stand-ins such as `### Counter-evidence and limits`
+  / `### What remains unknown` must not exist in the delivered report; the
   strongest-counter-evidence callout and every `unknown` label must survive
   the weave.
 - **re-gate** — every gate runs again on the woven draft.
 - **dual render** — one `render_citations.py` run (gate ②) emits both files:
   `report.cited.md` into `.work/`, and its marker-free twin `report.md` at
-  the top level, whose first line links to the cited copy.
-- **content gate** — `content_review.py --clean` on `report.md`, hard: exit 1
-  on runtime-failure jargon, or on a standalone
-  `## Contradictions & Counter-evidence` / `## Gaps & Unknowns` chapter left
-  in the reading copy. Structural section-order checks already ran in the
-  draft review.
-- **deliver** — full artifact manifest, including gaps and failed fetches.
+  the top level: line-1 pointer → header info block → table of contents →
+  content → `## Sources`. The reading copy never carries an `## Observations`
+  section — observations stay in `evidence.json` and `.work/report.cited.md`.
+- **content gate** — `content_review.py --clean` on `report.md`, the delivery
+  gate: exit 1 on four codes — `E_RUNTIME_TERM` (runtime-failure jargon),
+  `E_STANDALONE_SECTION` (a standalone discipline chapter at H2 or H3, in
+  either language, including `## Observations`), `E_FAILURE_NARRATION`
+  (telling the reader a page needed a login or could not be opened — that
+  belongs in `observations[]`/`gaps[]`), and `E_APPARATUS_LEAK` (skill id,
+  file names, protocol or tool name in the body; the line-1 pointer is the
+  one sanctioned exception). Warn-only:
+  `W_PROSE_RATIO`, `W_NO_TOC`, `W_THIN_TOC`, `W_NO_INFO_BLOCK`,
+  `W_NO_UNCERTAINTY`, `W_NO_DEFINITIONS`, `W_GENERIC_HEADING`,
+  `W_APPARATUS_LEAK`, `W_RUNTIME_TERM`. Structural section-order checks
+  already ran in the draft review.
+- **deliver** — `dedupe_sources.py` writes the de-duplicated `sources.md`,
+  then the full artifact manifest is reported, including gaps and failed
+  fetches.
 
 Each gate gets at most one fix-and-retry; a second failure stops the run and
 is reported honestly instead of delivered.
@@ -112,7 +132,7 @@ Default directory `meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`
 
 | File | Contents |
 |---|---|
-| `report.md` | **The deliverable** — marker-free reading copy; its first line links to the cited copy |
+| `report.md` | **The deliverable** — marker-free reading copy: line-1 pointer → header info block → table of contents → content → `## Sources`; it never carries an `## Observations` section |
 | `sources.md` | De-duplicated source list |
 | `evidence.json` | Merged, gate-checked evidence behind every claim |
 | `citations.json` | Citation map linking markers to their sources |

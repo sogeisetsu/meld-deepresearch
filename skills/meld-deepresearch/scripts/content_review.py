@@ -208,9 +208,34 @@ def section_body(report, slot_index):
 
 # Standalone discipline chapters are a draft-stage device: at delivery they are
 # woven into the narrative, so seeing one in the reading copy is an error.
+# H3 stand-ins count too — a chapter that exists only to say "here is what we
+# could not do" is the defect, regardless of its level. Observations belong to
+# the cited copy and the evidence file, never to the reader.
 STANDALONE_DISCIPLINE_RE = re.compile(
-    r"^##\s+(?:Contradictions\s*(?:&|and)\s*Counter-evidence|"
-    r"Gaps\s*(?:&|and)\s*Unknowns|矛盾与反证|未知与缺口)\s*$",
+    r"^#{2,3}\s+(?:"
+    r"Contradictions\s*(?:&|and)\s*Counter-evidence|"
+    r"Gaps\s*(?:&|and)\s*Unknowns|"
+    r"Counter-evidence\s+and\s+limits|"
+    r"What\s+remains\s+unknown|"
+    r"Observations|"
+    r"矛盾与反证|未知与缺口|观测记录|反证与边界|尚未证实的部分"
+    r")\s*$",
+    re.MULTILINE | re.IGNORECASE)
+# The reader must never be told that the run failed to open something: state
+# the epistemic status ("no verifiable public source") instead.
+FAILURE_NARRATION_RE = re.compile(
+    r"登录墙|页面要求登录|需要登录|未能打开|打不开|因超时|"
+    r"login wall|could not (?:be )?opened|failed to fetch|could not access",
+    re.IGNORECASE)
+DEFINITIONS_HEADING_RE = re.compile(
+    r"^#{2,3}\s+(?:定义与范畴|背景与范围|术语|"
+    r"Background(?:\s+and\s+scope)?|"
+    r"Scope(?:\s+and\s+(?:definitions|background))?|"
+    r"Definitions?(?:\s+and\s+scope)?"
+    r")\s*$",
+    re.MULTILINE | re.IGNORECASE)
+GENERIC_HEADING_RE = re.compile(
+    r"^##\s+(?:主要发现|Findings|分析|结果|Results|Analysis)\s*$",
     re.MULTILINE | re.IGNORECASE)
 TOC_HEADING_RE = re.compile(
     r"^#{2,3}\s+(?:目录|Contents|Table of Contents)\s*$", re.MULTILINE)
@@ -235,16 +260,58 @@ def check_final_layout(report, evidence, warnings, failures):
         line_number = report[: match.start()].count("\n") + 1
         failures.append(_warn(
             "E_STANDALONE_SECTION",
-            "standalone discipline chapter %r must be woven into the "
-            "narrative before delivery; keep its content (the strongest "
-            "counter-evidence callout and every unknown label) but do not "
-            "leave it as its own top-level section" % match.group(0).strip("# \r\n"),
+            "standalone discipline chapter %r must not exist in the reading "
+            "copy; weave it into the section whose claim it belongs to, "
+            "keeping the strongest-counter-evidence callout and every "
+            "unknown label attached to that claim" % match.group(0).strip("# \r\n"),
+            "line %d" % line_number))
+
+    for match in FAILURE_NARRATION_RE.finditer(report):
+        line_number = report[: match.start()].count("\n") + 1
+        failures.append(_warn(
+            "E_FAILURE_NARRATION",
+            "the reader is told about a run failure (%r); record it in "
+            "observations[]/gaps[] and state the epistemic status in the "
+            "report instead ('no verifiable public source yet')" % match.group(0),
             "line %d" % line_number))
 
     if not TOC_HEADING_RE.search(report) and not TOC_LINK_RE.search(report):
         warnings.append(_warn(
             "W_NO_TOC",
-            "no table of contents: add a short TOC under the title",
+            "no table of contents: add a TOC under the title",
+            "$"))
+    else:
+        # The TOC must be a vertical list of content-bearing titles, not one
+        # run-in line of linked words.
+        toc = TOC_HEADING_RE.search(report)
+        if toc:
+            entries = []
+            for line in report[toc.end():].splitlines():
+                if HEADING_RE.match(line):
+                    break
+                if line.strip():
+                    entries.append(line)
+            if len(entries) <= 1:
+                warnings.append(_warn(
+                    "W_THIN_TOC",
+                    "the table of contents is a single line; list every "
+                    "top-level content section on its own line with a "
+                    "descriptive title",
+                    "line %d" % (report[: toc.start()].count("\n") + 1)))
+
+    for match in GENERIC_HEADING_RE.finditer(report):
+        line_number = report[: match.start()].count("\n") + 1
+        warnings.append(_warn(
+            "W_GENERIC_HEADING",
+            "generic container heading %r tells the reader nothing; use a "
+            "content-bearing section title" % match.group(0).strip("# \r\n"),
+            "line %d" % line_number))
+
+    if not DEFINITIONS_HEADING_RE.search(report):
+        warnings.append(_warn(
+            "W_NO_DEFINITIONS",
+            "no definitions-and-scope section: open with what the subject is, "
+            "which terms are used and how, before any finding",
             "$"))
 
     first_heading = HEADING_RE.search(report)
@@ -252,9 +319,9 @@ def check_final_layout(report, evidence, warnings, failures):
     if not any(INFO_LINE_RE.search(line) for line in head.splitlines()):
         warnings.append(_warn(
             "W_NO_INFO_BLOCK",
-            "no header info block before the first section: state the "
-            "subject, scope, data cut-off date and basis in a few lines "
-            "under the title",
+            "no header info block before the first section: list subject, "
+            "report type, scope, data cut-off and basis as separate bullet "
+            "lines (consecutive Markdown lines collapse into one paragraph)",
             "$"))
 
     if not UNCERTAINTY_RE.search(report):

@@ -2,183 +2,172 @@
 
 🌐 **中文** · [<kbd>English</kbd>](../README.md)
 
-一个**轻量、可移植的 Agent Skill 家族**，把含糊的话题变成一份**可核查、每句话
-都有出处的研究报告**。
+一个可移植的 Agent Skill，把含糊的话题变成一份可核查、有引用
+支撑的研究报告。它遵循 Agent Skills 开放标准（`SKILL.md`），
+任何兼容的主机都能直接从路径加载它——不需要框架，也不绑定厂
+商。本仓库提供三个互相配合的 skill：核心研究循环，加上两个可
+选的能力 skill。
 
-仓库里有三个互相配合、又各自独立可装的 skill：核心研究流程
-`meld-deepresearch`、表格分析 `meld-da`、学术检索 `meld-search-academic`。
-没有框架。它们能在任何支持
-[Agent Skills](https://agentskills.io) 开放标准的主机上运行—— opencode、
-Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等等——也绝不会把你
-绑死在某一家厂商身上。
+## 它能给你什么
 
-> **状态：** `v0.3.0`（规模化重构：三 skill、四产物交付、软预算 + 两轮延长、
-> 分层 CI）。skill 已经实现（`SKILL.md`、`references/`、`scripts/`），并由 CI
-> 在精选示例上跑通，可以直接从本仓库安装。见 [`docs/PLAN.md`](../docs/PLAN.md)。
+- 每条断言都链接到一份真正打开过的来源；任何未经核实的内容都
+  标为 `unknown`，绝不猜测。
+- 反证是被主动去寻找的——矛盾与缺口会被如实报告，而不是被抹
+  平。
+- 三道硬闸门拦住糟糕的运行：`check_evidence.py` 校验证据契约，
+  `render_citations.py` 拒绝孤儿或未解析的标记，
+  `content_review.py --clean` 用四个错误码判阅读版失败：
+  `E_RUNTIME_TERM`、`E_STANDALONE_SECTION`、
+  `E_FAILURE_NARRATION`、`E_APPARATUS_LEAK`。
+- 两档努力级别 `quick` 与 `normal`，根据问题选择、可手动覆盖
+  ——不需要多智能体机制。
+- 一次渲染器运行同时产出两份报告文件：`report.md`，即你交付出
+  去的阅读版，以及带引用标注的 `report.cited.md`，它作为中间产
+  物留在 `.work/`，不是交付物。
+- 核心脚本只用 Python 3 标准库；skill 本身没有运行时依赖。
+- 文件才是事实来源：产物落到磁盘上，模型上下文里只留结论。
 
-## 为什么还要再做一个深度研究 skill
+## 本仓库的 skills
 
-多数 deep research 工具要么是笨重的多智能体框架，要么只是一层薄薄的 prompt。
-`meld-deepresearch` 走的是中间那条路：
-
-1. **靠纪律，不靠编排。** 质量来自可追溯的证据和主动证伪，而不是更多的
-   agent。
-2. **轻量、可移植。** 核心 skill 零运行时依赖（脚本只用 Python 标准库）；
-   `meld-da` / `meld-search-academic` 需要的第三方包写在各自的
-   `requirements.txt` 里、缺了就降级；不写死任何主机特有的工具名。
-3. **文件才是事实来源。** 研究产物落到磁盘上，模型上下文里只留结论。
-4. **用机械闸门代替良好意愿。** 校验器强制执行证据规则，可以让整轮运行失败。
-5. **两档，不是三档。** `quick` / `normal`，根据问题自动选择，不做笨重的
-   编排。
-6. **可核查优先于漂亮。** 每条断言都能点开原文；任何未经核实的内容都会被标成
-   `unknown`。
-7. **证伪是强制动作。** 反证与矛盾必须主动去找，绝不能默认它们不存在。
-
-它把开源界和大厂 deep research 里最好的想法（证据契约、来源质量分级、反驳义
-务、带预算的停止条件、多视角提问）都吸收进来，浓缩成一个自包含的 skill。见
-[`NOTICE`](../NOTICE) 和 `docs/PLAN.md` 第 7 节。
-
-## 安装
-
-这个 skill 就是一个目录，里面装着 `SKILL.md`、`references/` 和 `scripts/`。
-用下面任意一种方式安装即可。
-
-### 一行命令
-
-```bash
-# skills.sh / Vercel skills CLI（可安装到约 40 个受支持的主机）
-npx skills add sogeisetsu/meld-deepresearch
-
-# GitHub CLI（v2.90.0+），适用于 Copilot、Claude Code、Cursor、Codex、Gemini
-gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
-```
-
-### 手动安装（按主机）
-
-把 `skills/` 下的三个目录（`meld-deepresearch/`、`meld-da/`、
-`meld-search-academic/`）复制到你所用主机的 skills 目录；只用核心研究流程时，
-复制 `meld-deepresearch/` 一个就够。跨工具的通用路径 `~/.agents/skills/` 已被
-多个主机识别。
-
-| 主机 | 全局 | 项目内 |
+| 目录 | 用途 | 依赖 |
 |---|---|---|
-| opencode | `~/.agents/skills/` | `.opencode/skills/` |
-| Claude Code | `~/.claude/skills/` | `.claude/skills/` |
-| Codex | `~/.codex/skills/` 或 `~/.agents/skills/` | `.codex/skills/` |
-| Cursor | — | `.cursor/skills/` |
-| GitHub Copilot | `~/.copilot/skills/` 或 `~/.agents/skills/` | `.github/skills/` |
-| Gemini CLI | `~/.gemini/skills/` 或 `~/.agents/skills/` | `.gemini/skills/` |
+| `skills/meld-deepresearch` | 核心研究 / 证据 / 引用循环 | 无——Python 3 标准库 |
+| `skills/meld-da` | Excel 与电子表格数据分析工作流（移植自 SenseNova-Skills `sn-da-excel-workflow`） | `requirements.txt` 中的可选 Python 包；缺包时按文档降级 |
+| `skills/meld-search-academic` | 学术检索、论文阅读、引用树追溯（移植自 SenseNova-Skills `sn-search-academic`） | `requirements.txt`（外加 `requirements-optional.txt`）中的可选 Python 包；缺包时按文档降级 |
 
-> 发现路径随主机和版本而变；如果 skill 没有出现，请查阅你所使用主机的文档。
+每个 skill 都能独立使用；它们只有在
+[`references/protocol.md`](../skills/meld-deepresearch/references/protocol.md)
+§2a 记载的交接点上才能互相调用。
 
-不需要任何配置。skill 直接用宿主自己的模型，你不需要为它配置模型。
+## 快速开始
 
-## 使用
+1. 把本仓库克隆到磁盘上任意位置。
+2. 把你的主机指向它：主机通过读取 `skills/<name>/SKILL.md` 来
+   加载 skill。各主机的 skill 目录列在你所用主机自己的文档里；
+   项目内的 `skills/` 目录在多数主机上都能用。
+3. 可选——能力 skill 需要安装其各自 `requirements.txt` 中列出
+   的包。没有这些包，skill 会降级到文档记载的回退方案。
+4. 开一个新会话，提出研究需求：一份带引用的报告、一次对比、一
+   篇文献综述、一次事实核查。skill 的 `description` 负责匹配；
+   没有任何需要配置的东西。
+5. 从该次运行的输出目录里取走交付物（见**产物**）。
 
-直接提出你的研究需求就行。skill 通过自己的 `description` 亮相，当请求匹配时
-按需加载（深度研究、系统调研、竞品分析、文献综述、趋势分析、事实核查、需要引
-用的报告……）。
+核心 skill 复用主机自己的检索、抓取、文件与命令能力；它不附带
+任何密钥，也不存储任何凭据。
 
-随后它会自动选档：
-
-- **`quick`** ——一条自成一体的研究线（写一段简报、回答单个问题、核对某个
-  点）。
-- **`normal`** ——多个可以独立检索的维度、实体对比、完整报告，或者预期会出现
-  互相冲突的证据。
-
-你也可以显式指定档位。
-
-### 产物
-
-每次运行都会在
-`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/` 下产出**四个产物**：
-
-| 文件 | 是什么 |
-|---|---|
-| `report.md` | **交付给读者的阅读版**：没有角标，首行链接到引用版 |
-| `sources.md` | 去重后的来源清单 |
-| `evidence.json` | 结构化的断言、证据、来源与边界 |
-| `citations.json` | 渲染器生成的引用映射表 |
-
-`report.md` 与引用版由**同一次渲染**生成，编号一致，不会互相漂移；引用版
-`report.cited.md` 只是中间产物，存进 `.work/`，不作为交付物。`.work/` 里还有
-`plan.json`（normal 档）、草稿 `report.src.md` 和各维度的 `sub_reports/`。
-
-如果宿主没有文件系统访问权限，报告会改为直接在对话里返回。
-
-## 工作原理
+## 一次运行如何进行
 
 ```text
-探测宿主能力
-  -> 锚定语言 / 格式 / 结构 / 输出目录
-  -> 澄清（1-3 个问题，或写下明确的假设）
-  -> 选档 + 定长度档位（并记录"值不值得写长报告"的理由）
-  -> 规划（normal：给每个研究维度命名）
-  -> 研究循环：检索 -> URL 池 -> 抓取 -> 阅读 -> 评估 -> 缺口
-     （预算耗尽但关键问题未清 -> 最多自动延长 2 轮，逐轮记入 run-log；
-       2 轮后仍不清 -> 标成 uncertainty，绝不编结论）
-  -> 合并各维度证据  ->  evidence.json
-  -> 自检（硬闸门①：证据校验器）
-  -> 写报告  ->  report.src.md（开头放报告头信息块：主题 / 范围 / 数据截止日 /
-     日期 / 依据，并在标题下给出目录；「矛盾与反证」「未知与缺口」暂作独立章节）
-  -> 草稿 / 引用版评审（章节顺序等结构性检查，只警告不失败）
-  -> 交付前可读性重排：把「矛盾与反证」「未知与缺口」织进正文，不再单独成章
-     （最强反证提示与每处 unknown 标记必须在重排后原样保留）
-  -> 重跑全部闸门
-  -> 渲染（硬闸门②：不得有孤儿或未解析引用）-> 同一次生成两份报告
-     report.md（交付物，首行链接到引用版）+ report.cited.md（存入 .work/，中间产物）
-     + citations.json
-  -> 内容硬闸门 content_review.py --clean 判 report.md：运行故障词黑名单命中，
-     或独立的 `## 矛盾与反证` / `## 未知与缺口` 章节残留 -> 失败
-     （章节顺序等结构性检查已前移到草稿 / 引用版评审）
-  -> 生成 sources.md（URL 归一化 + 去重）
-  -> 交付 report.md + sources.md + evidence.json + citations.json
+probe → clarify → tier → plan → per-axis research → merge → gate ①
+     → write → draft review → readability weave → re-run gates
+     → dual render → content gate → deliver
 ```
 
-关键规则：先检索再抓取；没读过原文就不采信摘要片段；主动去找反证；尊重时效
-性；预算耗尽按上面的延长规则处理，而不是无限循环下去。表格分析走
-`meld-da`，学术 / 科史题材必须走 `meld-search-academic` 的论文路由。
+- **probe** —— 检查主机具备哪些能力；缺少某个阻塞性能力时终止
+  运行并说明。
+- **clarify** —— 最多三个问题，或者在无人可答时写下明确的假
+  设。
+- **tier** —— `quick`（一条自成一体的线程）或 `normal`（若干可
+  独立检索的维度）。
+- **plan** —— `normal` 运行会在 `plan.json` 中写明研究维度与关
+  键问题。
+- **per-axis research** —— 检索 → 打开原始页面 → 评估 → 补充池
+  子，每个维度最多三轮；摘要片段永远不算证据。
+- **merge** —— `merge_evidence.py` 把各维度的文件折叠成一份
+  `evidence.json`。
+- **gate ①** —— 对合并后的文件跑 `check_evidence.py`
+  （`normal` 档还要加 `--plan`）；失败即终止运行。
+- **write** —— 只依据已校验的证据写出一份草稿 `report.src.md`。
+  它开头是头部信息块（主题 / 报告类型 / 范围 / 数据截止 / 依据）
+  的项目符号列表——每条对应渲染后的一行，因为连续的 Markdown 行
+  会并成一段——接着是一个竖排列表形式的目录：每行一条，每条都是
+  描述性、有内容的标题，覆盖所有顶层章节，绝不用 `·` 串成一行。
+  首个发现之前先有一节定义与范畴，通用的容器标题（`## Findings`、
+  `## 主要发现`）会被换成有内容的标题。草稿中
+  `## Contradictions & Counter-evidence` 与 `## Gaps & Unknowns`
+  保持独立成节，以便草稿评审检查它们。
+- **draft review** —— 只警告的结构性检查（章节顺序与预期章节）
+  跑在草稿 / 引用版上。
+- **readability pass** —— 纪律材料在任意标题层级织进正文：
+  `## Contradictions & Counter-evidence`、`## Gaps & Unknowns`、
+  `## Observations` 以及 `### Counter-evidence and limits` /
+  `### What remains unknown` 这类 H3 替身不得出现在交付的报告里；
+  最强反证提示与每一处 `unknown` 标记必须在织入之后保留下来。
+- **re-gate** —— 每道闸门在织入后的草稿上重跑一次。
+- **dual render** —— 一次 `render_citations.py` 运行（闸门②）同
+  时产出两份文件：`report.cited.md` 进入 `.work/`，它去掉标记的
+  孪生兄弟 `report.md` 落在顶层：首行指针 → 头部信息块 → 目录 →
+  正文 → `## Sources`。阅读版从不带 `## Observations` 一节——观
+  测记录留在 `evidence.json` 和 `.work/report.cited.md` 里。
+- **content gate** —— 对 `report.md` 跑
+  `content_review.py --clean`，即交付闸门：四个错误码时退出码
+  1——`E_RUNTIME_TERM`（运行故障术语）、`E_STANDALONE_SECTION`
+  （H2 或 H3 层级的独立纪律章节，中英皆算，含
+  `## Observations`）、`E_FAILURE_NARRATION`（告诉读者某个页面需
+  要登录或打不开——那属于 `observations[]`/`gaps[]`），以及
+  `E_APPARATUS_LEAK`（正文出现 skill id、文件名、协议或工具名；
+  首行指针是唯一获准的例外）。只警告不失败：`W_PROSE_RATIO`、
+  `W_NO_TOC`、`W_THIN_TOC`、`W_NO_INFO_BLOCK`、
+  `W_NO_UNCERTAINTY`、`W_NO_DEFINITIONS`、`W_GENERIC_HEADING`、
+  `W_APPARATUS_LEAK`、`W_RUNTIME_TERM`。章节顺序的结构性检查已
+  经在草稿评审中跑过。
+- **deliver** —— `dedupe_sources.py` 写出去重后的 `sources.md`，
+  然后报告完整的产物清单，包括缺口与抓取失败。
+
+每道闸门最多有一次修复后重试的机会；第二次失败会终止运行，并如
+实报告，而不是交付出去。
+
+## 产物
+
+默认目录 `meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`
+（用户提供的路径会完全取代这个命名）：
+
+| 文件 | 内容 |
+|---|---|
+| `report.md` | **交付物**——无标记的阅读版：首行指针 → 头部信息块 → 目录 → 正文 → `## Sources`；它从不带 `## Observations` 一节 |
+| `sources.md` | 去重后的来源清单 |
+| `evidence.json` | 合并后、通过闸门校验的证据，支撑每一条断言 |
+| `citations.json` | 把标记链接到其来源的引用映射表 |
+
+与它们并排的 `.work/` 存放中间产物：`plan.json`（normal 档）、
+渲染前的草稿 `report.src.md`、同一次渲染产生的带引用标注的
+`report.cited.md`（中间产物，不是交付物），以及各维度的
+`sub_reports/`。
+
+## 何时该用 / 何时不该用
+
+**该用的时候**：答案必须建立在不止一份来源之上、并且可核查：格局
+或趋势扫描、竞品对比、文献综述、事实核查，以及任何明确要求带引
+用的报告或简报。
+
+**不该用的时候**：一个直接回答就够：定义、一行就能查到的问题、整
+理你已有的来源、纯改写或翻译，或者本就不期待证据的观点文章。
 
 ## 环境要求
 
-- 一个支持 Agent Skills 标准的主机。
-- 具备网络检索与抓取能力。
-- 文件读写与命令执行能力（脚本和产物需要用到）。
-- Python 3（核心脚本仅用标准库），用于证据校验器、引用渲染器和来源去重工具；
-  这些脚本无法执行时，运行会优雅降级，并在输出中说明这一点。
-- `meld-da` / `meld-search-academic` 的分析与浏览器抓取需要第三方包，各自写在
-  `requirements.txt`（可选层在 `requirements-optional.txt`）。缺包时它们退回
-  标准库读取层 / 官方 API / 通用检索，不会中断运行。
+- 一个实现了 Agent Skills 标准（`SKILL.md`）的主机。
+- 网络检索、页面抓取、文件读写与命令执行能力；当可选能力缺失时
+  skill 会优雅降级，并在输出中说明。
+- 运行闸门与渲染器需要 Python 3（核心 skill 只用标准库）。
 
-## 参考与致谢
+## 文档
 
-这个 skill 站在许多项目的肩上。完整的借鉴清单在 `docs/PLAN.md` 第 7 节，署名
-列表在 [`NOTICE`](../NOTICE)。其中影响最明显的两个是：
+- Skill 入口：[`skills/meld-deepresearch/SKILL.md`](../skills/meld-deepresearch/SKILL.md)
+- 协议、预算、闸门：[`references/protocol.md`](../skills/meld-deepresearch/references/protocol.md)
+- 证据 schema：[`references/evidence-contract.md`](../skills/meld-deepresearch/references/evidence-contract.md)
+- 带注释的文件树：[`docs/FILE_TREE.md`](../docs/FILE_TREE.md)
+- 开发计划与里程碑：[`docs/PLAN.md`](../docs/PLAN.md)
 
-- [SenseNova-Skills](https://github.com/OpenSenseNova/SenseNova-Skills)（MIT）
-  ——证据契约、校验器和引用渲染。
-- [Weizhena/Deep-Research-skills](https://github.com/Weizhena/Deep-Research-skills)
-  （MIT）——两阶段流程与人工介入的检查点。
+## 验证
 
-## 开发
+完整的验证集合——正向示例、负向示例以及每一种渲染模式——列在
+[`AGENTS.md`](../AGENTS.md) 中，并由 CI 执行。
 
-- 面向 agent 的项目约定：[`AGENTS.md`](../AGENTS.md)
-- 权威计划与里程碑：[`docs/PLAN.md`](../docs/PLAN.md)
+## 许可证与署名
 
-在仓库根目录运行本地检查：
-
-```bash
-python skills/meld-deepresearch/scripts/check_evidence.py \
-  examples/sample-run/evidence.json
-```
-
-完整的验证集合——正向示例，加上 `examples/invalid/` 里的负向用例——列在
-[`AGENTS.md`](../AGENTS.md) 中，由 CI 在 `.github/workflows/validate.yml` 中
-执行。
-
-## 许可证
-
-MIT。见 [`LICENSE`](../LICENSE)。
+MIT——见 [`LICENSE`](../LICENSE)。作者：**sogeisetsu**。
+[`NOTICE`](../NOTICE) 列出了所有其材料被移植或借鉴的上游项目，
+包括两个 SenseNova-Skills 移植。
 
 ---
 

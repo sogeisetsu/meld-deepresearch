@@ -84,6 +84,17 @@ The authoritative, annotated file tree lives in
 
 ## Conventions
 
+- **`ZH/` mirrors stay in sync with their English originals — in the same
+  change.** `ZH/README-ZH.md` mirrors `README.md` (published), and
+  `ZH/SKILL-ZH.md` / `ZH/CHANGELOG-ZH.md` mirror
+  `skills/meld-deepresearch/SKILL.md` / `CHANGELOG.md` (local-only). A mirror
+  must stay **section-parallel**: same sections, same order, same tables, same
+  codes and paths — translate the change, never drop it and never leave a
+  mirror silently stale. English frontmatter (`name` / `description` /
+  `compatibility`) stays byte-identical in a mirror; it is spec-facing English.
+  If a change genuinely cannot be translated in this pass, say so explicitly in
+  the commit message and leave a dated TODO at the top of the mirror — silence
+  is the only forbidden state.
 - Skill IDs and directory names: `meld-deepresearch`, `meld-da`,
   `meld-search-academic` (lowercase kebab; each directory name matches its
   `name:` frontmatter).
@@ -171,10 +182,13 @@ python skills/meld-deepresearch/scripts/content_review.py \
   --report examples/sample-run/report.cited.md \
   --evidence examples/sample-run/evidence.json
 # then the delivery gate on the reading copy: --clean fails (exit 1) on the
-# runtime-failure blacklist (E_RUNTIME_TERM) and on a standalone discipline
-# chapter that survived the weave (E_STANDALONE_SECTION); warn-only:
-# W_PROSE_RATIO, W_NO_TOC, W_NO_INFO_BLOCK, W_NO_UNCERTAINTY and the
-# ambiguous-term W_RUNTIME_TERM (expected here: {"ok": true, "warnings": []})
+# runtime-failure blacklist (E_RUNTIME_TERM), on a standalone discipline
+# chapter that survived the weave (E_STANDALONE_SECTION, H2 or H3, EN or ZH,
+# including the observation section), on narration of a run failure to the
+# reader (E_FAILURE_NARRATION) and on internal apparatus (E_APPARATUS_LEAK);
+# warn-only: W_PROSE_RATIO, W_NO_TOC, W_THIN_TOC, W_NO_INFO_BLOCK,
+# W_NO_UNCERTAINTY, W_NO_DEFINITIONS, W_GENERIC_HEADING, W_APPARATUS_LEAK and
+# the ambiguous-term W_RUNTIME_TERM (expected here: exit 0)
 python skills/meld-deepresearch/scripts/content_review.py --clean \
   --report examples/sample-run/report.md \
   --evidence examples/sample-run/evidence.json
@@ -232,14 +246,13 @@ gate ② (exit 1), and so does `report.empty-marker.src.md` — its blank `[^]` 
 `[^ ]` markers must fail gate ② in the default GFM-footnote mode (exit 1).
 `report.runtime-jargon.src.md` renders cleanly but its reading copy must fail
 `content_review.py --clean` with `E_RUNTIME_TERM` (exit 1); likewise
-`report.standalone-section.src.md` renders cleanly but its reading copy must
-fail `content_review.py --clean` with `E_STANDALONE_SECTION` (exit 1) — the
-discipline chapters (`## Contradictions & Counter-evidence`, `## Gaps &
-Unknowns`, or their Chinese forms `## 矛盾与反证` / `## 未知与缺口`) must be
-woven into the narrative before delivery. The delivery-gate positive is
-`examples/sample-run/report.md` (`content_review.py --clean`, exit 0, zero
-warnings); the evidence-gate positive counterpart is
-`examples/downgrade-run/evidence.json` (exit 0, `W_DOWNGRADE`).
+`report.standalone-section.src.md` → `E_STANDALONE_SECTION`, and
+`report.failure-narration.src.md` → `E_FAILURE_NARRATION` (the reader is never
+told that a page needed a login or could not be opened — that belongs in
+`observations[]`/`gaps[]`, while the report states the epistemic status
+instead). The delivery-gate positive is `examples/sample-run/report.md`
+(`content_review.py --clean`, exit 0); the evidence-gate positive counterpart
+is `examples/downgrade-run/evidence.json` (exit 0, `W_DOWNGRADE`).
 
 CI has **two jobs**. The `core` job installs nothing and must be green: the
 frontmatter/spec check over every `skills/*/SKILL.md` (field lengths, English-only

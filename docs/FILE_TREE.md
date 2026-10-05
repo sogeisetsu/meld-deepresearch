@@ -31,7 +31,7 @@ meld-deepresearch/                    # repository root
 │   ├── chronicle-run/                # a chronicle-genre run: background claims, gaps[], source_type, plan genre + must_have_materials
 │   ├── downgrade-run/                # positive fixture: a tertiary-only factual claim that passes because it carries its 'downgrade' annotation (W_DOWNGRADE)
 │   ├── merge-run/                    # a two-axis merge fixture: sub_reports/{d1,d2}.evidence.json share one URL, which folds to a single source id with references re-pointed
-│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + gate-② drafts (orphan, blank) + two content_review --clean drafts (runtime jargon → E_RUNTIME_TERM, standalone discipline section → E_STANDALONE_SECTION)
+│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + gate-② drafts (orphan, blank) + three content_review --clean drafts (runtime jargon → E_RUNTIME_TERM, standalone discipline section → E_STANDALONE_SECTION, narrated run failure → E_FAILURE_NARRATION)
 └── .github/                          # GitHub configuration
     └── workflows/                    # CI: validate.yml — core job (zero-dep spec check + script self-test + degrade unit tests) and optional job (full dependency install, recorded skips)
 ```

@@ -65,7 +65,8 @@ filtering, aggregation, statistics, visualization or a formatted export, run
 `skills/meld-da`'s workflow instead of improvising a few lines of pandas. It
 owns multi-sheet reading, the large-file gate, cleaning, group-by/pivot
 aggregation and chart/export steps. What comes back still enters this skill's
-evidence as `observations[]` — see §2b.
+evidence as `observations[]` — see *Local data files are first-hand evidence*
+below.
 
 **→ `meld-search-academic` (papers, citation trees).** For an **academic,
 scientific or historical subject this route is mandatory for the scholarly
@@ -362,12 +363,20 @@ the renderer.
   draft shape (required sections, their order, heading language, uncited
   numbers). Warn-only, exit 0.
 - **with `--clean`, on `report.md`** — the delivery gate. It fails (exit 1) on
-  the runtime-failure blacklist (`E_RUNTIME_TERM`) **and** when a standalone
-  `## Contradictions & Counter-evidence` / `## Gaps & Unknowns` (or Chinese)
-  chapter survived the weave (`E_STANDALONE_SECTION`). Warn-only signals:
-  prose ratio, missing header info block, missing table of contents, no
-  uncertainty marker in the body. Technical detail is allowed to stay in the
-  cited copy, so the blacklist does not apply there.
+  four things: the runtime-failure blacklist (`E_RUNTIME_TERM`); a standalone
+  discipline chapter, at H2 or H3, English or Chinese — including
+  `## 观测记录` (`E_STANDALONE_SECTION`); narrating a run failure to the reader
+  such as a login wall or an unopenable page (`E_FAILURE_NARRATION`); and
+  internal apparatus — the skill id, draft/run-log file names, a protocol name
+  (`E_APPARATUS_LEAK`). Warn-only signals: prose ratio, missing header info
+  block, missing or single-line table of contents, no definitions section, a
+  generic container heading, no uncertainty marker, a `.work/` path outside
+  line 1, and the ambiguous-term exemptions. Technical detail is allowed to
+  stay in the cited copy, so none of the failures apply there.
+
+The reading copy never carries an `## Observations` section: observations live
+in `evidence.json` and in `.work/report.cited.md`. A reader is told *what is
+known and what is not*, never *what the run failed to open*.
 
 A `quick` run has no `plan.json`, so it omits the `--plan` flag.
 `render_citations.py` renders GFM footnotes by default (the renderer wires the
@@ -410,7 +419,7 @@ Default output directory:
 
 ```
 meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/
-├── report.md                 # THE deliverable: clean reading copy (no markers)
+├── report.md                 # THE deliverable: info block + TOC + woven body, no markers, no Observations
 ├── sources.md                # delivered: de-duplicated source table
 ├── evidence.json             # delivered: merged evidence
 ├── citations.json            # delivered: citation map

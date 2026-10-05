@@ -336,6 +336,18 @@ jobs:
               --report "${tmp}/standalone.md" \
               --evidence examples/sample-run/evidence.json
 
+          # The reader must never be told that the run failed to open a page.
+          step "render_citations: failure-narration fixture renders" 0 '"ok": true' -- \
+            python3 $S/render_citations.py \
+              --report examples/invalid/report.failure-narration.src.md \
+              --evidence examples/sample-run/evidence.json \
+              --output "${tmp}/work/failure.cited.md" \
+              --clean-output "${tmp}/failure.md"
+          step "content_review: narrated run failure fails" 1 "E_FAILURE_NARRATION" -- \
+            python3 $S/content_review.py --clean \
+              --report "${tmp}/failure.md" \
+              --evidence examples/sample-run/evidence.json
+
           step "read_table: stdlib xlsx/csv selftest" 0 "read_table selftest: OK" -- \
             python3 $S/read_table.py --selftest
 

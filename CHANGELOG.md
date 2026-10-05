@@ -71,10 +71,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that must be green, plus an `optional` job that performs the full dependency
   install, re-runs the tests with packages present, AST-parses every script, and
   records a skip reason instead of failing when the network is unavailable.
+- **Delivery-shape gates (after round-5/6 blind evals failed axis E).**
+  `content_review.py --clean` now also fails on:
+  - `E_STANDALONE_SECTION` — any standalone discipline chapter at H2 **or H3**,
+    English or Chinese, including `反证与边界`, `尚未证实的部分` and
+    `观测记录`: the counter-evidence callout and every `unknown` label are
+    woven into the section they belong to instead;
+  - `E_FAILURE_NARRATION` — telling the reader that a page needed a login or
+    could not be opened (`登录墙`, `页面要求登录`, `未能打开`, …). Failures are
+    recorded in `observations[]`/`gaps[]`; the report states the epistemic
+    status only;
+  - `E_APPARATUS_LEAK` — the skill id, draft/run-log file names, a protocol
+    name or a tool name inside the body.
+  Warn-only signals added: `W_THIN_TOC` (TOC is one run-in line),
+  `W_NO_DEFINITIONS` (no definitions-and-scope section), `W_GENERIC_HEADING`
+  (a container heading such as `## 主要发现`), `W_APPARATUS_LEAK` (a `.work/`
+  path outside line 1).
+- **Report opening spec.** A header info block as **one item per rendered
+  line** (Markdown collapses consecutive lines into one paragraph), a
+  **vertical table of contents** carrying every top-level section under a
+  descriptive title, and a **definitions-and-scope section before the first
+  finding**. Generic container headings are replaced by content-bearing ones.
+- **`report.md` no longer carries an `## Observations` section** — the reader
+  gets the reference list only; observations stay in `evidence.json` and
+  `.work/report.cited.md`.
 - New fixtures: `examples/downgrade-run/` (positive, `W_DOWNGRADE`),
   `examples/invalid/evidence.interpretive-tertiary-pair.json`,
   `examples/invalid/evidence.finding-single-source.json`,
-  `examples/invalid/report.runtime-jargon.src.md`.
+  `examples/invalid/report.runtime-jargon.src.md` (`E_RUNTIME_TERM`),
+  `examples/invalid/report.standalone-section.src.md` (`E_STANDALONE_SECTION`),
+  `examples/invalid/report.failure-narration.src.md` (`E_FAILURE_NARRATION`).
 - **`docs/eval/records/sensenova-live/baseline-f05bcbc.json`** — the frozen
   per-axis baseline (A5 / B3 / C1 / D0 / E5 / G1 = 15 of 30) exported from the
   committed round-3 record, so acceptance no longer depends on re-blinding.

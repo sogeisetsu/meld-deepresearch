@@ -93,8 +93,8 @@ sources, open questions and cost per round — then those questions become
 
 Run the commands exactly as `references/protocol.md` §9 lists them (gate ① also takes
 `--plan` on a `normal` run). Gate ① passes only on `ok`; gate ② fails on an **orphan** or
-**unresolved** marker; `content_review.py --clean` fails on run-failure jargon in `report.md`
-**or** on a discipline chapter left standing instead of woven in.
+**unresolved** marker; `content_review.py --clean` fails on run-failure jargon, a discipline
+chapter left standing, a narrated run failure, or internal apparatus leaking into `report.md`.
 Fix once and re-run — a second failure means **STOP** and report honestly. Every stage
 (plan / research / merge / write / render) retries once, then stops with the failing stage,
 artifacts and last error (`protocol.md` §10). No command execution? Walk the gates by hand

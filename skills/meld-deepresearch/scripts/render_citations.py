@@ -451,11 +451,9 @@ def build_clean_copy(
     if is_cjk:
         pointer = "> 引用标注版（含角标与出处）：[%s](%s)"
         sources_heading = "## 来源"
-        observations_heading = "## 观测记录"
     else:
         pointer = "> Citation-annotated version with footnote markers: [%s](%s)"
         sources_heading = "## Sources"
-        observations_heading = "## Observations"
 
     # The pointer must resolve from wherever the reading copy lives, so the
     # cited file can sit in .work/ while report.md stays at the top level.
@@ -481,23 +479,9 @@ def build_clean_copy(
             published_at = "unknown"
         parts.append("- %s — %s (%s, %s)" % (title, url, quality, published_at))
 
-    if observation_numbers:
-        parts += ["", observations_heading, ""]
-        ordered_observations = sorted(
-            observation_numbers.items(), key=lambda item: item[1])
-        for observation_id, _number in ordered_observations:
-            observation = obs_by_id[observation_id]
-            method = str(observation.get("method") or "")
-            environment = observation.get("environment")
-            if environment in (None, ""):
-                environment = "unknown"
-            captured_at = observation.get("captured_at")
-            if captured_at in (None, ""):
-                captured_at = "unknown"
-            # The reading copy is for the reader: state what was checked and
-            # when, not the machine environment (that stays in the cited copy)
-            # and never the word "captured" (content_review fails on it).
-            parts.append("- %s (%s)" % (method, captured_at))
+    # Observations are deliberately NOT rendered into the reading copy: a
+    # reader does not want to be told that a page needed a login or timed out.
+    # They stay in evidence.json and in the cited copy's [^oN] list.
 
     return "\n".join(parts).rstrip("\n") + "\n"
 
