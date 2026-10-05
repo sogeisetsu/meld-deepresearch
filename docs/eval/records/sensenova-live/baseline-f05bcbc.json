@@ -1,0 +1,27 @@
+{
+  "schema": "meld-baseline-frozen/1",
+  "frozen_at_commit": "f05bcbc",
+  "source_document": "docs/eval/records/sensenova-live/example1.md",
+  "source_section": "Round 3 (frozen skill: main 0958af1) — Per-axis medians across the three round-3 passes",
+  "example": "example1",
+  "task": "T1 embodied-AI landscape",
+  "provenance": "Exported from the git-committed blind-eval record only; no re-blinding, no new thresholds.",
+  "axes": ["A", "B", "C", "D", "E", "G"],
+  "baseline_median": {
+    "A": 5,
+    "B": 3,
+    "C": 1,
+    "D": 0,
+    "E": 5,
+    "G": 1
+  },
+  "baseline_total_median": 15,
+  "max_total": 30,
+  "pass_rule": {
+    "per_axis": "meld_median[axis] >= baseline_median[axis] for every axis in {A,B,C,D,E,G}",
+    "total": "meld_total_median >= max(baseline_total_median, 15)",
+    "blind_passes": 3,
+    "order": "A/B identity swapped between passes",
+    "median": "per-axis median across the 3 passes"
+  }
+}
