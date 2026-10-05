@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-06
+
 ### Added
 
 - **The delivery gate rejects a standalone discipline chapter**
@@ -245,6 +247,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The `meld-search-academic` degrade test no longer requires a
+  dependency-free interpreter.** Its core-entry-point case asserted that
+  `search.py` / `paper.py` / `refTree.py` import with no third-party packages at
+  all, which failed in the zero-dependency CI job: those entry points
+  legitimately depend on the declared core packages (`httpx`, `arxiv`, ...).
+  The test now asserts the documented contract instead — with the core
+  requirements present the modules import, and without them they exit with a
+  clean "install `requirements.txt`" hint rather than a traceback.
 - `check_evidence.py` no longer crashes with a Python traceback when a
   top-level array has the wrong shape (for example a non-array `claims`); it now
   reports a clean `E_SHAPE` JSON body, as the contract promises.
@@ -409,5 +419,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The skill is at version `0.1.0` and is published. See `docs/PLAN.md`
   milestones M1-M4.
 
-[Unreleased]: https://github.com/sogeisetsu/meld-deepresearch/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/sogeisetsu/meld-deepresearch/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/sogeisetsu/meld-deepresearch/releases/tag/v0.3.0
+[0.2.0]: https://github.com/sogeisetsu/meld-deepresearch/releases/tag/v0.2.0
 [0.1.0]: https://github.com/sogeisetsu/meld-deepresearch/releases/tag/v0.1.0

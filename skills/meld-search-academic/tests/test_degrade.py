@@ -7,8 +7,10 @@ Run:
 Covers, without network access and without playwright installed:
 - crawler CLI entry points report {"ok": false, "degraded": true, ...} and exit 1
   instead of raising an unhandled exception or printing a traceback;
-- the core entry points (search.py / paper.py / refTree.py) import with
-  playwright absent (import only, no network);
+- the core entry points (search.py / paper.py / refTree.py) never require the
+  optional crawler tier: with the core requirements installed they import, and
+  in a dependency-free environment they exit with a clean "install
+  requirements.txt" hint instead of an unhandled traceback;
 - the requirements.txt / requirements-optional.txt split is real.
 
 Exit code: 0 on success, 1 on failure.
@@ -18,6 +20,7 @@ from __future__ import annotations
 
 import contextlib
 import importlib
+import importlib.util
 import io
 import json
 import sys
@@ -107,9 +110,26 @@ class CoreEntryPointImportTests(unittest.TestCase):
             "paper": "read_paper",
             "refTree": "ref_tree",
         }
+        # The entry points depend on the declared CORE requirements (httpx,
+        # arxiv, ...) but never on the optional crawler tier. A job that
+        # installs nothing -- the zero-dependency core CI job -- therefore sees
+        # the documented degradation: one clean SystemExit carrying the
+        # "install requirements.txt" hint, never an unhandled traceback. With
+        # the core requirements present, the same modules must import.
+        core_deps_present = importlib.util.find_spec("httpx") is not None
         with mock.patch.dict(sys.modules, PLAYWRIGHT_ABSENT):
             for name in ("search", "paper", "refTree"):
                 sys.modules.pop(name, None)
+                if not core_deps_present:
+                    with self.assertRaises(SystemExit, msg=name) as caught:
+                        importlib.import_module(name)
+                    self.assertIn(
+                        "requirements.txt",
+                        str(caught.exception),
+                        f"{name}.py must fail with the install hint when the "
+                        "core requirements are absent, not a traceback",
+                    )
+                    continue
                 module = importlib.import_module(name)
                 self.assertTrue(
                     hasattr(module, expected_attr[name]),
