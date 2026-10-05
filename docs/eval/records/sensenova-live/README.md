@@ -175,18 +175,35 @@ committed).
 - [x] T1 round 5 live run — done (`test/runs/example1/round5/`, the new
       reading-copy deliverable) and scored: **FAIL on axis E** (3 vs frozen 5)
       — apparatus leaked into the body; fix committed `4b5cf24`
-- [ ] T1 round 6 — repair attempt 1 of at most 2 (in flight)
+- [x] T1 round 6 — repair attempt 1: run + 3 blind passes → **FAIL on E** (4 vs
+      frozen 5); causes: line-1 `.work/` pointer + `## 观测记录` process log
+- [x] Shape rules enforced (`f601e39`): bullet info block, vertical
+      argument-bearing TOC, definitions section, content-bearing headings,
+      no standalone/H3 discipline chapters, no failure narration,
+      `E_FAILURE_NARRATION` + `E_APPARATUS_LEAK` gates, no Observations in
+      `report.md`
+- [x] T1 round 7 — repair attempt 2: run + 3 blind passes → **PASS** (28 vs
+      frozen 15, every axis ≥ frozen, E ties at 5) → [`example1.md`](example1.md)
 
 ## 13. Result
 
-Final verdicts are on the **frozen skill** `main` `0958af1` (`SKILL.md`
-`e409856b…`), so both examples share one version. A–E scored by 3 blind passes;
-G by a dedicated independent pass.
+Final verdicts on the **frozen skill** `main` `0958af1` (`SKILL.md`
+`e409856b…`) — A–E scored by 3 blind passes, G by a dedicated pass.
 
 | Example | Round (skill) | meld | baseline | Verdict |
 |---|---|---|---|---|
 | T1 embodied-AI landscape | r3 (`0958af1`) | **28 / 30** | 15 / 30 | **PASS** |
 | T2 employee performance | r4 (`0958af1`) | **24 / 25** | 17 / 25 | **PASS** |
+
+**Scale redesign (`feat/scale-redesign`, three skills, dual-file delivery)** —
+against the frozen baseline exported as
+[`baseline-f05bcbc.json`](baseline-f05bcbc.json), medians over 3 blind passes
+on the delivered `report.md`:
+
+| Example | Round | meld | baseline (frozen) | Verdict |
+|---|---|---|---|---|
+| T1 embodied-AI landscape | r7 | **28 / 30** (A5 B5 C5 D5 E5 G3) | 15 / 30 | **PASS** — repair attempt 2 of 2 |
+| T2 employee performance | r5 | gates + content review green, numbers independently re-confirmed | — | not blind-scored (by decision) |
 
 Round history (why these rounds):
 - T1 r1 (pre-fix) PASS 28 vs 14; r2 (`86b472d`) PASS 28 vs 12; r3 (`0958af1`) PASS 28 vs 15.

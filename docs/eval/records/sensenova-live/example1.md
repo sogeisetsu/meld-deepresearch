@@ -309,3 +309,68 @@ without rules about what may appear in them.
   the judges caught.
 
 Round 6 is the repair run; its verdict follows below.
+
+## Round 7 (repair attempt 2) — **PASS on the new delivery form**
+
+Round 6 had failed axis E (median 4 vs the frozen 5) with both remaining
+defects named by all three judges: line 1's `.work/` pointer and the
+`## 观测记录` process log. The shape rules were then enforced mechanically
+(commit `f601e39`) — and a line-by-line review of the delivered reports added
+five more constraints: a definitions/scope section, an info block with one row
+per rendered line, a vertical table of contents whose titles carry the
+argument, content-bearing section headings instead of `## 主要发现`, and no
+narration of run failures (`登录墙` etc.) in reader-facing text.
+
+Run (`test/runs/example1/round7/`): `normal`, genre `panorama`, 5 axes,
+21 fetch attempts / 16 opened sources, 30 claims (8 `refute`), 4 gaps, ~20
+minutes.
+
+| Check | Result |
+|---|---|
+| Gate ① `check_evidence.py --plan` (before and after the weave) | `{"ok": true}` exit 0, one expected `W_DOWNGRADE` |
+| Gate ② one render → both files | `{"ok": true, "citation_count": 16, "observation_count": 0, "orphans": [], "uncited": []}` exit 0 |
+| `content_review.py --clean` | exit 0, **zero warnings** |
+| Shape assertions (orchestrator re-run) | standalone discipline headings **0**, `[^` markers **0**, blacklist hits **0**, generic container headings **0** |
+| Info block | six `- label：value` rows, one per line; `依据：16 个已直接打开的来源` (no tool/protocol name) |
+| `## 目录` | vertical list, 10 entries, all argument-bearing (e.g. `市场规模与增长：同一市场的两个口径相差逾一倍`) |
+| `## 定义与范畴` | present, opens the body before any finding |
+| link sample (8 of 16) | 8/8 HTTP 200 |
+
+Delivered headings, in order: `目录`, `定义与范畴`, `摘要`, `市场规模与增长…`,
+`竞争格局与份额…`, `产业链与成本结构…`, `技术进展与落地场景…`,
+`政策与标准…`, `需求真实性与泡沫风险…`, `结论与展望`, `来源`.
+
+### Blind judges (axes A,B,C,D,E,G; F excluded; max 30)
+
+| pass | order | total A | total B |
+|---|---|---|---|
+| 1 | A=baseline · B=round7 | 13 | 27 |
+| 2 | A=round7 · B=baseline | 28 | 13 |
+| 3 | A=baseline · B=round7 | 15 | 28 |
+
+Per-axis medians:
+
+| axis | frozen baseline (`baseline-f05bcbc.json`) | round7 baseline | round7 | ≥ frozen? |
+|---|---|---|---|---|
+| A Coverage | 5 | 4 | **5** | ✓ |
+| B Depth | 3 | 3 | **5** | ✓ |
+| C Factual support | 1 | 2 | **5** | ✓ |
+| D Citation quality | 0 | 1 | **5** | ✓ |
+| E Instruction-following | 5 | 3 | **5** | ✓ (=) |
+| G Process discipline | 1 | 1 | **3** | ✓ |
+| **total** | **15** | 13 | **28** | ✓ (28 ≥ max(15, 15)) |
+
+**PASS** — every axis median ≥ the frozen baseline, total 28 ≥ 15, on the
+second and final permitted repair round. Judge notes on E: "readable opening
+info block one row per line … argumentative TOC titles … 定义与范畴 section";
+the single remaining deduction in pass 1 was the sanctioned line-1 pointer to
+the cited copy.
+
+### Round history (scale redesign)
+
+| round | form judged | verdict | cause |
+|---|---|---|---|
+| 4 | `report.cited.md` (old layout) | PASS 28 vs 15 | — |
+| 5 | `report.md`, first new-layout run | **FAIL** E=3 | apparatus in body, no info-block/TOC rules |
+| 6 | `report.md`, after `E_APPARATUS_LEAK` | **FAIL** E=4 | `.work/` pointer + `## 观测记录` log |
+| 7 | `report.md`, full shape rules enforced | **PASS** 28 vs 15 | — |
