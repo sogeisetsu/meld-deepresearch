@@ -310,6 +310,55 @@ without rules about what may appear in them.
 
 Round 6 is the repair run; its verdict follows below.
 
+## Round 6 (repair attempt 1) — **FAIL on E**
+
+The skill under test was `f601e39`'s predecessor `4b5cf24` (the round-5 fix).
+Run in `test/runs/example1/round6/` (fresh sub agent, fresh directory; the
+artifacts were later deleted with `test/`, so this record is the surviving
+evidence).
+
+- `normal`, genre `panorama`, 4 axes, 19 fetch attempts / **17 distinct
+  sources**, 2 observations, ≥8 `refute` claims, 0 budget extensions, ~20
+  minutes (20:47 → 21:08). Length tier `medium`, reason recorded in
+  `run-log.md`.
+- Deterministic checks (orchestrator re-run):
+
+| Check | Result |
+|---|---|
+| Gate ① `check_evidence.py --plan` | `{"ok": true, "errors": [], "warnings": []}` exit 0 |
+| Gate ② one render → both files | `{"ok": true, "citation_count": 17, "observation_count": 2, "orphans": [], "uncited": []}` exit 0 |
+| `content_review.py --clean` | `{"ok": true, "warnings": []}` exit 0 |
+| shape (orchestrator re-scan) | standalone discipline headings **0**, `[^` markers **0**, blacklist hits **0**, apparatus hits **0** |
+| opening | 6-row info block, vertical `## 目录`, `## 定义与范畴` present |
+| link sample (8 of 17) | 8/8 HTTP 200 (6 via the fetch client, 2 re-checked with `curl`, both 200) |
+
+Blind judges (three fresh sessions, A/B order swapped, deliverables only,
+`blind7/8/9` — no branch, commit or version-bearing path):
+
+| pass | order | total A | total B |
+|---|---|---|---|
+| 1 | A=baseline · B=round6 | 17 | 26 |
+| 2 | A=round6 · B=baseline | 26 | 14 |
+| 3 | A=baseline · B=round6 | 17 | 26 |
+
+Per-axis medians:
+
+| axis | frozen baseline | round6 baseline | round6 | ≥ frozen? |
+|---|---|---|---|---|
+| A Coverage | 5 | 5 | **5** | ✓ |
+| B Depth | 3 | 3 | **5** | ✓ |
+| C Factual support | 1 | 2 | **5** | ✓ |
+| D Citation quality | 0 | 1 | **5** | ✓ |
+| E Instruction-following | 5 | 5 | **4** | ✗ |
+| G Process discipline | 1 | 1 | **3** | ✓ |
+| **total** | **15** | 17 | **26** | ✓ |
+
+**FAIL on axis E** (4 < 5). All three judges named the same two remaining
+causes: line 1 exposed `.work/report.cited.md` and `## 观测记录` carried
+English process narration inside a Chinese report. Fix committed as `f601e39`
+(see the round-history table under Round 7); round 7 is the second and final
+repair attempt.
+
 ## Round 7 (repair attempt 2) — **PASS on the new delivery form**
 
 Round 6 had failed axis E (median 4 vs the frozen 5) with both remaining
