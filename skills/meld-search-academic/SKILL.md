@@ -5,7 +5,7 @@ license: MIT
 metadata:
   author: sogeisetsu
   repository: https://github.com/sogeisetsu/meld-deepresearch
-  version: "0.1.0"
+  version: "0.3.0"
 ---
 
 # meld-search-academic - Academic search
@@ -66,6 +66,18 @@ python3 -m playwright install firefox
 ```
 
 `arxiv_crawler_search.py` and `semantic_scholar_crawler_refTree.py` also need Node.js, plus a `node_modules/camoufox-js` installed in the current directory or one of its ancestors. When these are missing, do not try to bypass them; use a non-crawler provider or web search instead.
+
+## Hand-off entry & exit
+
+- **Entry:** this skill works standalone, and may also be handed off to from
+  `skills/meld-deepresearch` as documented in that skill's
+  `references/protocol.md` §2a — academic or historical subjects come to
+  `meld-search-academic`.
+- **Exit:** when invoked as a hand-off, return reproducible numbers/quotes
+  plus the exact re-runnable command, so the caller can record them as
+  `observations[]`/`sources[]`; never write into the caller's evidence files.
+  If a dependency or the sibling skill is missing, degrade and say so instead
+  of failing.
 
 ## Arguments
 

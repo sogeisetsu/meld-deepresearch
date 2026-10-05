@@ -5,7 +5,7 @@ license: MIT
 metadata:
   author: sogeisetsu
   repository: https://github.com/sogeisetsu/meld-deepresearch
-  version: "0.1.0"
+  version: "0.3.0"
 ---
 
 # Excel Data Analysis Workflow
@@ -35,6 +35,18 @@ failing**:
 
 `read_table.py` inspects and extracts; this skill analyses. The two are
 complementary, and neither replaces the other.
+
+## Hand-off entry & exit
+
+- **Entry:** this skill works standalone, and may also be handed off to from
+  `skills/meld-deepresearch` as documented in that skill's
+  `references/protocol.md` §2a — local table files plus the analysis of them
+  come to `meld-da`.
+- **Exit:** when invoked as a hand-off, return reproducible numbers/quotes
+  plus the exact re-runnable command, so the caller can record them as
+  `observations[]`/`sources[]`; never write into the caller's evidence files.
+  If a dependency or the sibling skill is missing, degrade and say so instead
+  of failing.
 
 ## Workflow
 
@@ -330,5 +342,5 @@ directory containing this SKILL.md).
   written as `python3 …`; substituting `python` is the only change needed.
 - The scripts use `pathlib.Path` throughout and never assume a POSIX temp
   directory, a POSIX shell or `/` separators, so no other change is required.
-- The optional crawler tier additionally needs Node.js on `PATH`; when it is
-  missing the skill degrades exactly as it does for a missing Python package.
+- Chart CJK fonts follow this skill's own `## CJK Font Setup` section —
+  copy that block as-is instead of searching for fonts.

@@ -8,6 +8,34 @@ citation-backed research report. It follows the Agent Skills open standard
 framework, no vendor lock-in. The repository ships three cooperating skills:
 the core research loop plus two optional capability skills.
 
+## Install
+
+All three skills:
+
+```bash
+npx skills add sogeisetsu/meld-deepresearch --all
+gh skill install sogeisetsu/meld-deepresearch --all
+```
+
+Core skill only:
+
+```bash
+npx skills add sogeisetsu/meld-deepresearch --skill meld-deepresearch
+gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
+```
+
+Manual install: copy the skill directories from [`skills/`](skills/) into the
+host's skills directory (e.g. `~/.agents/skills/`).
+
+Notes:
+
+- A bare `gh skill install owner/repo <name>` installs only that one named
+  skill — pass `--all` to install all three.
+- Run non-interactively, `gh` defaults to `--agent github-copilot`, so pass
+  `--agent <host>`; the `npx` equivalent is `-a <host>`.
+- Both CLIs discover the repo's three skills via the `skills/*/SKILL.md`
+  convention.
+
 ## What it gives you
 
 - Every claim links back to a source that was actually opened; anything
@@ -16,9 +44,10 @@ the core research loop plus two optional capability skills.
   reported, not smoothed over.
 - Three hard gates stop a bad run: `check_evidence.py` validates the evidence
   contract, `render_citations.py` rejects orphan or unresolved markers, and
-  `content_review.py --clean` fails the reading copy on four codes:
+  `content_review.py --clean` fails the reading copy on five codes:
   `E_RUNTIME_TERM`, `E_STANDALONE_SECTION`, `E_FAILURE_NARRATION`,
-  `E_APPARATUS_LEAK`.
+  `E_APPARATUS_LEAK`, `E_ADVERSARY_CALLOUT` (a labelled
+  strongest-counter-evidence callout block).
 - Two effort tiers, `quick` and `normal`, selected from the question and
   overridable — no multi-agent machinery required.
 - One renderer run yields both report files: `report.md`, the reading copy
@@ -81,43 +110,31 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
   `evidence.json`.
 - **gate ①** — `check_evidence.py` on the merged file (plus `--plan` on
   `normal`); a failure stops the run.
-- **write** — one draft, `report.src.md`, from validated evidence only. It
-  opens with a header info block (subject / report type / scope / data
-  cut-off / basis) as a bullet list — one item per rendered line, since
-  consecutive Markdown lines collapse into one paragraph — then a table of
-  contents that is a vertical list: one entry per line, each a descriptive,
-  content-bearing title covering every top-level section, never a single
-  line joined with `·`. A definitions-and-scope section comes before the
-  first finding, and generic container headings (`## Findings`,
-  `## 主要发现`) are replaced by content-bearing titles. The draft keeps
-  `## Contradictions & Counter-evidence` and `## Gaps & Unknowns` standalone
-  so the draft review can check them.
+- **write** — one draft, `report.src.md`, from validated evidence only; the
+  header info block, table of contents, heading rules and the draft's
+  standalone discipline chapters are specified in
+  [`references/report-template.md`](skills/meld-deepresearch/references/report-template.md).
 - **draft review** — warn-only structural checks (section order and the
   expected chapters) run against the draft / cited copy.
 - **readability pass** — the discipline material is woven in at any heading
   level: `## Contradictions & Counter-evidence`, `## Gaps & Unknowns`,
-  `## Observations` and H3 stand-ins such as `### Counter-evidence and limits`
-  / `### What remains unknown` must not exist in the delivered report; the
-  strongest-counter-evidence callout and every `unknown` label must survive
-  the weave.
+  `## Observations` and their H3 stand-ins must not exist in the delivered
+  report. Counter-evidence is woven into the paragraph of the claim it
+  qualifies; a labelled callout block (`**最强反证：**` /
+  `**Strongest counter-evidence:**`) is now a delivery failure, and every
+  `unknown` label must survive the weave (weave rules:
+  [`references/report-template.md`](skills/meld-deepresearch/references/report-template.md)).
 - **re-gate** — every gate runs again on the woven draft.
 - **dual render** — one `render_citations.py` run (gate ②) emits both files:
   `report.cited.md` into `.work/`, and its marker-free twin `report.md` at
-  the top level: line-1 pointer → header info block → table of contents →
-  content → `## Sources`. The reading copy never carries an `## Observations`
+  the top level; the reading copy never carries an `## Observations`
   section — observations stay in `evidence.json` and `.work/report.cited.md`.
 - **content gate** — `content_review.py --clean` on `report.md`, the delivery
-  gate: exit 1 on four codes — `E_RUNTIME_TERM` (runtime-failure jargon),
-  `E_STANDALONE_SECTION` (a standalone discipline chapter at H2 or H3, in
-  either language, including `## Observations`), `E_FAILURE_NARRATION`
-  (telling the reader a page needed a login or could not be opened — that
-  belongs in `observations[]`/`gaps[]`), and `E_APPARATUS_LEAK` (skill id,
-  file names, protocol or tool name in the body; the line-1 pointer is the
-  one sanctioned exception). Warn-only:
-  `W_PROSE_RATIO`, `W_NO_TOC`, `W_THIN_TOC`, `W_NO_INFO_BLOCK`,
-  `W_NO_UNCERTAINTY`, `W_NO_DEFINITIONS`, `W_GENERIC_HEADING`,
-  `W_APPARATUS_LEAK`, `W_RUNTIME_TERM`. Structural section-order checks
-  already ran in the draft review.
+  gate: exit 1 on five codes — `E_RUNTIME_TERM`, `E_STANDALONE_SECTION`,
+  `E_FAILURE_NARRATION`, `E_APPARATUS_LEAK` and `E_ADVERSARY_CALLOUT`. What
+  each code means, and the warn-only list, live in
+  [`references/protocol.md`](skills/meld-deepresearch/references/protocol.md)
+  §9.
 - **deliver** — `dedupe_sources.py` writes the de-duplicated `sources.md`,
   then the full artifact manifest is reported, including gaps and failed
   fetches.
@@ -160,12 +177,15 @@ an opinion piece where no evidence is expected.
   so in its output.
 - Python 3 to run the gates and renderers (standard library only for the
   core skill).
+- Runs on Linux, macOS and Windows; the two capability skills carry their own
+  `Platform notes (pure Windows)` sections.
 
 ## Documentation
 
 - Skill entry point: [`skills/meld-deepresearch/SKILL.md`](skills/meld-deepresearch/SKILL.md)
 - Protocol, budgets, gates: [`references/protocol.md`](skills/meld-deepresearch/references/protocol.md)
 - Evidence schema: [`references/evidence-contract.md`](skills/meld-deepresearch/references/evidence-contract.md)
+- Evaluation standard and three-skill comparison: [`docs/eval/README.md`](docs/eval/README.md)
 - Annotated file tree: [`docs/FILE_TREE.md`](docs/FILE_TREE.md)
 - Development plan and milestones: [`docs/PLAN.md`](docs/PLAN.md)
 

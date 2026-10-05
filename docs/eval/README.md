@@ -17,6 +17,17 @@ This document answers three questions:
 > execution covers a restricted subset — see [`records/`](records/). Where a
 > score depends on a live run that was not performed, the cell says so.
 
+## Records index
+
+Everything that remains under [`records/`](records/):
+
+| Record | Purpose |
+|---|---|
+| [`records/live-runs.md`](records/live-runs.md) | Live three-skill Q2 run on the same host: status table, self-validation and artifacts |
+| [`records/design-score.md`](records/design-score.md) | Per-axis justification behind the design-level scores (§5.1) |
+| [`records/skill-creator-iterations/`](records/skill-creator-iterations/README.md) | skill-creator grading loop archive: `README.md` plus `iteration-1/`, `iteration-2/`, `iteration-3/` benchmarks and feedback |
+| [`records/sensenova-live/`](records/sensenova-live/README.md) | SenseNova same-task protocol & progress: `README.md`, `example1.md`, `example2.md`, frozen `baseline-f05bcbc.json` |
+
 ## 1. The evaluation standard
 
 ### 1.1 Report-quality benchmarks

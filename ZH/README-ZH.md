@@ -8,6 +8,33 @@
 商。本仓库提供三个互相配合的 skill：核心研究循环，加上两个可
 选的能力 skill。
 
+## 安装
+
+三个 skill 全部安装：
+
+```bash
+npx skills add sogeisetsu/meld-deepresearch --all
+gh skill install sogeisetsu/meld-deepresearch --all
+```
+
+只装核心 skill：
+
+```bash
+npx skills add sogeisetsu/meld-deepresearch --skill meld-deepresearch
+gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
+```
+
+手动安装：把 [`skills/`](../skills/) 下的各 skill 目录复制到主机的 skill
+目录（例如 `~/.agents/skills/`）。
+
+说明：
+
+- 裸用 `gh skill install owner/repo <name>` 只会安装那一个具名的 skill
+  ——要装全部三个请加 `--all`。
+- 非交互运行时 `gh` 默认 `--agent github-copilot`，因此要传
+  `--agent <host>`；`npx` 对应的写法是 `-a <host>`。
+- 两个 CLI 都通过 `skills/*/SKILL.md` 约定发现本仓库的三个 skill。
+
 ## 它能给你什么
 
 - 每条断言都链接到一份真正打开过的来源；任何未经核实的内容都
@@ -16,9 +43,10 @@
   平。
 - 三道硬闸门拦住糟糕的运行：`check_evidence.py` 校验证据契约，
   `render_citations.py` 拒绝孤儿或未解析的标记，
-  `content_review.py --clean` 用四个错误码判阅读版失败：
+  `content_review.py --clean` 用五个错误码判阅读版失败：
   `E_RUNTIME_TERM`、`E_STANDALONE_SECTION`、
-  `E_FAILURE_NARRATION`、`E_APPARATUS_LEAK`。
+  `E_FAILURE_NARRATION`、`E_APPARATUS_LEAK`、`E_ADVERSARY_CALLOUT`
+  （带标签的最强反证提示块）。
 - 两档努力级别 `quick` 与 `normal`，根据问题选择、可手动覆盖
   ——不需要多智能体机制。
 - 一次渲染器运行同时产出两份报告文件：`report.md`，即你交付出
@@ -77,40 +105,31 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
   `evidence.json`。
 - **gate ①** —— 对合并后的文件跑 `check_evidence.py`
   （`normal` 档还要加 `--plan`）；失败即终止运行。
-- **write** —— 只依据已校验的证据写出一份草稿 `report.src.md`。
-  它开头是头部信息块（主题 / 报告类型 / 范围 / 数据截止 / 依据）
-  的项目符号列表——每条对应渲染后的一行，因为连续的 Markdown 行
-  会并成一段——接着是一个竖排列表形式的目录：每行一条，每条都是
-  描述性、有内容的标题，覆盖所有顶层章节，绝不用 `·` 串成一行。
-  首个发现之前先有一节定义与范畴，通用的容器标题（`## Findings`、
-  `## 主要发现`）会被换成有内容的标题。草稿中
-  `## Contradictions & Counter-evidence` 与 `## Gaps & Unknowns`
-  保持独立成节，以便草稿评审检查它们。
+- **write** —— 只依据已校验的证据写出一份草稿 `report.src.md`；头部信息
+  块、目录、标题规则以及草稿阶段独立成节的纪律章节，都在
+  [`references/report-template.md`](../skills/meld-deepresearch/references/report-template.md)
+  中规定。
 - **draft review** —— 只警告的结构性检查（章节顺序与预期章节）
   跑在草稿 / 引用版上。
 - **readability pass** —— 纪律材料在任意标题层级织进正文：
   `## Contradictions & Counter-evidence`、`## Gaps & Unknowns`、
-  `## Observations` 以及 `### Counter-evidence and limits` /
-  `### What remains unknown` 这类 H3 替身不得出现在交付的报告里；
-  最强反证提示与每一处 `unknown` 标记必须在织入之后保留下来。
+  `## Observations` 及其 H3 替身不得出现在交付的报告里。反证织进它所质疑
+  的那条断言所在的段落；带标签的提示块（`**最强反证：**` /
+  `**Strongest counter-evidence:**`）现在是交付失败，每一处 `unknown`
+  标记必须在织入之后保留下来（织入规则见
+  [`references/report-template.md`](../skills/meld-deepresearch/references/report-template.md)）。
 - **re-gate** —— 每道闸门在织入后的草稿上重跑一次。
 - **dual render** —— 一次 `render_citations.py` 运行（闸门②）同
   时产出两份文件：`report.cited.md` 进入 `.work/`，它去掉标记的
-  孪生兄弟 `report.md` 落在顶层：首行指针 → 头部信息块 → 目录 →
-  正文 → `## Sources`。阅读版从不带 `## Observations` 一节——观
+  孪生兄弟 `report.md` 落在顶层；阅读版从不带 `## Observations` 一节——观
   测记录留在 `evidence.json` 和 `.work/report.cited.md` 里。
 - **content gate** —— 对 `report.md` 跑
-  `content_review.py --clean`，即交付闸门：四个错误码时退出码
-  1——`E_RUNTIME_TERM`（运行故障术语）、`E_STANDALONE_SECTION`
-  （H2 或 H3 层级的独立纪律章节，中英皆算，含
-  `## Observations`）、`E_FAILURE_NARRATION`（告诉读者某个页面需
-  要登录或打不开——那属于 `observations[]`/`gaps[]`），以及
-  `E_APPARATUS_LEAK`（正文出现 skill id、文件名、协议或工具名；
-  首行指针是唯一获准的例外）。只警告不失败：`W_PROSE_RATIO`、
-  `W_NO_TOC`、`W_THIN_TOC`、`W_NO_INFO_BLOCK`、
-  `W_NO_UNCERTAINTY`、`W_NO_DEFINITIONS`、`W_GENERIC_HEADING`、
-  `W_APPARATUS_LEAK`、`W_RUNTIME_TERM`。章节顺序的结构性检查已
-  经在草稿评审中跑过。
+  `content_review.py --clean`，即交付闸门：五个错误码时退出码
+  1——`E_RUNTIME_TERM`、`E_STANDALONE_SECTION`、`E_FAILURE_NARRATION`、
+  `E_APPARATUS_LEAK` 与 `E_ADVERSARY_CALLOUT`。每个错误码的含义与只警
+  告的清单见
+  [`references/protocol.md`](../skills/meld-deepresearch/references/protocol.md)
+  §9。
 - **deliver** —— `dedupe_sources.py` 写出去重后的 `sources.md`，
   然后报告完整的产物清单，包括缺口与抓取失败。
 
@@ -149,12 +168,15 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
 - 网络检索、页面抓取、文件读写与命令执行能力；当可选能力缺失时
   skill 会优雅降级，并在输出中说明。
 - 运行闸门与渲染器需要 Python 3（核心 skill 只用标准库）。
+- 可运行于 Linux、macOS 与 Windows；两个能力 skill 各自带有
+  `Platform notes (pure Windows)` 一节。
 
 ## 文档
 
 - Skill 入口：[`skills/meld-deepresearch/SKILL.md`](../skills/meld-deepresearch/SKILL.md)
 - 协议、预算、闸门：[`references/protocol.md`](../skills/meld-deepresearch/references/protocol.md)
 - 证据 schema：[`references/evidence-contract.md`](../skills/meld-deepresearch/references/evidence-contract.md)
+- 评测标准与三 skill 对比：[`docs/eval/README.md`](../docs/eval/README.md)
 - 带注释的文件树：[`docs/FILE_TREE.md`](../docs/FILE_TREE.md)
 - 开发计划与里程碑：[`docs/PLAN.md`](../docs/PLAN.md)
 

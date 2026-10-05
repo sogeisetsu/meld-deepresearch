@@ -1,5 +1,9 @@
 # SenseNova live comparison — protocol & progress
 
+> **Archive:** the `test/` scratch area — baseline inputs and per-round run
+> outputs — was deleted after the redesign; the inputs are preserved locally
+> in `.work/backup-baseline/`, and this record is the surviving evidence.
+
 Status: **protocol v1** (2026-10-04). Baseline frozen in `test/baseline/`
 (see `PROVENANCE.md`). This file is the "口径" (operationalization) referenced by
 the goal; scores/changes/evidence for each round are appended under
