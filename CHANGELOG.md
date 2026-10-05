@@ -235,6 +235,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `examples/invalid/report.empty-marker.src.md` (exit 1); the gate ②
   vocabulary in `references/protocol.md` §9 documents the rule.
 
+### Removed
+
+- **`test/` is retired (directory deleted).** It was a local, always-gitignored
+  scratch area: the frozen SenseNova baseline, every live-run artifact, the
+  blind-judge copies and a set of ad-hoc tooling. Deleting it now is safe
+  because the scores, protocols and verdicts live in
+  `docs/eval/records/sensenova-live/`, the checks live in CI, and the frozen
+  per-axis baseline is exported as `docs/eval/records/sensenova-live/baseline-f05bcbc.json`.
+  **Before** the deletion `test/baseline/` was copied to the gitignored
+  `.work/backup-baseline/` (frozen reports + the ten T2 input `.xlsx` are not
+  in git history and would otherwise be lost).
+- **`test/tools/` — per-item verdicts (rescue first, then delete):**
+
+  | file | verdict |
+  |---|---|
+  | `docx_to_md.py` | **rescued** → `read_table.py --docx` (`--format json` blocks, `--format md`, `--format jsonl`), with a Word fixture built in memory by `--selftest`. Generalised: namespace-agnostic parsing, heading-style detection, GFM tables. |
+  | `xlsx_probe.py` | redundant — `read_table.py` already maps sheets through the workbook relationships, handles shared/inline strings and sparse cells; its raw `xl/` zip listing is covered by `--all-sheets --format json`. |
+  | `t2_recompute.py` | obsolete — task-specific aggregates built on a duplicate stdlib xlsx reader; the aggregates belong to the run, not the tool. |
+  | `verify_t2.py` | obsolete — task-specific cross-check of those same numbers. |
+  | `spec_check.py` | superseded — CI's Spec check now covers every `skills/*/SKILL.md`, enforces name↔directory match and ASCII-only descriptions. |
+  | `ci_selftest.py` | superseded — the workflow's own `run: \|` blocks are now replayed directly from `.github/workflows/validate.yml` instead of being re-implemented. |
+  | `fetch_baseline.py` | obsolete — baseline downloads are retired with `test/`. |
+  | `extract_baseline.py` | obsolete — same. |
+  | `write_run_meta.py` | **reusable but not migrated**: writes `run-meta.json` (git SHA + every skill file hash) as the eval protocol §4 requires, which is version pinning, not reading-layer logic. Deleted with `test/`; recover it from this deletion commit if another round needs it. |
+  | `check_links.py` | **reusable but not migrated**: stdlib sampler that prints the HTTP status of N links from a text file — verification tooling, not a table concern. Same disposition as above. |
+
+  Everything in the table remains recoverable from the commit that precedes
+  the deletion.
+
 ## [0.2.0] - 2026-10-04
 
 ### Added

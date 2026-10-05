@@ -2,18 +2,18 @@
 
 Structure and writing rules for the research report. The **report body is written in the end user's
 language**; this template is English and stays English. Shape is part of correctness: a report with a
-collapsed info block, a one-line TOC, generic headings or a standalone discipline chapter fails review
-even when every claim is sourced.
+collapsed info block, a one-line TOC, generic headings or a standalone discipline chapter fails review even
+when every claim is sourced.
 
 ## Structure follows the reader's cognitive task
 
 The organising principle is **the cognitive task the reader must complete**, not the information domain:
 material read for a decision and read for a mental map needs two organisations. **Domain conventions**
 (academic / medical / legal / policy) override this *only* when the deliverable **is** that document type
-and the reader strongly expects its format; medical or legal content inside a business request is chosen
-by cognitive task first. **Composite intent:** the main intent picks the frame; the secondary intent
-collapses into exactly one section ("understand the industry, then assess one company" → main intent
-*entity*, panorama material into one "Industry background" section).
+and the reader strongly expects its format; medical or legal content inside a business request is chosen by
+cognitive task first. **Composite intent:** the main intent picks the frame; the secondary intent collapses
+into exactly one section ("understand the industry, then assess one company" → main intent *entity*,
+panorama material into one "Industry background" section).
 
 ## Structure chooser
 
@@ -32,8 +32,8 @@ templates only APPEND** — they never remove, reorder or rename a required sect
 
 ### Domain-specific shapes — explicit request only
 
-Allowed **only when the request explicitly asks for that document type** and the reader expects its
-format; otherwise choose by cognitive task from the table above.
+Allowed **only when the request explicitly asks for that document type** and the reader expects its format;
+otherwise choose by cognitive task from the table above.
 
 | Shape | Sections (in order) | Special rules |
 |---|---|---|
@@ -53,8 +53,8 @@ format; otherwise choose by cognitive task from the table above.
 
 ## The evidence spine comes first
 
-Structure decides *how material is organised*; it never negotiates *what must be verifiable*. Three
-layers, highest precedence first:
+Structure decides *how material is organised*; it never negotiates *what must be verifiable*. Three layers,
+highest precedence first:
 
 | Layer | Rule |
 |---|---|
@@ -74,29 +74,26 @@ layers, highest precedence first:
 
 **Slots are satisfied by content, not by literal names.** The draft-stage review checks that the slot's
 *content exists* — it does **not** require a heading literally named "Findings", "Contradictions &
-Counter-evidence" or "Gaps & Unknowns", and the delivered report must contain none of those headings
-anyway. Translate titles; the slot order stays. Observations are **not** a reading-copy slot: they live in
+Counter-evidence" or "Gaps & Unknowns", and the delivered report must contain none of those headings anyway.
+Translate titles; the slot order stays. Observations are **not** a reading-copy slot: they live in
 `evidence.json` and the cited copy only.
 
-**No apparatus in the body.** Apart from the line-1 pointer to the cited copy, the delivered report shows
-no trace of its own production: no skill or protocol names, no draft/run-log file names, no middleware
-paths, no English process narration inside a Chinese report. First-hand observations stay, but record each
+**No apparatus in the body.** Apart from the line-1 pointer to the cited copy, the delivered report shows no
+trace of its own production: no skill or protocol names, no draft/run-log file names, no middleware paths,
+no English process narration inside a Chinese report. First-hand observations stay, but record each
 `observations[].method` in the **report's language**, phrased for a reader ("核对了路透调查页原文"),
-tool-agnostically; machine environment belongs to the cited copy only. `content_review.py --clean` fails
-on high-precision leaks (`E_APPARATUS_LEAK`) and warns on a `.work/` path outside line 1
-(`W_APPARATUS_LEAK`).
+tool-agnostically; machine environment belongs to the cited copy only. `content_review.py --clean` fails on
+high-precision leaks (`E_APPARATUS_LEAK`) and warns on a `.work/` path outside line 1 (`W_APPARATUS_LEAK`).
 
 `content_review.py --clean` warns when an opening element is missing or malformed (`W_NO_INFO_BLOCK`,
-`W_NO_TOC`, `W_THIN_TOC`, `W_NO_DEFINITIONS`), flags a generic top-level heading (`W_GENERIC_HEADING`),
-and **fails** when a discipline chapter or one of its stand-ins is still standing (`E_STANDALONE_SECTION`,
-H2 or H3, either language — the Observations heading included) or a run failure is narrated
-(`E_FAILURE_NARRATION`).
+`W_NO_TOC`, `W_THIN_TOC`, `W_NO_DEFINITIONS`), flags a generic top-level heading (`W_GENERIC_HEADING`), and
+**fails** on a standing discipline chapter or stand-in (`E_STANDALONE_SECTION`, H2 or H3, either language,
+the Observations heading included) or a narrated run failure (`E_FAILURE_NARRATION`).
 
 ## The opening block: info rows, contents, scope
 
 Between the title and the first section every report carries a **header info block** and a **table of
-contents**, both surviving into the reading copy; the body then opens with the definitions-and-scope
-section. The shape below is mandatory.
+contents** (both surviving into the reading copy); the body then opens with definitions and scope.
 
 ### Header info block — one item per rendered line
 
@@ -114,10 +111,9 @@ A cover-sheet-style block of 3–5 items (the canonical block has five) sits bet
   Markdown text lines collapse into one paragraph, so a run-in paragraph turns the block into one sentence
   the reader must parse. **Never a run-in paragraph, never a blockquote paragraph** — the reader must see
   five separate rows, like a cover sheet.
-- Items: report date, report type, data cut-off, scope, basis — labelled in the report's language. **The
-  `依据` / basis line describes evidence, never machinery** ("N 个已直接打开的来源、M 条现场核验记录"): it
-  never names a tool, a skill or a protocol. (`W_NO_INFO_BLOCK` only probes for a labelled, dated line and
-  a run-in paragraph can slip past it — the shape rule is stricter than the gate.)
+- Items: report date, report type, data cut-off, scope, basis — in the report's language. **The `依据` /
+  basis line describes evidence, never machinery** ("N 个已直接打开的来源、M 条现场核验记录"): never a tool,
+  skill or protocol; the shape rule outruns the `W_NO_INFO_BLOCK` probe (a run-in can pass it).
 
 ### Table of contents — a vertical list whose titles carry content
 
@@ -128,9 +124,9 @@ A cover-sheet-style block of 3–5 items (the canonical block has five) sits bet
   comma-separated run-on: it collapses into one unreadable sentence.
 - **Every top-level content section appears, in order** (definitions, summary, each content section, `##
   Sources`), with **descriptive, content-bearing titles** aiming at what the report will conclude
-  (`市场规模与增长`, `竞争格局与份额`, `产业链与成本结构`, `结论与展望`), not at container names — a
-  reader must tell from the TOC alone what the report argues. A TOC of 3–4 generic entries (`分析`,
-  `结果`, `讨论`) is a defect.
+  (`市场规模与增长`, `竞争格局与份额`, `产业链与成本结构`, `结论与展望`), not at container names — a reader
+  must tell from the TOC alone what the report argues. A TOC of 3–4 generic entries (`分析`, `结果`, `讨论`)
+  is a defect.
 - A missing TOC warns `W_NO_TOC`; a TOC collapsed onto a single line warns `W_THIN_TOC`.
 
 ### `## 定义与范畴` opens the body
@@ -140,28 +136,26 @@ section: `## 定义与范畴` (Chinese report) or `## Background and scope` (Eng
 report's language. It states:
 
 - **what the subject is** — one plain paragraph a non-specialist can parse;
-- **which terms the report uses and how** — the working definitions (what "市场份额", "出货量", "营收"
-  mean *in this report*);
+- **which terms the report uses and how** — the working definitions (what "市场份额", "出货量", "营收" mean
+  *in this report*);
 - **the boundary of what is counted** — inclusion and exclusion rules;
 - **the time window** — observation period and data cut-off.
 
-This section **carries no new claims** — no findings, no conclusions, no numbers beyond the scope and
-window facts already in the evidence; it frames what follows. A reader who does not know the field must be
-able to read it and then understand everything after it. A missing section warns `W_NO_DEFINITIONS`.
+This section **carries no new claims** — no findings, no conclusions, no numbers beyond the scope and window
+facts already in the evidence; it frames what follows. A reader who does not know the field must be able to
+read it and then understand everything after it. A missing section warns `W_NO_DEFINITIONS`.
 
 ## Headings must carry content
 
-Every top-level content section is titled with **what that section concludes**, taken from the chosen
-genre template — not with the container it belongs to.
+Every top-level content section is titled with **what that section concludes**, taken from the chosen genre
+template — not with the container it belongs to.
 
 **Forbidden as top-level titles** — they tell the reader nothing: `## 主要发现`, `## Findings`, `## 分析`,
 `## Analysis`, `## 结果`, `## Results`, and by the same rule `## 讨论` / `## Discussion`. Use the genre
-template's descriptive names instead: `## 市场规模与增长`, `## 竞争格局与份额`, `## 产业链与成本结构`, `##
-结论与展望`, …
+template's descriptive names instead: 市场规模与增长, 竞争格局与份额, 产业链与成本结构, 结论与展望, …
 
 - **The evidence spine's slots are satisfied by descriptive headings that contain the required content**:
-  the draft-stage review checks that the content exists, not that the heading is literally named
-  "Findings".
+  the draft-stage review checks that the content exists, not that the heading is literally named "Findings".
 - Fixed conventional names are exempt: `# Title`, `## 定义与范畴` / `## Background and scope`, `## 摘要` /
   `## Executive Summary`, `## 目录`, `## Sources` / `## 来源`.
 - Generic container titles are flagged `W_GENERIC_HEADING`; treat every generic container as banned even
@@ -169,8 +163,8 @@ template's descriptive names instead: `## 市场规模与增长`, `## 竞争格�
 
 ## No standalone discipline chapters — at any level
 
-The discipline material (counter-evidence, gaps, unknowns) lives **inside the narrative**, never as its
-own section — at H2 *or* H3, in either language. None of the following may exist in the delivered report:
+The discipline material (counter-evidence, gaps, unknowns) lives **inside the narrative**, never as its own
+section — at H2 *or* H3, in either language. None of the following may exist in the delivered report:
 
 | Level | Forbidden headings |
 |---|---|
@@ -182,19 +176,17 @@ Instead:
 
 - **Counter-evidence sits with the claim it contradicts.** Put `**最强反证：** …` (English report:
   `**Strongest counter-evidence:** …`) as a paragraph **inside the section whose claim it contradicts**,
-  right after that claim; the single strongest one also appears by the third line of the Executive
-  Summary.
-- **Each `unknown` and each uncertainty grade sits next to the claim it qualifies** — same paragraph or
-  the one immediately after, never collected into a separate block.
+  right after that claim; the single strongest one also appears by the third line of the Executive Summary.
+- **Each `unknown` and each uncertainty grade sits next to the claim it qualifies** — same paragraph or the
+  one immediately after, never collected into a separate block.
 - **Never let a reader hit a chapter whose only topic is "here is what we could not do."** Disagreements,
-  gaps and caveats are paragraphs inside the relevant sections; an appendix note only if the request
-  allows one. Draft the discipline material in place — a placeholder heading left in `report.src.md` is
-  dissolved by the pre-delivery pass, never delivered.
+  gaps and caveats are paragraphs inside the relevant sections; an appendix note only if the request allows
+  one. Draft in place — the pre-delivery pass dissolves any placeholder heading.
 
 ## Observations are never part of the reading copy
 
-Observations live in `evidence.json` (`observations[]`) and in the cited copy `.work/report.cited.md`,
-which keeps the `[^oN]` markers and the full observation list. The renderer **no longer appends** a `##
+Observations live in `evidence.json` (`observations[]`) and in the cited copy `.work/report.cited.md`, which
+keeps the `[^oN]` markers and the full observation list. The renderer **no longer appends** a `##
 Observations` section to `report.md`, and a writer who adds one is failed (`E_STANDALONE_SECTION`). The
 reader gets a `sources.md`-style reference list — the plain `## Sources` — **and nothing else**: what an
 observation *found* is ordinary prose in the narrative; the inventory itself never reaches the reader.
@@ -261,13 +253,12 @@ The host's installed CLI reports version 2.100.0.[^o1]
   evidence; both families are cited exactly alike (`--legacy-plain`: `[ON]`).
 - `render_citations.py` converts markers into numbered citations and emits `citations.json`. **The default
   output is GFM footnotes** (`[^N]` / `[^oN]` plus definitions) so a GFM renderer shows a jumping
-  superscript — no inline HTML for a sanitiser to strip. `--anchors` opts into `[[N]](#ref-N)` + `<a id>`;
-  `--legacy-plain` into bare `[N]`. **The model never hand-numbers citations** or invents a manual
-  bibliography.
-- **`render_citations.py` owns `## Sources`, and it alone emits the observation list:** everything after
-  `## Sources` is regenerated; in the default GFM mode both tail headings disappear from the cited copy
-  and become `[^N]:` / `[^oN]: method — environment (captured YYYY-MM-DD)` definitions, while the reading
-  copy gets the plain `## Sources` list only — no Observations section, ever (*Dual output*).
+  superscript — no inline HTML for a sanitiser to strip. `--anchors` opts into `[[N]](#ref-N)` + `<a id>`,
+  `--legacy-plain` into bare `[N]`. **The model never hand-numbers citations** or invents a bibliography.
+- **`render_citations.py` owns `## Sources`, and it alone emits the observation list:** everything after `##
+  Sources` is regenerated; in the default GFM mode both tail headings become `[^N]:` / `[^oN]: method —
+  environment (captured YYYY-MM-DD)` definitions in the cited copy, while the reading copy gets the plain
+  `## Sources` list only — no Observations section, ever (*Dual output*).
 - Gate ② vocabulary (orphan / unresolved / uncited) is defined in `protocol.md` §9. **`sources.md` is not
   `## Sources`**: it is the standalone de-duplicated source table (`dedupe_sources.py` deliverable); the
   report's `## Sources` is the renderer's numbered citation list — same sources, different purpose.
@@ -282,7 +273,7 @@ Every disagreement carries one of three explicit grades — never a binary verdi
 
 The grade sits **next to the disputed point** — inside the section whose claim it qualifies, never in a
 standalone chapter — and is re-checked in the quality self-check. It adds no schema field: a writing rule
-over existing claims.
+over existing claims; a body with no uncertainty marker anywhere warns `W_NO_UNCERTAINTY`.
 
 ## Writing rules
 
@@ -354,8 +345,7 @@ python scripts/render_citations.py --report .work/report.src.md \
 ## Pre-delivery readability pass (mandatory)
 
 After writing, take one deliberate pass so the text reads — then re-gate. The pass edits `report.src.md`,
-never the rendered outputs; at this point the draft shape is *input*, not a constraint: the section gate
-has done its job and stops binding the delivered document.
+never the rendered outputs; the draft shape is *input* here, not a constraint.
 
 | Check | Action |
 |---|---|
@@ -369,22 +359,19 @@ has done its job and stops binding the delivered document.
 ## Never narrate a run failure
 
 The evidence layer records what went wrong — a login wall, a timeout, an unreachable PDF — in
-`observations[]` and `gaps[]`. **The report never tells the reader that the run failed to open
-something.** It states the epistemic status of the data instead:
+`observations[]` and `gaps[]`. **The report never tells the reader that the run failed to open something.**
+It states the epistemic status of the data instead:
 
 - ✗ 「因登录墙无法打开路透报道」 · ✗ 「复购率因需要登录无法获取」
 - ✓ 「复购率尚无公开披露」 · ✓ 「该数据尚无可核验的公开来源」
 
-Never in `report.md`, as narrative: `登录墙`, `需要登录`, `未能打开`, `打不开`, `无法访问`, `抓取失败`,
-`读取失败` — and in English: "login wall", "could not open", "unable to access", "failed to fetch". Also
-forbidden: fetch-timeout stories ("请求 超时后放弃该来源") and HTTP status codes (`403` / `401` / `429` /
-`503`) as narrative. The review **fails** the high-precision failure phrases — `登录墙`, `页面要求登录`,
-`需要登录`, `未能打开`, `打不开`, `因超时`, "login wall", "could not (be) opened", "failed to fetch",
-"could not access" — with `E_FAILURE_NARRATION`, and the runtime-jargon blacklist with `E_RUNTIME_TERM`;
-the wider list above is the writing rule, the two codes are the floor.
+Never in `report.md` as narrative: `登录墙`, `需要登录`, `未能打开`, `打不开`, `无法访问`, `抓取失败`,
+`读取失败`, "login wall", "could not open", "unable to access", "failed to fetch", fetch-timeout stories,
+and HTTP status codes (`403` / `401` / `429` / `503`). The review **fails** the high-precision subset — also
+`页面要求登录`, `因超时`, "could not (be) opened" — with `E_FAILURE_NARRATION`, and the runtime-jargon
+blacklist with `E_RUNTIME_TERM`: the list above is the writing rule, the two codes are the floor.
 
-Render `gaps[]` reasons as **epistemic status** — what cannot yet be known, never the obstacle the run
-hit:
+Render `gaps[]` reasons as **epistemic status** — what cannot yet be known, never the obstacle the run hit:
 
 | `reason` (evidence layer only) | Reader-facing wording in the report |
 |---|---|
@@ -402,19 +389,17 @@ hit:
 `E_RUNTIME_TERM`). Failure-narration phrases (`未能打开`, `登录墙`, `无法访问` …) are covered by
 `E_FAILURE_NARRATION` in the previous section — both gates must stay green.
 
-- **Ambiguous network terms** (`403`, `401`, `429`, `503`, `timeout`, `blocked`, `forbidden`, `rate
-  limit`, `captcha`, `bot-wall`, `paywall` …) are allowed **only when the subject genuinely needs them**
-  (a technical discussion of access barriers *is* the topic); the review warns `W_RUNTIME_TERM` on each,
-  and **every kept hit is recorded as an exemption in the run log** with the reason it is legitimate here.
-  Legitimate content is still phrased as epistemic status where the rule above applies.
+- **Ambiguous network terms** (`403`, `401`, `429`, `503`, `timeout`, `blocked`, `forbidden`, `rate limit`,
+  `captcha`, `bot-wall`, `paywall` …) are allowed **only when the subject genuinely needs them** (a
+  technical discussion of access barriers *is* the topic); the review warns `W_RUNTIME_TERM` on each, and
+  **every kept hit is recorded as an exemption in the run log** with the reason it is legitimate here.
 - **`report.cited.md` may keep technical detail** — its review runs without `--clean`, where the blacklist
   is not enforced.
 
 ## Length tiers and the prose-first target
 
 **First decide whether a long report is worth it** — for a narrow question the right answer may be a short
-one — and record the decision and its reason in the run output. When a long report is worth it, pick a
-tier:
+one — and record the decision and its reason in the run output. When a long report is worth it, pick a tier:
 
 | Tier | Words |
 |---|---|
@@ -425,9 +410,9 @@ tier:
 An explicit user-specified length overrides the tiers. These are **report length** tiers; the `quick` /
 `normal` run tiers are a separate decision (`tier-selection.md`).
 
-- **Write progressively:** one section at a time; never draft more than 2000 words of a section in a
-  single pass.
-- **Prose-first:** ratio = non-table / non-code / non-pure-list characters ÷ body characters of
-  `report.md` (excluding `## Sources` and footnote definitions). Target **≥ 0.80**. Below it
-  `content_review.py` emits `W_PROSE_RATIO` — a warn-only signal that does not block delivery; when it
-  fires, convert more tables and bullets into connected prose.
+- **Write progressively:** one section at a time; never draft more than 2000 words of a section in a single
+  pass.
+- **Prose-first:** ratio = non-table / non-code / non-pure-list characters ÷ body characters of `report.md`
+  (excluding `## Sources` and footnote definitions). Target **≥ 0.80**. Below it `content_review.py` emits
+  `W_PROSE_RATIO` — a warn-only signal that does not block delivery; when it fires, convert more tables and
+  bullets into connected prose.

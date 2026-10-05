@@ -202,7 +202,8 @@ python skills/meld-deepresearch/scripts/check_evidence.py \
 python skills/meld-da/tests/test_degrade.py
 python skills/meld-search-academic/tests/test_degrade.py
 
-# local-table reader self-test (stdlib only; builds a fixture xlsx in memory)
+# zero-dependency reader self-test (stdlib only; builds a fixture xlsx and a
+# fixture .docx in memory)
 python skills/meld-deepresearch/scripts/read_table.py --selftest
 
 # gate ② must reject blank markers in the default (GFM-footnote) mode

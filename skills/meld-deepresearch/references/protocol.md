@@ -101,13 +101,15 @@ of, or in addition to, a web question, read them on the host rather than
 searching for their contents:
 
 1. **Read the file with `scripts/read_table.py`** (Python stdlib only):
-   `python scripts/read_table.py <file> [--sheet <name|index>] [--all-sheets] [--max-rows N] [--format json]`.
+   `python scripts/read_table.py <file> [--sheet <name|index>] [--all-sheets] [--max-rows N] [--format json|md]`.
    It handles shared/inline strings, sparse cells, booleans and Excel serial
-   dates, and maps sheets through the workbook relationships (never a hard-coded
-   `sheet1.xml`). This is the **zero-dependency reading layer**: it inspects and
-   extracts. The `meld-da` hand-off above is the **analysis layer** (cleaning,
-   aggregation, charts, export) and may add third-party packages — the two are
-   complementary, and neither replaces the other.
+   dates, maps sheets through the workbook relationships (never a hard-coded
+   `sheet1.xml`), and also reads `.docx` documents as structured blocks
+   (`--format json`) or Markdown (`--format md`). This is the
+   **zero-dependency reading layer**: it inspects and extracts. The `meld-da`
+   hand-off above is the **analysis layer** (cleaning, aggregation, charts,
+   export) and may add third-party packages — the two are complementary, and
+   neither replaces the other.
 2. **Record the exact command as an `observations[]` entry** (`kind:
    "inspection"`, with a re-runnable `command`), and cite every figure computed
    from the file with `[^oN]`. The tool output is first-hand evidence, not a web

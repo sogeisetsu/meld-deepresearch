@@ -55,7 +55,7 @@ skills/meld-deepresearch/
     ├── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md (optional source_type column)
     ├── merge_evidence.py             # fold sub_reports/*.evidence.json into one evidence.json, folding duplicate sources and re-pointing references
     ├── content_review.py             # structural self-review of the draft/cited copy (warn-only) plus, with --clean, the delivery gate on report.md that FAILS on runtime-failure jargon (E_RUNTIME_TERM) or a standalone discipline chapter left standing (E_STANDALONE_SECTION); TOC / header-info-block / uncertainty / prose-ratio stay warn-only
-    └── read_table.py                 # stdlib-only local .xlsx/.csv reader -> JSON/CSV, with --selftest; the zero-dependency inspection layer that complements meld-da
+    └── read_table.py                 # stdlib-only local .xlsx/.csv/.docx reader -> JSON/CSV/Markdown, with --selftest; the zero-dependency inspection layer that complements meld-da (docx support salvaged from test/tools/docx_to_md.py)
 ```
 
 ---
