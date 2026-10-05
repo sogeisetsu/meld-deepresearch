@@ -1,13 +1,34 @@
 #!/usr/bin/env python3
-"""Content self-review for a rendered report (warn-only).
+"""Content self-review for a rendered report.
 
 Usage:
     python content_review.py --report <report.md> --evidence <evidence.json>
-                             [--llm] [--model <provider/model>]
+                             [--clean] [--llm] [--model <provider/model>]
 
-This is a *warn-only* reviewer: it prints warnings and never fails a run. A
-render that is legible but imperfect should not be blocked, so the exit code is
-0 unless a required file cannot be read (exit 2).
+Two review modes:
+
+``--clean``
+    The file is the **marker-free reading copy** (``report.md``). The
+    runtime-failure blacklist below is enforced and marker-dependent
+    heuristics (which need ``[^N]`` markers to be meaningful) are skipped.
+
+no flag
+    The file is the **cited copy** (``report.cited.md``): full structural
+    review, no blacklist — technical detail may stay there.
+
+Runtime-failure blacklist (``--clean`` only)
+--------------------------------------------
+High-precision run-failure tokens never belong in a reader-facing report.
+One hit fails the review (exit 1, code ``E_RUNTIME_TERM``)::
+
+    access-limited, webfetch, captured 20, word_count, extracted_main,
+    bot-protection, 抓取失败, 读取失败, 运行故障
+
+Ambiguous tokens (``403``, ``401``, ``429``, ``503``, ``timeout``,
+``blocked``, ``forbidden``, ``rate limit``, ``captcha``, ``bot-wall``,
+``paywall`` ...) only warn (``W_RUNTIME_TERM``): they are legitimate in a
+network/tech subject. Every kept hit is an exemption and must be recorded in
+the run log with its reason.
 
 Mechanical checks
 -----------------
@@ -19,9 +40,14 @@ Mechanical checks
   required heading, that is a language-consistency warning.
 * A line that carries a number (a measurement, a percentage, a figure) but no
   citation marker on the same line gets a warning ("obvious uncited number").
-  Bare 4-digit years are ignored to keep the heuristic quiet.
+  Bare 4-digit years are ignored to keep the heuristic quiet. Skipped in
+  ``--clean`` mode, where no markers exist by design.
 * If ``evidence.json`` carries ``gaps[]`` but the report has no
   ``Gaps & Unknowns`` section, that is a warning.
+* Prose ratio (always computed): non-table, non-code, non-pure-list characters
+  over the body characters (``Sources`` / ``Observations`` / footnote
+  definitions excluded). Below 0.80 it warns ``W_PROSE_RATIO`` — a warn-only
+  quality signal that never blocks delivery.
 
 ``--llm`` is accepted for interface stability but this script performs no
 network call: the host is expected to run the judge. When ``--llm`` is passed,
@@ -29,7 +55,10 @@ a single ``W_LLM_NOT_RUN`` warning records that the language/why/background
 judgement was not performed here.
 
 stdout is one ASCII-safe JSON object:
-    {"ok": true, "warnings": [{"code","message","where"}], "sections": [...]}
+    {"ok": bool, "warnings": [{"code","message","where"}], "sections": [...]}
+
+Exit codes: 0 pass (warnings allowed), 1 blacklist hit in ``--clean`` mode,
+2 bad input (unreadable file / invalid JSON / wrong usage).
 
 Python 3 standard library only; no network access.
 """
@@ -48,6 +77,41 @@ YEAR_RE = re.compile(r"^(?:19|20)\d{2}$")
 # on its own line; either language form satisfies it.
 STRONGEST_RE = re.compile(r"最强反方|最强反证|strongest counter", re.IGNORECASE)
 SUMMARY_SENTENCE_LIMIT = 140
+
+# High-precision run-failure jargon: never allowed in the reading copy.
+# ASCII entries are matched case-insensitively.
+RUNTIME_BLACKLIST = (
+    "access-limited",
+    "webfetch",
+    "captured 20",
+    "word_count",
+    "extracted_main",
+    "bot-protection",
+    "抓取失败",
+    "读取失败",
+    "运行故障",
+)
+# Context-dependent terms: legitimate in a network/tech subject, warn only.
+# Every kept hit is an exemption and has to be recorded in the run log.
+RUNTIME_AMBIGUOUS = (
+    "403",
+    "401",
+    "429",
+    "503",
+    "timeout",
+    "timed out",
+    "blocked",
+    "forbidden",
+    "rate limit",
+    "captcha",
+    "bot-wall",
+    "paywall",
+)
+PROSE_RATIO_MIN = 0.80
+LIST_LINE_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
+FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
+TAIL_HEADING_RE = re.compile(
+    r"^##\s+(?:Sources|Observations|来源|观测记录)\s*$", re.MULTILINE)
 
 
 # Sentence enders for the Executive-Summary checks: full/half-width CJK
@@ -132,7 +196,66 @@ def section_body(report, slot_index):
     return "\n".join(lines)
 
 
-def check_report(report, evidence, warnings):
+def check_runtime_terms(report, warnings, failures):
+    """Scan for run-failure jargon.
+
+    Blacklisted terms fail (reading copy only); ambiguous terms only warn,
+    because they may be legitimate content of a network/tech report.
+    """
+    for line_number, line in enumerate(report.splitlines(), start=1):
+        lowered = line.lower()
+        for term in RUNTIME_BLACKLIST:
+            if term.lower() in lowered:
+                failures.append(_warn(
+                    "E_RUNTIME_TERM",
+                    "run-failure jargon %r must not appear in the reading "
+                    "copy; rewrite it as reader-facing prose" % term,
+                    "line %d" % line_number))
+                break
+        for term in RUNTIME_AMBIGUOUS:
+            if term.isdigit():
+                hit = re.search(r"(?<!\d)%s(?!\d)" % term, line)
+            else:
+                hit = term in lowered
+            if hit:
+                warnings.append(_warn(
+                    "W_RUNTIME_TERM",
+                    "ambiguous runtime term %r kept in the body; record the "
+                    "exemption (why it is legitimate here) in the run log"
+                    % term,
+                    "line %d" % line_number))
+
+
+def prose_ratio(report):
+    """Non-table / non-code / non-pure-list chars over body chars.
+
+    The denominator drops the renderer-owned ``Sources`` / ``Observations``
+    sections and any footnote definitions, matching the rule in
+    ``references/report-template.md``.
+    """
+    match = TAIL_HEADING_RE.search(report)
+    body = report[: match.start()] if match else report
+    lines = [line for line in body.split("\n")
+             if not FOOTNOTE_DEF_RE.match(line)]
+    total = 0
+    prose = 0
+    in_fence = False
+    for line in lines:
+        if FENCE_RE.match(line):
+            in_fence = not in_fence
+            total += len(line)
+            continue
+        total += len(line)
+        if in_fence or line.lstrip().startswith("|"):
+            continue
+        if not LIST_LINE_RE.match(line):
+            prose += len(line)
+    if total <= 0:
+        return 1.0
+    return prose / float(total)
+
+
+def check_report(report, evidence, warnings, failures, clean=False):
     is_cjk = bool(CJK_RE.search(report))
     found = check_sections(report, warnings)
 
@@ -165,26 +288,28 @@ def check_report(report, evidence, warnings):
                     % SLOTS[index][0],
                     "line %d" % line_number))
 
-    # Obvious uncited numbers.
-    in_heading = False
-    for line_number, line in enumerate(report.splitlines(), start=1):
-        if HEADING_RE.match(line):
-            in_heading = True
-            continue
-        if line.strip().startswith("|"):
-            continue  # table rows (the sources table) are handled by the gate
-        if CITATION_MARK_RE.search(line):
-            continue
-        for token in NUMBER_RE.findall(line):
-            bare = token.rstrip("%").strip()
-            if YEAR_RE.match(bare) and "%" not in token:
+    # Obvious uncited numbers (meaningless in the reading copy, where every
+    # marker has been stripped by design).
+    if not clean:
+        in_heading = False
+        for line_number, line in enumerate(report.splitlines(), start=1):
+            if HEADING_RE.match(line):
+                in_heading = True
                 continue
-            warnings.append(_warn(
-                "W_REVIEW_NUMBER_UNCITED",
-                "line carries a number (%s) without a citation marker"
-                % token.strip(),
-                "line %d" % line_number))
-            break
+            if line.strip().startswith("|"):
+                continue  # table rows (the sources table) are handled by the gate
+            if CITATION_MARK_RE.search(line):
+                continue
+            for token in NUMBER_RE.findall(line):
+                bare = token.rstrip("%").strip()
+                if YEAR_RE.match(bare) and "%" not in token:
+                    continue
+                warnings.append(_warn(
+                    "W_REVIEW_NUMBER_UNCITED",
+                    "line carries a number (%s) without a citation marker"
+                    % token.strip(),
+                    "line %d" % line_number))
+                break
 
     # gaps[] present in evidence but no Gaps section in the report.
     has_gaps = isinstance(evidence, dict) and isinstance(
@@ -235,6 +360,20 @@ def check_report(report, evidence, warnings):
             "bullets, one figure per line, instead" % sentence_count,
             "Executive Summary"))
 
+    # Prose-first quality signal (warn only, never a delivery blocker).
+    ratio = prose_ratio(report)
+    if ratio < PROSE_RATIO_MIN:
+        warnings.append(_warn(
+            "W_PROSE_RATIO",
+            "prose ratio is %.2f (target >= %.2f): non-table, non-code, "
+            "non-pure-list characters over body characters; convert more "
+            "tables/bullets into connected prose" % (ratio, PROSE_RATIO_MIN),
+            "$"))
+
+    # Run-failure jargon: reader-facing reading copy only.
+    if clean:
+        check_runtime_terms(report, warnings, failures)
+
 
 def _warn(code, message, where):
     return {"code": code, "message": message, "where": where}
@@ -251,8 +390,13 @@ def build_parser():
         prog="content_review.py",
         description="Warn-only content self-review of a rendered report.",
     )
-    parser.add_argument("--report", required=True, help="rendered report.md")
+    parser.add_argument("--report", required=True, help="rendered report file")
     parser.add_argument("--evidence", required=True, help="evidence.json")
+    parser.add_argument(
+        "--clean", action="store_true",
+        help="the file is the marker-free reading copy (report.md): enforce "
+             "the runtime-failure blacklist and skip marker-dependent checks",
+    )
     parser.add_argument(
         "--llm", action="store_true",
         help="request the (host-run) LLM judge; this script records that it "
@@ -272,7 +416,8 @@ def main(argv=None):
         fail("invalid JSON in evidence file: %s" % exc)
 
     warnings = []
-    check_report(report, evidence, warnings)
+    failures = []
+    check_report(report, evidence, warnings, failures, clean=args.clean)
     if args.llm:
         warnings.append(_warn(
             "W_LLM_NOT_RUN",
@@ -281,6 +426,10 @@ def main(argv=None):
             "$"))
 
     warnings.sort(key=lambda item: (item["code"], item["where"]))
+    if failures:
+        failures.sort(key=lambda item: (item["code"], item["where"]))
+        emit({"ok": False, "failures": failures, "warnings": warnings})
+        return 1
     emit({"ok": True, "warnings": warnings})
     return 0
 

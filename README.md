@@ -1,179 +1,143 @@
 # meld-deepresearch
 
-🌐 **English** · [<kbd>中文</kbd>](ZH/README-ZH.md)
+English · [中文](ZH/README-ZH.md)
 
-A **lightweight, portable Agent Skill** that turns a vague topic into a
-**verifiable, citation-backed research report**.
+A portable Agent Skill that turns a vague topic into a verifiable,
+citation-backed research report. It follows the Agent Skills open standard
+(`SKILL.md`), so any compatible host can load it straight from a path — no
+framework, no vendor lock-in. The repository ships three cooperating skills:
+the core research loop plus two optional capability skills.
 
-One skill, no framework. It runs on any host that supports the
-[Agent Skills](https://agentskills.io) open standard — opencode, Claude Code,
-Codex, Cursor, GitHub Copilot, Gemini CLI, and more — and it never locks you
-into one vendor.
+## What it gives you
 
-> **Status:** `v0.2.0` is published. The skill is implemented (`SKILL.md`,
-> `references/`, `scripts/`), exercised by CI on a curated example, and
-> installable straight from this repository. See [`docs/PLAN.md`](docs/PLAN.md).
+- Every claim links back to a source that was actually opened; anything
+  unverified is labelled `unknown`, never guessed.
+- Counter-evidence is searched for on purpose — contradictions and gaps are
+  reported, not smoothed over.
+- Two hard gates stop a bad run: `check_evidence.py` validates the evidence
+  contract, `render_citations.py` rejects orphan or unresolved markers.
+- `content_review.py` is an optional, warn-only readability pass.
+- Two effort tiers, `quick` and `normal`, selected from the question and
+  overridable — no multi-agent machinery required.
+- One renderer run yields both a clean reading copy and a fully
+  citation-annotated copy of the report.
+- Core scripts are Python 3 standard library only; the skill itself has no
+  runtime dependencies.
+- Files are the source of truth: artifacts land on disk, the model context
+  keeps conclusions only.
 
-## Why another deep-research skill
+## Skills in this repo
 
-Most deep-research tooling is either a heavy multi-agent framework or a thin
-prompt. `meld-deepresearch` takes the middle path:
-
-1. **Discipline over orchestration.** Quality comes from traceable evidence and
-   active falsification, not from more agents.
-2. **Lightweight and portable.** One skill, zero runtime dependencies (scripts
-   are Python standard library only), no host-specific tool names.
-3. **Files are the source of truth.** Research artifacts are written to disk;
-   the model context keeps only conclusions.
-4. **Mechanical gates over good intentions.** A validator enforces the evidence
-   rules and can fail the run.
-5. **Two tiers, not three.** `quick` / `normal`, chosen automatically from the
-   question. No heavy orchestration.
-6. **Verifiability over polish.** Every claim is clickable; anything unverified
-   is labeled `unknown`.
-7. **Falsification is mandatory.** Counter-evidence and contradictions are
-   actively searched, never assumed absent.
-
-It borrows the best ideas from both open-source and big-tech deep research
-(evidence contracts, source quality tiers, refute obligations, budget-aware
-stopping, multi-perspective questioning) and distills them into a single,
-self-contained skill. See [`NOTICE`](NOTICE) and `docs/PLAN.md` section 7.
-
-## Install
-
-The skill is a directory containing `SKILL.md`, `references/`, and `scripts/`.
-Install it with any of the following.
-
-### One-liners
-
-```bash
-# skills.sh / Vercel skills CLI (installs into ~40 supported hosts)
-npx skills add sogeisetsu/meld-deepresearch
-
-# GitHub CLI (v2.90.0+), works across Copilot, Claude Code, Cursor, Codex, Gemini
-gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
-```
-
-### Manual (per host)
-
-Copy `skills/meld-deepresearch/` into your host's skills directory.
-The cross-tool path `~/.agents/skills/` is recognized by several hosts.
-
-| Host | Global | Project-local |
+| Directory | Purpose | Dependencies |
 |---|---|---|
-| opencode | `~/.config/opencode/skills/` or `~/.agents/skills/` | `.opencode/skills/` |
-| Claude Code | `~/.claude/skills/` | `.claude/skills/` |
-| Codex | `~/.codex/skills/` or `~/.agents/skills/` | `.codex/skills/` |
-| Cursor | — | `.cursor/skills/` |
-| GitHub Copilot | `~/.copilot/skills/` or `~/.agents/skills/` | `.github/skills/` |
-| Gemini CLI | `~/.gemini/skills/` or `~/.agents/skills/` | `.gemini/skills/` |
+| `skills/meld-deepresearch` | Core research / evidence / citation loop | None — Python 3 stdlib |
+| `skills/meld-da` | Excel & spreadsheet data-analysis workflow (port of SenseNova-Skills `sn-da-excel-workflow`) | Optional Python packages in `requirements.txt`; documented fallback without them |
+| `skills/meld-search-academic` | Academic search, paper reading, citation-tree tracing (port of SenseNova-Skills `sn-search-academic`) | Optional Python packages in `requirements.txt` (+ `requirements-optional.txt`); documented fallback without them |
 
-> Discovery paths vary by host and version; check your host's documentation if
-> a skill does not appear.
+Each skill stands alone; they may invoke one another only along the hand-offs
+documented in [`references/protocol.md`](skills/meld-deepresearch/references/protocol.md) §2a.
 
-No configuration is required. The skill uses the host's model; you do not
-configure a model for it.
+## Quick start
 
-## Usage
+1. Clone this repository anywhere on disk.
+2. Point your host at it: a host loads a skill by reading
+   `skills/<name>/SKILL.md`. Per-host skill directories are listed in your
+   host's own documentation; a project-local `skills/` directory works in
+   most hosts.
+3. Optional — for the capability skills, install the packages listed in that
+   skill's `requirements.txt`. Without them the skill degrades to its
+   documented fallback.
+4. Start a new session and ask for research: a cited report, a comparison, a
+   literature review, a fact-check. The skill's `description` does the
+   matching; there is nothing to configure.
+5. Pick up the deliverables from the run's output directory (see
+   **Outputs**).
 
-Just ask for research. The skill advertises itself via its `description` and is
-loaded on demand when the request matches (deep research, systematic research,
-competitive analysis, literature review, trend analysis, fact-checking, a cited
-report, ...).
+The core skill reuses the host's own search, fetch, file and command
+capabilities; it ships no keys and stores no credentials.
 
-It then picks a tier automatically:
-
-- **`quick`** — one self-contained research thread (a brief, a single answer, a
-  point check).
-- **`normal`** — several independently searchable axes, entity comparison, a
-  full report, or conflicting evidence expected.
-
-You can override the tier explicitly.
-
-### Output
-
-Each run produces four artifacts under
-`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`:
-
-| File | What it is |
-|---|---|
-| `report.md` | The final report, with inline numbered citations |
-| `sources.md` | De-duplicated source list |
-| `evidence.json` | Structured claims, evidence, sources, and boundaries |
-| `citations.json` | The citation map used to render `report.md` |
-
-Alongside them sits `.work/`, the **middleware** (not a delivery core):
-`plan.json` (normal tier only), the pre-render `report.src.md`, and the
-per-axis `sub_reports/dN.evidence.json`. The four top-level files are what you
-deliver; `.work/` is what makes the run reproducible and lets `--plan` validation
-and re-rendering happen. A quick run with no plan and no re-render need can stop
-at the four artifacts.
-
-If the host has no filesystem access, the report is returned inline instead.
-
-## How it works
+## How a run works
 
 ```text
-probe capabilities
-  -> anchor language / format / output dir
-  -> clarify (1-3 questions, or write explicit assumptions)
-  -> choose tier (quick | normal) and genre
-  -> plan (normal: named research axes + must-have materials)
-  -> research loop: search -> URL pool -> fetch -> read -> evaluate -> gaps
-  -> merge per-axis evidence (merge_evidence.py)  ->  evidence.json
-  -> self-check (hard gate: evidence validator; normal adds --plan)
-  -> write report  ->  .work/report.src.md
-  -> render citations (hard gate: no orphan/unresolved)  ->  report.md + citations.json
-  -> build sources.md (URL normalization + de-duplication)
-  -> optional content review (warn-only)
-  -> deliver report.md + sources.md + evidence.json + citations.json
+probe → clarify → tier → plan → per-axis research → merge → gate ①
+     → write → gate ② → readability pass → dual render → deliver
 ```
 
-Key rules: search before fetch, never admit a snippet without reading the
-original page, actively search counter-evidence, respect time-sensitivity, and
-stop at the budget (returning the best coverage found rather than looping
-forever).
+- **probe** — check which host capabilities exist; a missing blocking one
+  stops the run and says so.
+- **clarify** — up to three questions, or explicit assumptions written down
+  when nobody can answer.
+- **tier** — `quick` (one self-contained thread) or `normal` (several
+  independently searchable axes).
+- **plan** — `normal` runs name their research axes and key questions in
+  `plan.json`.
+- **per-axis research** — search → open the original page → evaluate → refill
+  the pool, at most three rounds per axis; snippets are never evidence.
+- **merge** — `merge_evidence.py` folds the per-axis files into one
+  `evidence.json`.
+- **gate ①** — `check_evidence.py` on the merged file (plus `--plan` on
+  `normal`); a failure stops the run.
+- **write** — one draft, `report.src.md`, from validated evidence only.
+- **gate ②** — `render_citations.py` fails the run on an orphan or
+  unresolved citation marker.
+- **readability pass** — `content_review.py`, optional, warns only.
+- **dual render** — the same renderer emits `report.cited.md` and its
+  marker-free twin `report.md`.
+- **deliver** — full artifact manifest, including gaps and failed fetches.
+
+Each gate gets at most one fix-and-retry; a second failure stops the run and
+is reported honestly instead of delivered.
+
+## Outputs
+
+Default directory `meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`
+(a user-supplied path replaces that naming entirely):
+
+| File | Contents |
+|---|---|
+| `report.md` | Reading copy — all citation markers stripped |
+| `report.cited.md` | Same text with the full citation annotations kept |
+| `sources.md` | De-duplicated source list |
+| `evidence.json` | Merged, gate-checked evidence behind every claim |
+| `citations.json` | Citation map linking markers to their sources |
+
+`.work/` beside them holds the middleware: `plan.json` (normal tier), the
+pre-render draft `report.src.md`, and per-axis `sub_reports/`.
+
+## When to use it / when not to
+
+**Use it when** the answer must rest on more than one source and be
+checkable: landscape or trend scans, competitive comparisons, literature
+reviews, fact-checking, any explicit request for a cited report or brief.
+
+**Do not use it when** one direct answer would do: definitions, one-line
+lookups, tidying sources you already hold, pure rewriting or translation, or
+an opinion piece where no evidence is expected.
 
 ## Requirements
 
-- A host that supports the Agent Skills standard.
-- Network search and fetch capability.
-- File read/write and command execution (for the scripts and artifacts).
-- Python 3 (standard library only) for the validator, the citation renderer and
-  the source de-duplicator; the run degrades gracefully when those scripts
-  cannot be executed, and says so in its output.
+- A host that implements the Agent Skills standard (`SKILL.md`).
+- Network search, page fetch, file read/write, and command execution; the
+  skill degrades gracefully when optional capabilities are missing and says
+  so in its output.
+- Python 3 to run the gates and renderers (standard library only for the
+  core skill).
 
-## References and acknowledgements
+## Documentation
 
-This skill stands on the shoulders of many projects. The full borrow map is in
-`docs/PLAN.md` section 7 and the attribution list is in [`NOTICE`](NOTICE).
-The two clearest influences are:
+- Skill entry point: [`skills/meld-deepresearch/SKILL.md`](skills/meld-deepresearch/SKILL.md)
+- Protocol, budgets, gates: [`references/protocol.md`](skills/meld-deepresearch/references/protocol.md)
+- Evidence schema: [`references/evidence-contract.md`](skills/meld-deepresearch/references/evidence-contract.md)
+- Annotated file tree: [`docs/FILE_TREE.md`](docs/FILE_TREE.md)
+- Development plan and milestones: [`docs/PLAN.md`](docs/PLAN.md)
 
-- [SenseNova-Skills](https://github.com/OpenSenseNova/SenseNova-Skills) (MIT)
-  — the evidence contract, validators, and citation rendering.
-- [Weizhena/Deep-Research-skills](https://github.com/Weizhena/Deep-Research-skills)
-  (MIT) — the two-phase flow and human-in-the-loop checkpoints.
+## Validation
 
-## Development
+The full validation set — positive fixtures, negative fixtures, and every
+renderer mode — is listed in [`AGENTS.md`](AGENTS.md) and executed by CI.
 
-- Project conventions for agents: [`AGENTS.md`](AGENTS.md)
-- Authoritative plan and milestones: [`docs/PLAN.md`](docs/PLAN.md)
+## License & attribution
 
-Run the local checks from the repository root:
-
-```bash
-python skills/meld-deepresearch/scripts/check_evidence.py \
-  examples/sample-run/evidence.json
-```
-
-The full validation set — the positive example plus the negative fixtures in
-`examples/invalid/` — is listed in [`AGENTS.md`](AGENTS.md) and is executed by
-CI in `.github/workflows/validate.yml`.
-
-## License
-
-MIT. See [`LICENSE`](LICENSE).
-
----
-
-🌐 **English** · [<kbd>中文</kbd>](ZH/README-ZH.md)
+MIT — see [`LICENSE`](LICENSE). Author: **sogeisetsu**.
+[`NOTICE`](NOTICE) lists every upstream project whose material is ported or
+borrowed, including the two SenseNova-Skills ports.

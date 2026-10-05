@@ -3,7 +3,8 @@
 
 Usage:
     python render_citations.py --report <report.src.md> --evidence <evidence.json> \
-        --output <report.md> [--citations <citations.json>]
+        --output <report.cited.md> [--clean-output <report.md>] \
+        [--citations <citations.json>]
 
 Marker format:
     Two marker families, both written inline in the draft report (see
@@ -47,12 +48,28 @@ Marker format:
       * ``--legacy-plain`` the old plain ``[N]`` / ``[ON]`` text, kept for
                        byte-for-byte backward compatibility.
 
+    Two output files from one run:
+      * ``--output`` is the **cited** version (``report.cited.md``): every
+        marker substituted, the full footnote/anchor/plain reference block at
+        the end. This is the complete, checkable artefact.
+      * ``--clean-output`` (optional) is the **reading** version
+        (``report.md``): all markers stripped, the renderer-owned tail removed
+        and rebuilt as plain un-numbered ``## Sources`` / ``## Observations``
+        lists, and one pointer line at the very top linking to the cited
+        version. The pointer line follows the report's language (Chinese when
+        the body contains CJK, English otherwise). The clean file is derived
+        from the same numbers as the cited one, so the two can never disagree
+        about which source backs which passage.
+      * Both files are written by the same invocation; never hand-edit one into
+        agreement with the other.
+
     The gate judgement: an orphan (id in neither array) still fails in every
     mode. In anchor/legacy mode any leftover ``[^`` marker also fails. In the
     default footnotes mode the rendered ``[^N]`` markers are expected, so the
     residual check cannot be used there; instead a marker whose captured id is
     empty after ``strip()`` (``[^]`` / ``[^ ]``) is detected in the rendered
-    output and fails as unresolved, alongside orphans.
+    output and fails as unresolved, alongside orphans. The judgement is made
+    on the cited rendering; the clean file has no markers left to judge.
 
 Results:
     stdout is one JSON object: ``{"ok": bool, "citation_count": N,
@@ -155,7 +172,14 @@ def build_parser():
         required=True,
         help="evidence.json with sources[] (and optional observations[])",
     )
-    parser.add_argument("--output", required=True, help="rendered report.md")
+    parser.add_argument("--output", required=True, help="rendered report.cited.md")
+    parser.add_argument(
+        "--clean-output",
+        default=None,
+        help="also write the marker-free reading copy (report.md) in the same "
+             "run; its first line links to the cited version written to "
+             "--output",
+    )
     parser.add_argument(
         "--citations",
         default=None,
@@ -383,6 +407,91 @@ def build_observations_section(text, numbers, by_id, mode):
     return body
 
 
+CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+_SENTINEL = "\u0000"
+
+
+def strip_markers(line, had_marker):
+    """Delete every ``[^...]`` marker from one line and repair the spacing.
+
+    Lines that carried no marker are returned untouched, so the clean copy is
+    byte-identical to the draft everywhere the renderer did not act.
+    """
+    if not had_marker:
+        return line
+    text = MARKER_RE.sub(_SENTINEL, line)
+    text = text.replace(_SENTINEL, "")
+    # a marker glued between a word and its punctuation leaves "word ."
+    text = re.sub(r" +(?=[,.;:!?…，。；：！？、）)】》\"'])", "", text)
+    return re.sub(r"[ \t]+$", "", text)
+
+
+def build_clean_copy(
+    report_text, source_numbers, observation_numbers, by_id, obs_by_id,
+    cited_name,
+):
+    """Build the marker-free reading copy from the same numbers as the cited file."""
+    lines = []
+    for line in report_text.split("\n"):
+        lines.append(strip_markers(line, MARKER_RE.search(line) is not None))
+    body = "\n".join(lines)
+
+    # Drop the renderer-owned tail (Sources and, if present, Observations).
+    cuts = [
+        match.start()
+        for match in (SOURCES_HEADING_RE.search(body),
+                      OBSERVATIONS_HEADING_RE.search(body))
+        if match
+    ]
+    if cuts:
+        body = body[: min(cuts)]
+    body = body.rstrip("\n")
+
+    is_cjk = bool(CJK_RE.search(body))
+    if is_cjk:
+        pointer = "> 引用标注版（含角标与出处）：[%s](%s)"
+        sources_heading = "## 来源"
+        observations_heading = "## 观测记录"
+    else:
+        pointer = "> Citation-annotated version with footnote markers: [%s](%s)"
+        sources_heading = "## Sources"
+        observations_heading = "## Observations"
+
+    cited_name = os.path.basename(cited_name)
+    parts = [pointer % (cited_name, cited_name), "", body, "", sources_heading, ""]
+
+    ordered_sources = sorted(
+        source_numbers.items(), key=lambda item: item[1])
+    for source_id, _number in ordered_sources:
+        source = by_id[source_id]
+        title = str(source.get("title") or "")
+        url = str(source.get("url") or "")
+        quality = str(source.get("quality") or "unknown")
+        published_at = source.get("published_at")
+        if published_at in (None, ""):
+            published_at = "unknown"
+        parts.append("- %s — %s (%s, %s)" % (title, url, quality, published_at))
+
+    if observation_numbers:
+        parts += ["", observations_heading, ""]
+        ordered_observations = sorted(
+            observation_numbers.items(), key=lambda item: item[1])
+        for observation_id, _number in ordered_observations:
+            observation = obs_by_id[observation_id]
+            method = str(observation.get("method") or "")
+            environment = observation.get("environment")
+            if environment in (None, ""):
+                environment = "unknown"
+            captured_at = observation.get("captured_at")
+            if captured_at in (None, ""):
+                captured_at = "unknown"
+            # no "captured" wording here: the reading copy must not read like
+            # a machine log (content_review fails on runtime-failure jargon)
+            parts.append("- %s — %s (%s)" % (method, environment, captured_at))
+
+    return "\n".join(parts).rstrip("\n") + "\n"
+
+
 def main(argv=None):
     args = build_parser().parse_args(argv)
 
@@ -454,6 +563,14 @@ def main(argv=None):
     ]
 
     write_text(args.output, rendered)
+    clean_path = None
+    if args.clean_output:
+        clean_text = build_clean_copy(
+            report_text, source_numbers, observation_numbers,
+            by_id, obs_by_id, os.path.basename(args.output),
+        )
+        write_text(args.clean_output, clean_text)
+        clean_path = args.clean_output
     citations_path = args.citations or os.path.join(
         os.path.dirname(os.path.abspath(args.output)), "citations.json"
     )
@@ -480,6 +597,7 @@ def main(argv=None):
             "observation_count": len(observation_numbers),
             "orphans": orphans,
             "uncited": uncited,
+            "clean_output": clean_path,
         }
     )
     return 0 if ok else 1

@@ -6,183 +6,115 @@ compatibility: Requires web search, web fetch, file read/write and command execu
 metadata:
   author: sogeisetsu
   repository: https://github.com/sogeisetsu/meld-deepresearch
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # meld-deepresearch
 
-Turn a vague topic into a **verifiable, citation-backed research report**. This
-skill enforces discipline, not orchestration: every claim traces back to a
-source that was actually opened, unknowns are labelled, and counter-evidence is
-searched on purpose.
+Turn a vague topic into a **verifiable, citation-backed research report**:
+every claim traces to a source that was actually opened, unknowns are labelled,
+counter-evidence is searched on purpose. Discipline, not orchestration. Paths below are relative
+to this skill's directory; detail loads on demand.
 
-Detail lives in `references/` and is loaded only when needed. Every path in
-this file (`references/...`, `scripts/...`) is **relative to this skill's own
-directory** — the directory that contains this `SKILL.md`.
-
-- `references/protocol.md` — search/fetch loop, time-sensitivity, refutation, budgets, gates, stop rules.
-- `references/evidence-contract.md` — the `evidence.json` schema and its hard rules.
-- `references/tier-selection.md` — how to pick `quick` versus `normal`.
-- `references/report-template.md` — report skeleton and the quality self-check.
-- `templates/genres/` — append-templates per genre (panorama / comparison / entity / chronicle), selected via `plan.json` `genre`.
+- `references/protocol.md` — loop, budgets, cross-skill hand-offs, gates, stop rules.
+- `references/evidence-contract.md` — `evidence.json` schema and hard rules.
+- `references/tier-selection.md` — `quick` vs `normal`.
+- `references/report-template.md` — structure by reader's cognitive task, length tiers, readability pass.
+- `templates/genres/` — append-templates per genre, chosen via `plan.json` `genre`.
 
 ## 1. When to use this skill
 
-Use it when the answer needs **evidence from more than one source** and must be
-checkable:
-
-- systematic research, literature review, landscape or trend analysis
-- competitive or entity comparison, market and vendor overview
-- fact-checking a claim, a number, or a widely repeated statement
-- any explicit request for a report, brief, or deep dive with citations
-
-Do **not** use it for:
-
-- a one-line factual answer or a definition
-- tidying up sources the user already handed over
-- pure rewriting, translation, or copy-editing
-- an opinion piece where no evidence is expected
-
-If a quick search would genuinely settle the question, say so and answer
-directly instead of running the full loop.
+For answers that need **evidence from more than one source** and must be checkable: research,
+literature review, landscape/trend or competitive analysis, fact-checking, any explicit request
+for a cited report or brief — not a one-line answer, tidying up supplied sources or pure opinion.
 
 ## 2. Capability probe (do this first)
 
-Probe the host before planning and hold the result in memory:
+**Web search, web fetch and file read are blocking** — a missing one stops the
+run: tell the user. **File write and command execution degrade** — continue,
+stating the limitation. **PDF, code reading and subagents are optional** —
+degrade and note it. Never deliver a silently degraded report (`protocol.md` §1).
 
-| Capability | Need | If missing |
-|---|---|---|
-| web search | blocking | stop and tell the user |
-| web fetch / open pages | blocking | stop and tell the user |
-| file read | blocking | stop and tell the user |
-| file write | degradable | still run, but return the report body inline and state that nothing was persisted |
-| command execution | degradable | still run, but walk the gates as a manual checklist and state that they were skipped |
-| PDF reading | optional | save the binary, then parse it with the host's PDF tool; if it cannot be parsed, record the URL + type as a gap — never a silent drop |
-| code reading | optional | degrade and note it |
-| subagent delegation | optional | run every axis inline |
+## 3. Anchors, clarification, tier, length
 
-**STOP:** a missing **blocking** capability pauses the run — tell the user and
-stop. A **degradable** one lets the run continue, but the limitation must be
-stated in the final output — never deliver a silently degraded report.
+Fix `language` (follow the user), `format` (default `report`), `structure` (a requested chapter
+count or outline is **binding** — discipline material folds in, never inflates it, internal ids
+`kqN`/`dN` stay out of the body) and `output_dir` (default
+`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`; a user path replaces it). Ask **1–3
+scope-only questions** if the host can ask, else record the assumptions. Pick `quick`/`normal`
+(`tier-selection.md`), then judge **whether a long report is worth it and record why**: short
+1500–3000, medium 3000–6000, long 6000–12000 words; a user-specified length wins.
 
-## 3. Request anchors
-
-Fix four anchors before researching:
-
-- `language` — the language of the final report; **follow the user**.
-- `format` — default `report`.
-- `structure` — if the request names a chapter count, an outline, or a required
-  section list (e.g. "分为 5–6 个章节"), that structure is **binding**: the report's
-  numbered top-level chapters match it. The skeleton and genre templates are the
-  default only when the request is silent. Discipline material (method,
-  contradictions, gaps, observations) folds into those chapters or one
-  non-numbered appendix — it never inflates the requested chapter count — and
-  internal identifiers (`kqN`, `dN`, axis codes) never appear in the body.
-- `output_dir` — default `meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`; a user-supplied directory replaces that naming entirely.
-
-## 4. Clarify before researching
-
-If the host can ask, ask **1–3 scope-only questions** (time window, geography,
-comparison set, which definition). Never ask what the request already answers;
-for a `normal` run the draft plan may also be offered for confirmation. If the
-host cannot ask, record the assumptions — in `plan.json` (`normal`) or the
-delivery message (`quick`) — and continue; never block on an answer.
-
-## 5. Tier selection
-
-Pick `quick` or `normal` automatically and continue — default `quick`, any
-single `normal` condition upgrades, the user can override. See
-`references/tier-selection.md` for the decision table and worked examples.
-
-## 6. Workflow
+## 4. Workflow
 
 | # | Stage | Action | Gate |
 |---|---|---|---|
-| 0 | Probe | capability probe (§2) | a blocking capability is missing → stop |
-| 1 | Anchor | fix language, format, output dir (§3) | — |
-| 2 | Clarify | ask 1–3 scope questions, or record assumptions (§4) | — |
-| 3 | Tier | select `quick` or `normal` (§5) | — |
-| 4 | Plan | `quick`: internal key questions `kq1..kqn`. `normal`: named dimensions with non-overlapping scope, plus `plan.json` | dimensions must be independently startable |
-| 5 | Research | per dimension: search → candidate URL pool → open the originals → evaluate → find gaps → search again, at most 3 rounds | stop at the depth threshold |
-| 6 | Merge | `scripts/merge_evidence.py` folds every `sub_reports/dN.evidence.json` into one `evidence.json` | ids stay unique; duplicate sources collapse to one entry |
-| 7 | Gate ① | run the evidence validator on `evidence.json`, with `--plan` for a `normal` run | must report `ok` |
-| 8 | Write | one pass, inline citations, **no new facts** | statement strength must not exceed evidence |
-| 9 | Gate ② | render citations from the draft and the evidence | no orphan, no unresolved reference |
-| 10 | Sources | normalize and de-duplicate URLs into `sources.md` | — |
-| 11 | Deliver | return the four artifacts plus coverage and gaps (§10) | — |
+| 0 | Probe | capability probe (§2) | blocking capability missing → stop |
+| 1 | Anchor | language, format, structure, output dir; 1–3 scope questions or recorded assumptions (§3) | — |
+| 2 | Tier | tier + length tier, worth-it reason recorded | — |
+| 3 | Plan | `quick`: `kq1..kqn`. `normal`: non-overlapping dimensions + `plan.json` | dimensions independently startable |
+| 4 | Research | per axis: search → open originals → evaluate → gaps → again (§7) | stop at depth threshold |
+| 5 | Merge | `scripts/merge_evidence.py` folds `sub_reports/*.evidence.json` → `evidence.json` | ids unique, duplicates collapse |
+| 6 | Gate ① | `scripts/check_evidence.py` (+ `--plan` for `normal`) | must report `ok` |
+| 7 | Write | one pass, inline citations, **no new facts** | strength ≤ evidence |
+| 8 | Readability | pre-delivery reorder (`report-template.md`) | re-run every gate after it |
+| 9 | Gate ② | `scripts/render_citations.py` → `report.cited.md` **and** `report.md` | no orphan, no unresolved |
+| 10 | Review | `scripts/content_review.py --clean --report report.md` | no run-failure jargon |
+| 11 | Deliver | `scripts/dedupe_sources.py` → `sources.md`, then the five artifacts + coverage gaps (§9) | — |
 
-The full loop, budgets and stop rules are in `references/protocol.md`.
+## 5. Evidence and citation rules
 
-## 7. Evidence and citation rules
+- **Enforced by the validator**; full schema in `references/evidence-contract.md`.
+- Every claim carries evidence — a web source, or a reproducible first-hand
+  `observations[]` entry cited `[^oN]`. A snippet is never evidence;
+  counter-evidence is searched on purpose (zero `refute` warns).
+- A `factual` claim needs a `primary`/`secondary` source or an observation; a
+  lone `tertiary` source must carry an explicit "insufficient evidence / to
+  verify" downgrade or it is rejected. An `interpretive` claim and any key
+  finding need two distinct origins with at least one `primary`/`secondary` —
+  `tertiary` may be the second origin, never the only pillar. Unverifiable ⇒
+  `unknown`.
 
-Non-negotiable, enforced by the validator — the full schema, allowed values and every hard rule live in `references/evidence-contract.md`:
+## 6. Cross-skill hand-offs
 
-- Every claim carries evidence — a web source **or** a reproducible first-hand `observations[]` entry cited `[^oN]`; a search-result snippet is never evidence.
-- A `factual` claim needs a `primary`/`secondary` source or an observation; an `interpretive` claim needs two **distinct** origins; anything unverifiable is labelled `unknown`.
-- Counter-evidence is searched on purpose; a run with no `refute` claim at all draws a validator warning.
-- When the request supplies local data files (`.xlsx` / `.csv`), read them with `scripts/read_table.py` (stdlib) and record the command as an `observations[]` entry; cite computed figures `[^oN]` (`references/protocol.md` §2a).
+Two documented routes only (`protocol.md` §2a): local table files **plus**
+analysis/cleaning/charting/export → `skills/meld-da` (`scripts/read_table.py` stays the
+zero-dependency inspection layer); **academic, scientific or historical subjects route the
+scholarly layer through `skills/meld-search-academic`** (`search.py` → `paper.py` →
+`refTree.py`). A hand-off degrades instead of failing, is logged, and returns evidence here.
 
-## 8. Budget and stop conditions
+## 7. Budget and stop
 
-| Tier | Max fetches | Min distinct sources | Max rounds per axis |
+| Tier | Fetches (soft) | Distinct sources | Rounds per axis |
 |---|---|---|---|
-| `quick` | 8 | 5 | 3 |
-| `normal` | 25 | 15 | 3 |
+| `quick` | ≤ 12 | ≥ 5 | ≤ 4 |
+| `normal` | ≤ 40 | ≥ 15 | ≤ 5 |
 
-Every fetch attempt counts against the cap, failures included. When the budget is
-exhausted: **stop**, return the best coverage reached so far, and list explicitly
-what was not covered. Never loop indefinitely.
+Every fetch attempt counts (failures too); searches and local reads do not. On
+exhaustion with key questions open, extend **at most 2 rounds**, logging new
+sources, open questions and cost per round — then those questions become
+`uncertainty` (`gaps[]` + `unknown`), never a fabricated conclusion (§8).
 
-## 9. Self-check gate (hard)
+## 8. Gates, then stop or deliver
 
-Before delivering, run the gate commands exactly as listed in `references/protocol.md` §9 (gate ① also takes `--plan` on a `normal` run):
+Run the commands exactly as `references/protocol.md` §9 lists them (gate ① also takes
+`--plan` on a `normal` run). Gate ① passes only on `ok`; gate ② fails on an **orphan** or
+**unresolved** marker; `content_review.py --clean` fails on run-failure jargon in `report.md`.
+Fix once and re-run — a second failure means **STOP** and report honestly. Every stage
+(plan / research / merge / write / render) retries once, then stops with the failing stage,
+artifacts and last error (`protocol.md` §10). No command execution? Walk the gates by hand
+and say they were skipped.
 
-- Gate ① passes only when the validator reports `ok` (warnings do not fail it); gate ② fails on an **orphan** or **unresolved** marker — vocabulary defined in `references/protocol.md` §9.
-- If a gate fails: fix once and re-run. If it still fails, **STOP** and report honestly — do not deliver a failing report.
-- If the host has no command execution, walk the gates by hand and state that they were skipped.
+## 9. Deliverables
 
-## 10. Deliverables
+`report.md` (clean reading copy, first line links to the cited copy), `report.cited.md`
+(markers + references), `sources.md`, `evidence.json`, `citations.json`, plus `.work/`
+middleware. Return the five paths, the tier, coverage, the manifest, every failed fetch and any
+budget extension; without file write, return the report body and say nothing was persisted.
 
-Write into `output_dir`:
+## 10. Non-negotiables
 
-- `report.md` — the report, rendered with numbered citations.
-- `sources.md` — the normalized, de-duplicated source list.
-- `evidence.json` — the structured evidence behind every claim.
-- `citations.json` — the citation map emitted by the renderer.
-- `.work/` — middleware (not a delivery core): `plan.json` (normal tier only),
-  `report.src.md`, `sub_reports/dN.evidence.json`.
-
-`content_review.py` is an optional, warn-only self-check (`--report` +
-`--evidence`); it never blocks delivery.
-
-The renderer owns the report's `## Sources` and `## Observations` sections;
-leave `report.src.md` ending at `## Sources` with nothing after it
-(`references/report-template.md`). It emits GFM footnotes by default, so the
-rendered `report.md` carries a footnote block instead of that heading — the GFM
-renderer wires the numbered superscript and its back-link itself. `sources.md`
-and the report's citation block cover the same sources in two forms.
-
-Return the four artifact paths, plus the tier used, the coverage reached, the
-full manifest (including `.work/` contents), and every failed fetch (URL +
-type). If the host cannot write files, return the report body only and say that
-nothing was persisted.
-
-## 11. Failure and retry
-
-Each pipeline stage (plan / research / merge / write / render) may be retried **once**, then stop and report the failing stage, the artifact paths produced so far, and the last error — never pretend a run completed.
-Apply the symptom → first fix → fallback table in `references/protocol.md` §10 instead of inventing a recovery.
-
-## 12. Non-negotiables
-
-- Never invent a fact, number, quote, or source.
-- Never state a conclusion without a source behind it.
-- Always search for counter-evidence, and report the contradictions found.
-- Always label the unknown as `unknown`.
-- Keep the strength of a statement within the strength of its evidence.
-- Never hand-number citations — always let the renderer do it.
-
-## 13. Context strategy
-
-Files are the source of truth: raw retrieval and structured evidence go to
-disk, the context keeps only conclusions, and delegation is optional — see
-`references/protocol.md` §12–§13.
+- Never invent a fact, number, quote or source; never conclude without a source.
+- Always search for counter-evidence and report contradictions; label unknowns.
+- Keep statement strength within evidence strength.
+- Never hand-number citations: the renderer does it, once, for both files.
