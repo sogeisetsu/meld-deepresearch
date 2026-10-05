@@ -9,14 +9,23 @@ Two review modes:
 
 ``--clean``
     The file is the **final reading copy** (``report.md``). This is the
-    delivery-stage review:
+    delivery-stage review — the acceptance check for the mandatory
+    *pre-delivery readability pass* described in ``report-template.md``:
       * the runtime-failure blacklist below is enforced (exit 1 on a hit);
       * a standalone discipline chapter — ``## Contradictions &
-        Counter-evidence`` / ``## Gaps & Unknowns`` (or their Chinese forms)
-        — is an error (``E_STANDALONE_SECTION``): at delivery those sections
-        are woven into the narrative, not left standing (``E_STANDALONE_SECTION``);
-      * warn-only signals: prose ratio, missing header info block, missing
-        table of contents, no uncertainty marker anywhere in the body;
+        Counter-evidence`` / ``## Gaps & Unknowns`` (or their Chinese forms,
+        at H2 or H3) — is an error (``E_STANDALONE_SECTION``): at delivery
+        those sections are woven into the narrative, not left standing;
+      * a narrated run failure (login wall, unopenable page) is an error
+        (``E_FAILURE_NARRATION``) and internal apparatus in the body is an
+        error (``E_APPARATUS_LEAK``);
+      * the opening must have survived the pass: header info block
+        (``W_NO_INFO_BLOCK``), a vertical table of contents (``W_NO_TOC`` /
+        ``W_THIN_TOC``), a definitions-and-scope section
+        (``W_NO_DEFINITIONS``), content-bearing headings
+        (``W_GENERIC_HEADING``), an uncertainty marker somewhere
+        (``W_NO_UNCERTAINTY``);
+      * warn-only: prose ratio (``W_PROSE_RATIO``);
       * the *structural* checks (required sections, their order, heading
         language, uncited numbers) do **not** run here — they belong to the
         draft/cited stage and would contradict the weave.
