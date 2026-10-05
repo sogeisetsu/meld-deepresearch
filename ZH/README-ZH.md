@@ -2,17 +2,19 @@
 
 🌐 **中文** · [<kbd>English</kbd>](../README.md)
 
-一个**轻量、可移植的 Agent Skill**，把含糊的话题变成一份**可核查、每句话都有
-出处的研究报告**。
+一个**轻量、可移植的 Agent Skill 家族**，把含糊的话题变成一份**可核查、每句话
+都有出处的研究报告**。
 
-只有一个 skill，没有框架。它能在任何支持
+仓库里有三个互相配合、又各自独立可装的 skill：核心研究流程
+`meld-deepresearch`、表格分析 `meld-da`、学术检索 `meld-search-academic`。
+没有框架。它们能在任何支持
 [Agent Skills](https://agentskills.io) 开放标准的主机上运行—— opencode、
 Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等等——也绝不会把你
 绑死在某一家厂商身上。
 
-> **状态：** `v0.2.0` 已发布。skill 已经实现（`SKILL.md`、`references/`、
-> `scripts/`），并由 CI 在一个精选示例上跑通，可以直接从本仓库安装。见
-> [`docs/PLAN.md`](../docs/PLAN.md)。
+> **状态：** `v0.3.0`（规模化重构：三 skill、双文件交付、软预算 + 两轮延长、
+> 分层 CI）。skill 已经实现（`SKILL.md`、`references/`、`scripts/`），并由 CI
+> 在精选示例上跑通，可以直接从本仓库安装。见 [`docs/PLAN.md`](../docs/PLAN.md)。
 
 ## 为什么还要再做一个深度研究 skill
 
@@ -21,8 +23,9 @@ Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等等——也绝不
 
 1. **靠纪律，不靠编排。** 质量来自可追溯的证据和主动证伪，而不是更多的
    agent。
-2. **轻量、可移植。** 一个 skill，零运行时依赖（脚本只用 Python 标准库），不
-   写死任何主机特有的工具名。
+2. **轻量、可移植。** 核心 skill 零运行时依赖（脚本只用 Python 标准库）；
+   `meld-da` / `meld-search-academic` 需要的第三方包写在各自的
+   `requirements.txt` 里、缺了就降级；不写死任何主机特有的工具名。
 3. **文件才是事实来源。** 研究产物落到磁盘上，模型上下文里只留结论。
 4. **用机械闸门代替良好意愿。** 校验器强制执行证据规则，可以让整轮运行失败。
 5. **两档，不是三档。** `quick` / `normal`，根据问题自动选择，不做笨重的
@@ -52,8 +55,10 @@ gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
 
 ### 手动安装（按主机）
 
-把 `skills/meld-deepresearch/` 复制到你所用主机的 skills 目录。跨工具的通用
-路径 `~/.agents/skills/` 已被多个主机识别。
+把 `skills/` 下的三个目录（`meld-deepresearch/`、`meld-da/`、
+`meld-search-academic/`）复制到你所用主机的 skills 目录；只用核心研究流程时，
+复制 `meld-deepresearch/` 一个就够。跨工具的通用路径 `~/.agents/skills/` 已被
+多个主机识别。
 
 | 主机 | 全局 | 项目内 |
 |---|---|---|
@@ -86,14 +91,17 @@ gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
 ### 产物
 
 每次运行都会在
-`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/` 下产出四个产物：
+`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/` 下产出五个产物：
 
 | 文件 | 是什么 |
 |---|---|
-| `report.md` | 最终报告，正文里带编号的行内引用 |
+| `report.md` | **阅读版**：没有角标，首行链接到引用版 |
+| `report.cited.md` | **引用版**：带编号角标和完整出处，闸门② 判的就是它 |
 | `sources.md` | 去重后的来源清单 |
 | `evidence.json` | 结构化的断言、证据、来源与边界 |
-| `citations.json` | 用来渲染 `report.md` 的引用映射表 |
+| `citations.json` | 渲染器生成的引用映射表 |
+
+两个报告文件由**同一次渲染**生成，编号一致，不会互相漂移。
 
 如果宿主没有文件系统访问权限，报告会改为直接在对话里返回。
 
@@ -101,29 +109,38 @@ gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
 
 ```text
 探测宿主能力
-  -> 锚定语言 / 格式 / 输出目录
+  -> 锚定语言 / 格式 / 结构 / 输出目录
   -> 澄清（1-3 个问题，或写下明确的假设）
-  -> 选档（quick | normal）
+  -> 选档 + 定长度档位（并记录"值不值得写长报告"的理由）
   -> 规划（normal：给每个研究维度命名）
   -> 研究循环：检索 -> URL 池 -> 抓取 -> 阅读 -> 评估 -> 缺口
+     （预算耗尽但关键问题未清 -> 最多自动延长 2 轮，逐轮记入 run-log；
+       2 轮后仍不清 -> 标成 uncertainty，绝不编结论）
   -> 合并各维度证据  ->  evidence.json
-  -> 自检（硬闸门：证据校验器）
+  -> 自检（硬闸门①：证据校验器）
   -> 写报告  ->  report.src.md
-  -> 渲染引用（硬闸门：不得有孤儿或未解析引用）  ->  report.md + citations.json
+  -> 交付前可读性重排 -> 重跑全部闸门
+  -> 渲染（硬闸门②：不得有孤儿或未解析引用）-> 同一次生成
+     report.cited.md + report.md + citations.json
+  -> 内容自检 --clean（运行故障词黑名单，命中即失败）
   -> 生成 sources.md（URL 归一化 + 去重）
-  -> 交付 report.md + sources.md + evidence.json + citations.json
+  -> 交付 report.md + report.cited.md + sources.md + evidence.json + citations.json
 ```
 
 关键规则：先检索再抓取；没读过原文就不采信摘要片段；主动去找反证；尊重时效
-性；到了预算就停（返回已经找到的最佳覆盖，而不是无限循环下去）。
+性；预算耗尽按上面的延长规则处理，而不是无限循环下去。表格分析走
+`meld-da`，学术 / 科史题材必须走 `meld-search-academic` 的论文路由。
 
 ## 环境要求
 
 - 一个支持 Agent Skills 标准的主机。
 - 具备网络检索与抓取能力。
 - 文件读写与命令执行能力（脚本和产物需要用到）。
-- Python 3（仅用标准库），用于证据校验器、引用渲染器和来源去重工具；这些脚本
-  无法执行时，运行会优雅降级，并在输出中说明这一点。
+- Python 3（核心脚本仅用标准库），用于证据校验器、引用渲染器和来源去重工具；
+  这些脚本无法执行时，运行会优雅降级，并在输出中说明这一点。
+- `meld-da` / `meld-search-academic` 的分析与浏览器抓取需要第三方包，各自写在
+  `requirements.txt`（可选层在 `requirements-optional.txt`）。缺包时它们退回
+  标准库读取层 / 官方 API / 通用检索，不会中断运行。
 
 ## 参考与致谢
 
