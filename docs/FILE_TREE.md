@@ -20,7 +20,7 @@ meld-deepresearch/                    # repository root
 │   ├── FILE_TREE.md                  # this file: annotated file tree + update rule
 │   ├── index.html                    # GitHub Pages landing page (single self-contained file, zero external requests)
 │   ├── og.png                        # 1200x630 social-preview card, referenced by og:image / twitter:image (regenerate from the live hero if the hero changes)
-│   ├── eval/                         # evaluation standard + skill evaluations; records/ holds skill-creator-iterations/ and sensenova-live/ (frozen-baseline live comparison: protocol, per-example scores, and baseline-f05bcbc.json — the frozen per-axis medians exported from the committed round-3 record)
+│   ├── eval/                         # evaluation standard (README.md, with a Records index) + records/: design-score.md, live-runs.md, skill-creator-iterations/, sensenova-live/ (frozen-baseline live comparison: protocol, per-example scores, and baseline-f05bcbc.json — the frozen per-axis medians exported from the committed round-3 record)
 │   └── .nojekyll                     # tells GitHub Pages to serve docs/ as-is instead of running Jekyll
 ├── skills/                           # skill packages (this repo ships three)
 │   ├── meld-deepresearch/            # core research/evidence/citation skill (contents in the note below)
@@ -31,7 +31,7 @@ meld-deepresearch/                    # repository root
 │   ├── chronicle-run/                # a chronicle-genre run: background claims, gaps[], source_type, plan genre + must_have_materials
 │   ├── downgrade-run/                # positive fixture: a tertiary-only factual claim that passes because it carries its 'downgrade' annotation (W_DOWNGRADE)
 │   ├── merge-run/                    # a two-axis merge fixture: sub_reports/{d1,d2}.evidence.json share one URL, which folds to a single source id with references re-pointed
-│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + gate-② drafts (orphan, blank) + three content_review --clean drafts (runtime jargon → E_RUNTIME_TERM, standalone discipline section → E_STANDALONE_SECTION, narrated run failure → E_FAILURE_NARRATION)
+│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + gate-② drafts (orphan, blank) + four content_review --clean drafts (runtime jargon → E_RUNTIME_TERM, standalone discipline section → E_STANDALONE_SECTION, narrated run failure → E_FAILURE_NARRATION, labelled counter-evidence callout → E_ADVERSARY_CALLOUT)
 └── .github/                          # GitHub configuration
     └── workflows/                    # CI: validate.yml — core job (zero-dep spec check + script self-test + degrade unit tests) and optional job (full dependency install, recorded skips)
 ```

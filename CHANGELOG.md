@@ -22,6 +22,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ambiguous-term `W_RUNTIME_TERM`). New fixture
   `examples/invalid/report.standalone-section.src.md` (exit 1);
   `examples/sample-run/report.md` is the zero-warning positive.
+- **The delivery gate rejects a labelled counter-evidence callout**
+  (`E_ADVERSARY_CALLOUT`, exit 1): counter-evidence is now **woven into the
+  paragraph of the claim it qualifies** — same sentence or the one immediately
+  after, joined by an ordinary contrastive transition (不过 / however / but /
+  limited by) — instead of appearing as a `**最强反证：**` /
+  `**Strongest counter-evidence:**` block. The old "on its own line / by the
+  third line of the summary" mandate is gone; the Executive Summary still
+  states the most important limitation, as an ordinary bullet or clause.
+  Searching for counter-evidence during research is unchanged (`protocol.md`
+  §3). New fixture `examples/invalid/report.adversary-callout.src.md` (exit 1).
+- **The README pair gained an `## Install` section** with the verified
+  one-liners `npx skills add sogeisetsu/meld-deepresearch --all` and
+  `gh skill install sogeisetsu/meld-deepresearch --all`; a bare
+  `gh skill install owner/repo <name>` installs only that one skill, so `--all`
+  is required for the repo's three. The run walkthrough was compressed and its
+  micro-rules moved behind pointers into `references/`.
+- **Both capability skills document their hand-off contract** in a new
+  `## Hand-off entry & exit` section: each works standalone and may be handed
+  off to from the core skill (`protocol.md` §2a), and returns reproducible
+  numbers/quotes plus the re-runnable command for the caller's
+  `observations[]`/`sources[]` instead of writing the caller's evidence files.
+  Their frontmatter version is aligned to `0.3.0`, and `meld-da`'s Windows note
+  no longer repeats the academic skill's crawler/Node.js bullet (meld-da has no
+  crawler).
 - **Scale redesign (0.3.0) — the repository now ships three cooperating
   skills** instead of one:
   - `skills/meld-da` — the Excel / spreadsheet analysis workflow, a full port
@@ -170,11 +194,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carry `key_findings: []` so each still fails for exactly its own reason, and
   the merge fixture's key finding gained a second independent origin.
 - `report-template.md` now requires the **Executive Summary to be a 3–5 bullet
-  TL;DR** (answer first, one figure per line, strongest counter-evidence by the
-  third line) and a `**Strongest counter-evidence:**` line opening
-  `## Contradictions & Counter-evidence`, so the single most damaging refutation
-  is never buried. It also tells the writer to keep an analysis of *what a number
-  means* on a primary/secondary origin, not only on a blog or tertiary aggregator.
+  TL;DR** (answer first, one figure per line, the key limitation as an ordinary
+  clause), and the counter-evidence is **woven into the paragraph of the claim
+  it qualifies** — the labelled callout block is gone (see the
+  `E_ADVERSARY_CALLOUT` entry above). It also tells the writer to keep an
+  analysis of *what a number means* on a primary/secondary origin, not only on a
+  blog or tertiary aggregator.
 - `content_review.py` gained `W_REVIEW_NO_STRONGEST_COUNTER`,
   `W_REVIEW_SUMMARY_LONG` and `W_REVIEW_SUMMARY_DENSE`, and now accepts GFM
   footnote definitions in place of a standalone `## Sources` heading.
@@ -235,9 +260,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stripping and fails them alongside orphans. New fixture
   `examples/invalid/report.empty-marker.src.md` (exit 1); the gate ②
   vocabulary in `references/protocol.md` §9 documents the rule.
+- **`NOTICE` corrected:** `199-biotechnologies/claude-deep-research-skill` is
+  recorded as **MIT** (declared by its own README) instead of unlicensed. It
+  ships no standalone `LICENSE` file, so the README statement is the licence of
+  record; the borrowing scope is unchanged (style and structure only, no code
+  and no prose).
 
 ### Removed
 
+- **Three obsolete, unreferenced evaluation files were removed:**
+  `docs/eval/records/darwin-optimization.md`,
+  `docs/eval/records/skill-evaluations.md` and
+  `docs/eval/sensenova-gap-analysis.md`. `docs/eval/README.md` now carries a
+  **Records index** so every remaining record stays reachable, and the
+  sensenova-live record gained an archive banner (the `test/` scratch area was
+  deleted after the redesign; its inputs live in `.work/backup-baseline/`).
+  Two deferred items from `skill-evaluations.md` are preserved here:
+  (1) `skill_eval` trigger accuracy could not run — the tool refuses while an
+  installed copy of the skill shares the name, and moving the user's config copy
+  aside needs explicit confirmation; (2) darwin dim8 (measured performance) was
+  a `dry_run`, out of scope for the design-level pass.
 - **`test/` is retired (directory deleted).** It was a local, always-gitignored
   scratch area: the frozen SenseNova baseline, every live-run artifact, the
   blind-judge copies and a set of ad-hoc tooling. Deleting it now is safe

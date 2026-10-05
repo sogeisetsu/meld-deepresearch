@@ -392,7 +392,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 | SalesforceAIResearch/enterprise-deep-research | 见仓库 | reflection 检测缺口、steering |
 | assafelovic/gpt-researcher | Apache-2.0 | planner/executor/publisher |
 | langchain-ai/open_deep_research | MIT | 极简可配置工作流 |
-| 199-biotechnologies/claude-deep-research-skill | **无 LICENSE**（2026-10-05 实测：raw `LICENSE` 404、API `license: null`） | 仅参考**风格与结构**（轻量 SKILL.md、按需披露、README 简洁、分档字数）；**不抄任何代码或文本** |
+| 199-biotechnologies/claude-deep-research-skill | **MIT**（上游 README 声明；仓库无独立 `LICENSE` 文件、API `license: null`，故以 README 为准） | 仅参考**风格与结构**（轻量 SKILL.md、按需披露、README 简洁、分档字数）；**不抄任何代码或文本** |
 | **腾讯 混元 Hyra-1.0**（Hunyuan Research Agent，2026-07-21） | 见仓库 `Tencent-Hunyuan/hyra-results` | **递归自我改进 + The Bitter Lesson 轻量 Harness + 预算耗尽返回历史最优** |
 
 > Weizhena 与商汤均为 MIT，**可有出处地复用文本**；其余产品/非 MIT 仓库**只借鉴机制、不抄文本**。所有引用登记进 `NOTICE`。
