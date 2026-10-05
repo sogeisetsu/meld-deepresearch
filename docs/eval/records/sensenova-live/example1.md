@@ -159,3 +159,84 @@ scored on.
 ## Skill changes
 
 None (round 1 already not-inferior). No skill file was modified in this round.
+
+## Round 4 (scale redesign: `feat/scale-redesign` `1ab18aa`, skill `SKILL.md` `6b47969a…`)
+
+Re-run on the scale-redesigned skill: three cooperating skills
+(`meld-deepresearch` + `meld-da` + `meld-search-academic`), 120-line entry
+point, soft budget with a 2-round extension rule, dual-file render
+(`report.cited.md` + `report.md`), readability pass, `content_review --clean`
+runtime-jargon gate. Output: `test/runs/example1/round4/` (fresh sub agent,
+fresh directory, no other round read).
+
+- `tier normal`, genre `panorama`, length tier **long** (worth-it reason
+  recorded in `run-log.md`); 22/40 fetch attempts (21 opened, 1 HTTP 451),
+  21 distinct sources, 31 claims, **11 `refute` claims**, 4 axes, 0 budget
+  extensions; `report.md` 8,057 words, Chinese.
+
+Deterministic checks (independently re-run by the orchestrator):
+
+| Check | Result |
+|---|---|
+| Gate ① `check_evidence.py --plan` | `{"ok": true, "errors": [], "warnings": []}` exit 0 — run before **and** after the readability pass |
+| Gate ② `render_citations.py --output report.cited.md --clean-output report.md` | `{"ok": true, "citation_count": 21, "observation_count": 0, "orphans": [], "uncited": ["o1"]}` exit 0 |
+| `content_review.py --clean --report report.md` | `{"ok": true, "warnings": []}` exit 0 |
+| `dedupe_sources.py` | `{"ok": true, "sources": 21, "duplicates_merged": 0}` |
+| runtime-jargon scan of `report.md` (9 high-precision tokens) | **0** hits; `[^` markers: **0**; first line links to `report.cited.md` |
+| link sample (8 of 21) | 8/8 HTTP 200, content matches |
+
+`o1` (the HTTP 451 blocked page) is the only uncited observation — a warning,
+not a failure. It was deliberately not cited inline because the cited render's
+definition line reads `(captured 2026-10-05)`, which contains the reading
+copy's blacklist substring `captured 20`; the fact is carried instead by gap
+`g3` and an `availability` writing-context. Worth noting for a future pass:
+the **clean** render already rewrites observation lines without the word
+`captured`, so the avoidance was unnecessary.
+
+### Blind judge passes (axes A,B,C,D,E,G; F excluded; max 30)
+
+Identity hidden; only the A/B order varied. Fresh independent judge per pass;
+each judge was shown the deliverables only (G therefore capped at 3), never a
+branch, commit or version-bearing path.
+
+| pass | order | Report A | Report B | total A | total B |
+|---|---|---|---|---|---|
+| 1 | A=baseline · B=redesign | baseline | redesign | 17 | 28 |
+| 2 | A=redesign · B=baseline | redesign | baseline | 28 | 13 |
+| 3 | A=baseline · B=redesign | baseline | redesign | 14 | 28 |
+
+Per-axis scores:
+
+| axis | pass1 base | pass1 new | pass2 base | pass2 new | pass3 base | pass3 new |
+|---|---|---|---|---|---|---|
+| A Coverage | 4 | 5 | 4 | 5 | 4 | 5 |
+| B Depth | 4 | 5 | 3 | 5 | 4 | 5 |
+| C Factual support | 2 | 5 | 2 | 5 | 2 | 5 |
+| D Citation quality | 1 | 5 | 0 | 5 | 0 | 5 |
+| E Instruction-following | 4 | 5 | 3 | 5 | 3 | 5 |
+| G Process discipline | 2 | 3 | 1 | 3 | 1 | 3 |
+| **total** | **17** | **28** | **13** | **28** | **14** | **28** |
+
+Medians across the three passes:
+
+| axis | frozen baseline (`baseline-f05bcbc.json`) | this round's baseline | redesign (median) | redesign ≥ frozen? |
+|---|---|---|---|---|
+| A Coverage | 5 | 4 | **5** | ✓ (=) |
+| B Depth | 3 | 4 | **5** | ✓ |
+| C Factual support | 1 | 2 | **5** | ✓ |
+| D Citation quality | 0 | 0 | **5** | ✓ |
+| E Instruction-following | 5 | 3 | **5** | ✓ (=) |
+| G Process discipline | 1 | 1 | **3** | ✓ |
+| **total** | **15** | 14 | **28** | ✓ (28 ≥ max(15, 15)) |
+
+**PASS** — every axis median is ≥ the frozen baseline's, and the total median
+(28) is ≥ `max(frozen 15, 15)`. One attempt, no repair round needed.
+
+Judge notes (why the spread): the baseline remains broad and professionally
+shaped but its bracketed markers resolve to nothing (no reference list, no
+URL), several headline figures are uncited, internal apparatus leaks into the
+body (`编制单位`, `版本：1.0`, image filenames), and no unknowns section
+exists. The redesigned run's report is narrower in raw page count but carries
+21 dated resolvable references, a dedicated contradiction section with the
+strongest counter-evidence first, labelled unknowns, and a visible method
+appendix.
