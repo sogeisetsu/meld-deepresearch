@@ -66,8 +66,13 @@ negotiate *what must be verifiable*. Three layers, highest precedence first:
 1. **A binding user-requested structure** (chapter count, outline, required
    section list) wins over both layers below — see *Requested structure
    overrides the skeleton*.
-2. **The evidence layer** — the required sections, in this exact order, in
-   every report. The writer never drops, reorders or renames them.
+2. **The evidence layer** — the required sections below, in this exact order,
+   **while drafting**. The writer never drops, reorders or renames them during
+   research and writing; gates are judged against this draft shape. At
+   delivery the *pre-delivery readability pass* weaves sections 4 and 5 into
+   the narrative — they must **not** survive as standalone chapters — while
+   every strongest-counter-evidence callout and every `unknown` label survives
+   the weave. Sections 1–3 and the renderer-owned 6–7 stay as they are.
 3. **The cognitive-task structure** — decides how `## Findings` is organised
    internally (by dimension, option, argument or time) and which genre sections
    are appended after it.
@@ -77,8 +82,8 @@ negotiate *what must be verifiable*. Three layers, highest precedence first:
 | 1 | `# Title` | `# 标题` |
 | 2 | `## Executive Summary` | `## 摘要` |
 | 3 | `## Findings` | `## 主要发现` |
-| 4 | `## Contradictions & Counter-evidence` | `## 矛盾与反证` |
-| 5 | `## Gaps & Unknowns` | `## 未知与缺口` |
+| 4 | `## Contradictions & Counter-evidence` → **woven in at delivery** | `## 矛盾与反证` → **交付时揉进正文** |
+| 5 | `## Gaps & Unknowns` → **woven in at delivery** | `## 未知与缺口` → **交付时揉进正文** |
 | 6 | `## Sources` | `## 来源` |
 | 7 | `## Observations` | `## 观测记录` |
 
@@ -86,6 +91,33 @@ Translate the titles when needed; the order stays. Sections 6 and 7 are
 **renderer-owned** (`## Sources` regenerated wholesale; `## Observations`
 appended only when an observation is cited) and the writer writes neither —
 what belongs in each section: *Section-by-section rules* below.
+
+**Between the title and the first section every report carries two things**,
+both of which survive into the reading copy:
+
+1. a **header info block** — 2–5 short `label: value` lines stating subject,
+   scope, data cut-off, compile date and basis, so a reader knows the report's
+   shape before reading a word. The **basis** line describes the evidence
+   ("15 sources opened directly, 2 first-hand checks"), never the tool, the
+   skill id or a protocol name — a client-facing report does not advertise
+   which pipeline produced it;
+2. a **table of contents** — `## Contents` / `## 目录` listing the top-level
+   sections with anchor links.
+
+**No apparatus in the body.** Apart from the single line-1 pointer to the
+cited copy, the delivered report must contain no trace of its own production:
+no skill or protocol names, no draft/run-log/run-meta file names, no middleware
+paths, no English process narration inside a Chinese report. First-hand
+observations are legitimate content and stay (they are what was checked), but
+record each `observations[].method` in the **report's language**, phrased for a
+reader ("核对了路透调查页原文"), tool-agnostically; the machine environment
+belongs to the cited copy only. `content_review.py --clean` fails on the
+high-precision leaks (`E_APPARATUS_LEAK`) and warns on a `.work/` path outside
+line 1 (`W_APPARATUS_LEAK`).
+
+`content_review.py --clean` warns when either opening element is missing
+(`W_NO_INFO_BLOCK`, `W_NO_TOC`) and **fails** when sections 4 or 5 are still
+standing (`E_STANDALONE_SECTION`).
 
 ### Requested structure overrides the skeleton
 
@@ -262,26 +294,32 @@ Ask each question before delivering; fix the report, not the answers.
 | Honor a requested chapter count / outline / tone exactly — fold discipline material into a non-numbered appendix | Let `Executive Summary` / `Contradictions` / `Gaps` / genre sections push the body past the requested chapters, or expose `kqN` / `dN` codes |
 | Run the readability pass on `report.src.md`, then re-gate and re-render | Hand-edit `report.cited.md` or `report.md` after rendering |
 
-## Dual output: `report.cited.md` and `report.md`
+## Dual output: the cited copy is middleware, `report.md` is the deliverable
 
-One renderer run writes **both** files:
+One renderer run writes **both** files; the cited one goes into `.work/`,
+because the reader is pointed at `report.md`:
 
 ```bash
-python scripts/render_citations.py --report .work/report.src.md --evidence evidence.json --output report.cited.md --clean-output report.md
+python scripts/render_citations.py --report .work/report.src.md \
+  --evidence evidence.json \
+  --output .work/report.cited.md --clean-output report.md
 ```
 
 (`protocol.md` §9 holds the canonical gate block; adapt its paths to the run.)
 
-- **`report.cited.md`** — the cited copy: every marker substituted, full
-  reference block at the end (footnote definitions in the default GFM mode).
-  The **complete, checkable artefact**, and the file gate ② judges.
-- **`report.md`** — the marker-free reading copy: markers stripped, the
-  renderer-owned tail rebuilt as plain un-numbered `## Sources` /
-  `## Observations` lists, and a **first line linking to `report.cited.md`**
-  (the pointer follows the report's language). The reading copy rewrites each
+- **`report.md` — THE deliverable.** Marker-free reading copy: markers
+  stripped, the discipline chapters already woven in (see the readability
+  pass), the renderer-owned tail rebuilt as plain un-numbered `## Sources` /
+  `## Observations` lists, header info block and table of contents at the top,
+  and a **first line linking to `.work/report.cited.md`** (the pointer is
+  relative and follows the report's language). The reading copy rewrites each
   observation as `method — environment (YYYY-MM-DD)` — the word `captured`
   never reaches it — so **citing an observation can never trip the runtime
   jargon gate**; do not skip a citation to avoid it.
+- **`.work/report.cited.md` — middleware.** Every marker substituted, full
+  reference block at the end (footnote definitions in the default GFM mode):
+  the complete, checkable artefact, and the file gate ② judges. It is never
+  handed to the reader as the primary file.
 - Both files come from the same run and numbering, so they can never disagree
   about which source backs which passage. **Never hand-edit one to agree with
   the other** — fix `report.src.md` and re-render: the writer ends it at
@@ -294,8 +332,22 @@ python scripts/render_citations.py --report .work/report.src.md --evidence evide
 ## Pre-delivery readability pass (mandatory)
 
 After writing, take one deliberate pass so the text reads — then re-gate. The
-pass edits `report.src.md`, never the rendered outputs.
+pass edits `report.src.md`, never the rendered outputs. At this point the
+draft shape is *input*, not a constraint: the section gate has done its job
+and stops binding the delivered document.
 
+- **Weave the discipline chapters in (required, not optional).** Delete the
+  standalone `## Contradictions & Counter-evidence` and `## Gaps & Unknowns`
+  headings and fold their content into the narrative — a "Counter-evidence and
+  limits" subsection inside `## Findings`, unknowns stated where the affected
+  claim appears, an appendix note only if the request allows one. Everything
+  they carried must survive: the `**Strongest counter-evidence:**` callout
+  stays on its own line and appears by the third line of the summary, and
+  every `unknown` / uncertainty grade stays attached to its claim. Leaving
+  either chapter standing is a hard failure (`E_STANDALONE_SECTION`).
+- **Add the header info block and the table of contents** if they are not
+  already there (subject / scope / data cut-off / compiled / basis, then a
+  short linked TOC).
 - **Allowed:** adjust heading levels; reorder paragraphs; adjust connective
   words; delete run-failure noise (fetch errors, retry chatter, internal
   apparatus); merge duplicated phrasing.
@@ -304,9 +356,12 @@ pass edits `report.src.md`, never the rendered outputs.
   attribution.
 - **Then:** re-run **all** evidence gates — gate ① and gate ② as defined in
   `protocol.md` §9, where gate ② re-renders **both** output files from the
-  edited draft — and only then deliver.
+  edited draft — plus `content_review.py --clean` on `report.md`, and only
+  then deliver.
 - A structure the user explicitly requested is **binding and is not reordered**
-  by the pass. Without a requested structure, reorder freely.
+  by the pass; the weave still applies, because it is about *how the discipline
+  material is presented*, not about the requested chapter list. Without a
+  requested structure, reorder freely.
 
 ## Runtime jargon never appears in `report.md`
 

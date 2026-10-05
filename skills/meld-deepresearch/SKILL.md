@@ -37,13 +37,7 @@ degrade and note it. Never deliver a silently degraded report (`protocol.md` §1
 
 ## 3. Anchors, clarification, tier, length
 
-Fix `language` (follow the user), `format` (default `report`), `structure` (a requested chapter
-count or outline is **binding** — discipline material folds in, never inflates it, internal ids
-`kqN`/`dN` stay out of the body) and `output_dir` (default
-`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`; a user path replaces it). Ask **1–3
-scope-only questions** if the host can ask, else record the assumptions. Pick `quick`/`normal`
-(`tier-selection.md`), then judge **whether a long report is worth it and record why**: short
-1500–3000, medium 3000–6000, long 6000–12000 words; a user-specified length wins.
+Fix `language` (follow the user), `format` (default `report`), `structure` (a requested chapter count or outline is **binding** — discipline material folds in, never inflates it, internal ids `kqN`/`dN` stay out of the body) and `output_dir` (default `meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`; a user path replaces it). Ask **1–3 scope-only questions** if the host can ask, else record the assumptions. Pick `quick`/`normal` (`tier-selection.md`), then judge **whether a long report is worth it and record why**: short 1500–3000, medium 3000–6000, long 6000–12000 words; a user-specified length wins.
 
 ## 4. Workflow
 
@@ -56,11 +50,11 @@ scope-only questions** if the host can ask, else record the assumptions. Pick `q
 | 4 | Research | per axis: search → open originals → evaluate → gaps → again (§7) | stop at depth threshold |
 | 5 | Merge | `scripts/merge_evidence.py` folds `sub_reports/*.evidence.json` → `evidence.json` | ids unique, duplicates collapse |
 | 6 | Gate ① | `scripts/check_evidence.py` (+ `--plan` for `normal`) | must report `ok` |
-| 7 | Write | one pass, inline citations, **no new facts** | strength ≤ evidence |
-| 8 | Readability | pre-delivery reorder (`report-template.md`) | re-run every gate after it |
-| 9 | Gate ② | `scripts/render_citations.py` → `report.cited.md` **and** `report.md` | no orphan, no unresolved |
-| 10 | Review | `scripts/content_review.py --clean --report report.md` | no run-failure jargon |
-| 11 | Deliver | `scripts/dedupe_sources.py` → `sources.md`, then the five artifacts + coverage gaps (§9) | — |
+| 7 | Write | one pass, inline citations, **no new facts**, header info block + TOC + discipline sections | strength ≤ evidence |
+| 8 | Readability | weave the discipline chapters into the narrative (`report-template.md`) | re-run every gate after it |
+| 9 | Gate ② | `scripts/render_citations.py` → `.work/report.cited.md` **and** `report.md` | no orphan, no unresolved |
+| 10 | Review | `scripts/content_review.py --clean --report report.md` | no jargon, no chapter left standing |
+| 11 | Deliver | `scripts/dedupe_sources.py` → `sources.md`, then the four artifacts + coverage gaps (§9) | — |
 
 ## 5. Evidence and citation rules
 
@@ -99,7 +93,8 @@ sources, open questions and cost per round — then those questions become
 
 Run the commands exactly as `references/protocol.md` §9 lists them (gate ① also takes
 `--plan` on a `normal` run). Gate ① passes only on `ok`; gate ② fails on an **orphan** or
-**unresolved** marker; `content_review.py --clean` fails on run-failure jargon in `report.md`.
+**unresolved** marker; `content_review.py --clean` fails on run-failure jargon in `report.md`
+**or** on a discipline chapter left standing instead of woven in.
 Fix once and re-run — a second failure means **STOP** and report honestly. Every stage
 (plan / research / merge / write / render) retries once, then stops with the failing stage,
 artifacts and last error (`protocol.md` §10). No command execution? Walk the gates by hand
@@ -107,10 +102,11 @@ and say they were skipped.
 
 ## 9. Deliverables
 
-`report.md` (clean reading copy, first line links to the cited copy), `report.cited.md`
-(markers + references), `sources.md`, `evidence.json`, `citations.json`, plus `.work/`
-middleware. Return the five paths, the tier, coverage, the manifest, every failed fetch and any
-budget extension; without file write, return the report body and say nothing was persisted.
+`report.md` — the file the reader opens: no markers, header info block, table of contents,
+discipline chapters woven into the narrative, first line linking to `.work/report.cited.md`.
+Also `sources.md`, `evidence.json`, `citations.json`; `.work/` holds the middleware including
+the cited copy. Return the four paths, the tier, coverage, the manifest, every failed fetch and
+any budget extension; without file write, return the report body and say nothing was persisted.
 
 ## 10. Non-negotiables
 

@@ -11,10 +11,12 @@ Execution rules for `meld-deepresearch`. `SKILL.md` decides *whether* to run and
 | **Research (this file, §2–§7)** | per-axis loop | `sub_reports/dN.evidence.json` |
 | **Merge (this file, §9)** | `merge_evidence.py` folds every axis file into one | `evidence.json` |
 | Gate ① | evidence validator on the **merged** `evidence.json` (normal: plus `--plan`) | `{"ok": true}` |
-| Write | one-shot draft, inline citations, no new facts | `report.src.md` |
-| Gate ② | citation renderer, **both files in one run** | `report.cited.md` + `report.md`, `citations.json` |
+| Write | one-shot draft: info block + TOC + required sections, inline citations, no new facts | `report.src.md` |
+| Readability | weave the discipline chapters into the narrative (`report-template.md`) | edited `report.src.md` |
+| Gate ① re-run | evidence validator again after the weave | `{"ok": true}` |
+| Gate ② | citation renderer, **both files in one run** | `.work/report.cited.md` + `report.md`, `citations.json` |
 | Content review | `content_review.py --clean` on the reading copy | `{"ok": true}` |
-| Deliver | 5 artifacts + coverage note | see §11 |
+| Deliver | 4 artifacts + coverage note | see §11 |
 
 ## 2. The per-axis research loop
 
@@ -339,28 +341,38 @@ python scripts/check_evidence.py "$OUTDIR/evidence.json" --plan "$OUTDIR/.work/p
 python scripts/render_citations.py \
   --report "$OUTDIR/.work/report.src.md" \
   --evidence "$OUTDIR/evidence.json" \
-  --output "$OUTDIR/report.cited.md" \
+  --output "$OUTDIR/.work/report.cited.md" \
   --clean-output "$OUTDIR/report.md"
 python scripts/dedupe_sources.py --evidence "$OUTDIR/evidence.json" --output "$OUTDIR/sources.md"
-python scripts/content_review.py --report "$OUTDIR/report.md" --clean --evidence "$OUTDIR/evidence.json"
+python scripts/content_review.py --report "$OUTDIR/.work/report.cited.md" --evidence "$OUTDIR/evidence.json"   # draft/structural, warn-only
+python scripts/content_review.py --report "$OUTDIR/report.md" --clean --evidence "$OUTDIR/evidence.json"       # delivery gate
 ```
 
-One renderer invocation produces **both** report files: `report.cited.md` keeps
-the markers and the full reference block (that is what gate ② judges and what a
-reviewer clicks), while `report.md` is the marker-free reading copy whose first
-line links to the cited one. Never edit one by hand to match the other —
-re-run the renderer.
+One renderer invocation produces **both** report files. `report.md` is the
+deliverable the reader gets — marker-free, with the discipline chapters woven
+in, a header info block and a table of contents, and a first line linking to
+`.work/report.cited.md`. The cited copy is middleware: it keeps the markers
+and the full reference block, it is what gate ② judges, and it is never handed
+over as the primary file. Never edit one by hand to match the other — re-run
+the renderer.
 
-`content_review.py --clean` reviews the reading copy: structural problems are
-warnings, but **one hit of the runtime-failure blacklist fails the run**
-(`E_RUNTIME_TERM`, exit 1 — the token list is in the script's docstring and in
-`report-template.md`). Run it without `--clean` on `report.cited.md` only when
-you want the marker-dependent checks (uncited numbers); technical detail is
-allowed to stay in the cited copy. `merge_evidence.py` and `content_review.py`
-are the newest scripts. A `quick` run has no `plan.json`, so it omits the
-`--plan` flag. `render_citations.py` renders GFM footnotes by default (the
-renderer wires the jump itself, so it survives HTML sanitising); add `--anchors`
-only when the target host keeps inline `<a id>` anchors. Optional flags:
+`content_review.py` runs twice, on purpose:
+
+- **without `--clean`, on `.work/report.cited.md`** — structural review of the
+  draft shape (required sections, their order, heading language, uncited
+  numbers). Warn-only, exit 0.
+- **with `--clean`, on `report.md`** — the delivery gate. It fails (exit 1) on
+  the runtime-failure blacklist (`E_RUNTIME_TERM`) **and** when a standalone
+  `## Contradictions & Counter-evidence` / `## Gaps & Unknowns` (or Chinese)
+  chapter survived the weave (`E_STANDALONE_SECTION`). Warn-only signals:
+  prose ratio, missing header info block, missing table of contents, no
+  uncertainty marker in the body. Technical detail is allowed to stay in the
+  cited copy, so the blacklist does not apply there.
+
+A `quick` run has no `plan.json`, so it omits the `--plan` flag.
+`render_citations.py` renders GFM footnotes by default (the renderer wires the
+jump itself, so it survives HTML sanitising); add `--anchors` only when the
+target host keeps inline `<a id>` anchors. Optional flags:
 `content_review.py --llm` records (it does not perform) a host-side LLM judge
 review, with `--model <provider/model>` naming the provider/model;
 `render_citations.py --citations <path>` writes the citation map somewhere
@@ -398,22 +410,24 @@ Default output directory:
 
 ```
 meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/
-├── report.md                 # delivered: clean reading copy (no markers)
-├── report.cited.md           # delivered: full version with markers + references
+├── report.md                 # THE deliverable: clean reading copy (no markers)
 ├── sources.md                # delivered: de-duplicated source table
 ├── evidence.json             # delivered: merged evidence
 ├── citations.json            # delivered: citation map
-└── .work/                    # middleware (not a delivery core)
+└── .work/                    # middleware (not delivered as such)
     ├── plan.json             # normal tier only
     ├── report.src.md         # write-stage draft (pre-citation-render)
+    ├── report.cited.md       # citation-annotated copy (markers + references)
     └── sub_reports/dN.evidence.json   # per-axis intermediate evidence
 ```
 
-The five top-level files are the deliverables; `.work/` holds the middleware.
-The two report files are produced together by one renderer run and must never
-drift apart: `report.md` is for reading (no citation markers, first line links
-to the cited copy), `report.cited.md` is for checking (markers, full reference
-block). The delivery message **must list the full manifest** — the five
+The four top-level files are the deliverables; `.work/` holds the middleware,
+including the cited copy. The two report files are produced together by one
+renderer run and must never drift apart: `report.md` is the file the reader
+opens (no citation markers, header info block and table of contents, discipline
+chapters woven in, first line linking to `.work/report.cited.md`),
+`.work/report.cited.md` is the file a reviewer checks (markers, full reference
+block). The delivery message **must list the full manifest** — the four
 artifacts, the `.work/` contents that exist, and every failed fetch (URL +
 type) — so a reader can see exactly what was produced and what was skipped.
 

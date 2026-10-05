@@ -428,7 +428,7 @@ def strip_markers(line, had_marker):
 
 def build_clean_copy(
     report_text, source_numbers, observation_numbers, by_id, obs_by_id,
-    cited_name,
+    clean_path, cited_path,
 ):
     """Build the marker-free reading copy from the same numbers as the cited file."""
     lines = []
@@ -457,8 +457,17 @@ def build_clean_copy(
         sources_heading = "## Sources"
         observations_heading = "## Observations"
 
-    cited_name = os.path.basename(cited_name)
-    parts = [pointer % (cited_name, cited_name), "", body, "", sources_heading, ""]
+    # The pointer must resolve from wherever the reading copy lives, so the
+    # cited file can sit in .work/ while report.md stays at the top level.
+    try:
+        link = os.path.relpath(
+            os.path.abspath(cited_path),
+            start=os.path.dirname(os.path.abspath(clean_path)),
+        )
+    except ValueError:  # different drives on Windows
+        link = os.path.abspath(cited_path)
+    link = str(link).replace("\\", "/")
+    parts = [pointer % (link, link), "", body, "", sources_heading, ""]
 
     ordered_sources = sorted(
         source_numbers.items(), key=lambda item: item[1])
@@ -485,9 +494,10 @@ def build_clean_copy(
             captured_at = observation.get("captured_at")
             if captured_at in (None, ""):
                 captured_at = "unknown"
-            # no "captured" wording here: the reading copy must not read like
-            # a machine log (content_review fails on runtime-failure jargon)
-            parts.append("- %s — %s (%s)" % (method, environment, captured_at))
+            # The reading copy is for the reader: state what was checked and
+            # when, not the machine environment (that stays in the cited copy)
+            # and never the word "captured" (content_review fails on it).
+            parts.append("- %s (%s)" % (method, captured_at))
 
     return "\n".join(parts).rstrip("\n") + "\n"
 
@@ -567,7 +577,7 @@ def main(argv=None):
     if args.clean_output:
         clean_text = build_clean_copy(
             report_text, source_numbers, observation_numbers,
-            by_id, obs_by_id, os.path.basename(args.output),
+            by_id, obs_by_id, args.clean_output, args.output,
         )
         write_text(args.clean_output, clean_text)
         clean_path = args.clean_output

@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The delivery gate rejects a standalone discipline chapter**
+  (`E_STANDALONE_SECTION`, exit 1): `content_review.py --clean` now fails when
+  `## Contradictions & Counter-evidence` / `## Gaps & Unknowns` (or their
+  Chinese forms `## 矛盾与反证` / `## 未知与缺口`) is still standing as its own
+  top-level section — the pre-delivery readability pass weaves those chapters
+  into the narrative, after which every gate runs again before the single
+  render. The draft must also carry a **header info block** (subject / scope /
+  data cut-off / compiled / basis as `label: value` lines) and a **table of
+  contents** under the title; their absence stays warn-only (`W_NO_INFO_BLOCK`,
+  `W_NO_TOC`, alongside `W_NO_UNCERTAINTY`, `W_PROSE_RATIO` and the
+  ambiguous-term `W_RUNTIME_TERM`). New fixture
+  `examples/invalid/report.standalone-section.src.md` (exit 1);
+  `examples/sample-run/report.md` is the zero-warning positive.
 - **Scale redesign (0.3.0) — the repository now ships three cooperating
   skills** instead of one:
   - `skills/meld-da` — the Excel / spreadsheet analysis workflow, a full port
@@ -101,6 +114,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Delivery layout: the cited copy moved to `.work/`, four deliverables
+  again.** A real run writes `report.cited.md` to `.work/report.cited.md` —
+  middleware that gate ② judges and the reader never receives — so the top
+  level keeps exactly four deliverables: `report.md`, `sources.md`,
+  `evidence.json`, `citations.json`. The reading copy's first line links to
+  the cited copy by a **relative path** (`report.cited.md` when both sit in
+  the same directory, `.work/report.cited.md` in a real run), and
+  `render_citations.py --citations citations.json` keeps the citation map at
+  the top level instead of next to `--output`. `examples/sample-run/` keeps
+  `report.cited.md` at the top level only as a CI fixture.
 - **`SKILL.md` slimmed to 120 lines** (from 188): every rule that does not need
   to be in the entry point moved into `references/`, which is loaded on demand.
 - **`references/report-template.md` restructured around the reader's cognitive

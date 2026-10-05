@@ -208,25 +208,26 @@ jobs:
           step "check_evidence: gap missing a required field" 1 "E_GAP_SHAPE" -- \
             python3 $S/check_evidence.py examples/invalid/evidence.gap-bad-shape.json
 
-          # Dual output: one run writes the cited copy and the reading copy.
+          # Dual output: one run writes the cited copy (middleware) and the
+          # reading copy (the deliverable) at the top level.
           step "render_citations: valid sample report (dual output)" 0 '"ok": true' -- \
             python3 $S/render_citations.py \
               --report examples/sample-run/report.src.md \
               --evidence examples/sample-run/evidence.json \
-              --output "${tmp}/report.cited.md" \
+              --output "${tmp}/work/report.cited.md" \
               --clean-output "${tmp}/report.md" \
               --citations "${tmp}/citations.json"
-          assert_file "render_citations: cited copy" "${tmp}/report.cited.md"
+          assert_file "render_citations: cited copy" "${tmp}/work/report.cited.md"
           assert_file "render_citations: reading copy" "${tmp}/report.md"
           assert_file "render_citations: citations map" "${tmp}/citations.json"
           assert_contains "render_citations: cited copy keeps footnote definitions" \
-            "${tmp}/report.cited.md" '[^1]:'
+            "${tmp}/work/report.cited.md" '[^1]:'
           assert_contains "render_citations: cited copy keeps observation definitions" \
-            "${tmp}/report.cited.md" '[^o1]:'
+            "${tmp}/work/report.cited.md" '[^o1]:'
           assert_not_contains "render_citations: reading copy carries no markers" \
             "${tmp}/report.md" '[^'
-          assert_contains "render_citations: reading copy points at the cited copy" \
-            "${tmp}/report.md" 'report.cited.md'
+          assert_contains "render_citations: reading copy points at the cited copy in .work" \
+            "${tmp}/report.md" 'work/report.cited.md'
 
           step "render_citations: anchors mode" 0 '"ok": true' -- \
             python3 $S/render_citations.py --anchors \
@@ -277,7 +278,7 @@ jobs:
             python3 $S/render_citations.py \
               --report examples/chronicle-run/report.src.md \
               --evidence examples/chronicle-run/evidence.json \
-              --output "${tmp}/chronicle.cited.md" \
+              --output "${tmp}/work/chronicle.cited.md" \
               --clean-output "${tmp}/chronicle.md" \
               --citations "${tmp}/chronicle.citations.json"
           assert_file "render_citations: chronicle reading copy" "${tmp}/chronicle.md"
@@ -316,11 +317,23 @@ jobs:
             python3 $S/render_citations.py \
               --report examples/invalid/report.runtime-jargon.src.md \
               --evidence examples/sample-run/evidence.json \
-              --output "${tmp}/jargon.cited.md" \
+              --output "${tmp}/work/jargon.cited.md" \
               --clean-output "${tmp}/jargon.md"
           step "content_review: runtime jargon fails the reading copy" 1 "E_RUNTIME_TERM" -- \
             python3 $S/content_review.py --clean \
               --report "${tmp}/jargon.md" \
+              --evidence examples/sample-run/evidence.json
+
+          # The delivery-stage weave: a discipline chapter left standing fails.
+          step "render_citations: standalone-section fixture renders" 0 '"ok": true' -- \
+            python3 $S/render_citations.py \
+              --report examples/invalid/report.standalone-section.src.md \
+              --evidence examples/sample-run/evidence.json \
+              --output "${tmp}/work/standalone.cited.md" \
+              --clean-output "${tmp}/standalone.md"
+          step "content_review: standalone discipline chapter fails" 1 "E_STANDALONE_SECTION" -- \
+            python3 $S/content_review.py --clean \
+              --report "${tmp}/standalone.md" \
               --evidence examples/sample-run/evidence.json
 
           step "read_table: stdlib xlsx/csv selftest" 0 "read_table selftest: OK" -- \

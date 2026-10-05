@@ -14,13 +14,15 @@ the core research loop plus two optional capability skills.
   unverified is labelled `unknown`, never guessed.
 - Counter-evidence is searched for on purpose — contradictions and gaps are
   reported, not smoothed over.
-- Two hard gates stop a bad run: `check_evidence.py` validates the evidence
-  contract, `render_citations.py` rejects orphan or unresolved markers.
-- `content_review.py` is an optional, warn-only readability pass.
+- Three hard gates stop a bad run: `check_evidence.py` validates the evidence
+  contract, `render_citations.py` rejects orphan or unresolved markers, and
+  `content_review.py --clean` fails the reading copy on runtime-failure
+  jargon or a standalone discipline chapter that survived the weave.
 - Two effort tiers, `quick` and `normal`, selected from the question and
   overridable — no multi-agent machinery required.
-- One renderer run yields both a clean reading copy and a fully
-  citation-annotated copy of the report.
+- One renderer run yields both report files: `report.md`, the reading copy
+  you hand over, and the citation-annotated `report.cited.md`, which stays in
+  `.work/` as middleware rather than a deliverable.
 - Core scripts are Python 3 standard library only; the skill itself has no
   runtime dependencies.
 - Files are the source of truth: artifacts land on disk, the model context
@@ -60,7 +62,8 @@ capabilities; it ships no keys and stores no credentials.
 
 ```text
 probe → clarify → tier → plan → per-axis research → merge → gate ①
-     → write → gate ② → readability pass → dual render → deliver
+     → write → draft review → readability weave → re-run gates
+     → dual render → content gate → deliver
 ```
 
 - **probe** — check which host capabilities exist; a missing blocking one
@@ -77,12 +80,26 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
   `evidence.json`.
 - **gate ①** — `check_evidence.py` on the merged file (plus `--plan` on
   `normal`); a failure stops the run.
-- **write** — one draft, `report.src.md`, from validated evidence only.
-- **gate ②** — `render_citations.py` fails the run on an orphan or
-  unresolved citation marker.
-- **readability pass** — `content_review.py`, optional, warns only.
-- **dual render** — the same renderer emits `report.cited.md` and its
-  marker-free twin `report.md`.
+- **write** — one draft, `report.src.md`, from validated evidence only. It
+  opens with a header info block (report subject / scope / data cut-off /
+  date / basis) and a table of contents right under the title, and keeps
+  `## Contradictions & Counter-evidence` and `## Gaps & Unknowns` as
+  standalone chapters so they can be reviewed as such.
+- **draft review** — warn-only structural checks (section order and the
+  expected chapters) run against the draft / cited copy.
+- **readability pass** — the two discipline chapters are woven into the
+  narrative instead of being left standing on their own; the
+  strongest-counter-evidence callout and every `unknown` label must survive
+  the weave.
+- **re-gate** — every gate runs again on the woven draft.
+- **dual render** — one `render_citations.py` run (gate ②) emits both files:
+  `report.cited.md` into `.work/`, and its marker-free twin `report.md` at
+  the top level, whose first line links to the cited copy.
+- **content gate** — `content_review.py --clean` on `report.md`, hard: exit 1
+  on runtime-failure jargon, or on a standalone
+  `## Contradictions & Counter-evidence` / `## Gaps & Unknowns` chapter left
+  in the reading copy. Structural section-order checks already ran in the
+  draft review.
 - **deliver** — full artifact manifest, including gaps and failed fetches.
 
 Each gate gets at most one fix-and-retry; a second failure stops the run and
@@ -95,14 +112,15 @@ Default directory `meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`
 
 | File | Contents |
 |---|---|
-| `report.md` | Reading copy — all citation markers stripped |
-| `report.cited.md` | Same text with the full citation annotations kept |
+| `report.md` | **The deliverable** — marker-free reading copy; its first line links to the cited copy |
 | `sources.md` | De-duplicated source list |
 | `evidence.json` | Merged, gate-checked evidence behind every claim |
 | `citations.json` | Citation map linking markers to their sources |
 
 `.work/` beside them holds the middleware: `plan.json` (normal tier), the
-pre-render draft `report.src.md`, and per-axis `sub_reports/`.
+pre-render draft `report.src.md`, the citation-annotated `report.cited.md`
+that the same render produced (middleware, not a deliverable), and per-axis
+`sub_reports/`.
 
 ## When to use it / when not to
 

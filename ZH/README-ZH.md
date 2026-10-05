@@ -12,7 +12,7 @@
 Claude Code、Codex、Cursor、GitHub Copilot、Gemini CLI 等等——也绝不会把你
 绑死在某一家厂商身上。
 
-> **状态：** `v0.3.0`（规模化重构：三 skill、双文件交付、软预算 + 两轮延长、
+> **状态：** `v0.3.0`（规模化重构：三 skill、四产物交付、软预算 + 两轮延长、
 > 分层 CI）。skill 已经实现（`SKILL.md`、`references/`、`scripts/`），并由 CI
 > 在精选示例上跑通，可以直接从本仓库安装。见 [`docs/PLAN.md`](../docs/PLAN.md)。
 
@@ -62,7 +62,7 @@ gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
 
 | 主机 | 全局 | 项目内 |
 |---|---|---|
-| opencode | `~/.config/opencode/skills/` 或 `~/.agents/skills/` | `.opencode/skills/` |
+| opencode | `~/.agents/skills/` | `.opencode/skills/` |
 | Claude Code | `~/.claude/skills/` | `.claude/skills/` |
 | Codex | `~/.codex/skills/` 或 `~/.agents/skills/` | `.codex/skills/` |
 | Cursor | — | `.cursor/skills/` |
@@ -91,17 +91,18 @@ gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
 ### 产物
 
 每次运行都会在
-`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/` 下产出五个产物：
+`meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/` 下产出**四个产物**：
 
 | 文件 | 是什么 |
 |---|---|
-| `report.md` | **阅读版**：没有角标，首行链接到引用版 |
-| `report.cited.md` | **引用版**：带编号角标和完整出处，闸门② 判的就是它 |
+| `report.md` | **交付给读者的阅读版**：没有角标，首行链接到引用版 |
 | `sources.md` | 去重后的来源清单 |
 | `evidence.json` | 结构化的断言、证据、来源与边界 |
 | `citations.json` | 渲染器生成的引用映射表 |
 
-两个报告文件由**同一次渲染**生成，编号一致，不会互相漂移。
+`report.md` 与引用版由**同一次渲染**生成，编号一致，不会互相漂移；引用版
+`report.cited.md` 只是中间产物，存进 `.work/`，不作为交付物。`.work/` 里还有
+`plan.json`（normal 档）、草稿 `report.src.md` 和各维度的 `sub_reports/`。
 
 如果宿主没有文件系统访问权限，报告会改为直接在对话里返回。
 
@@ -118,13 +119,20 @@ gh skill install sogeisetsu/meld-deepresearch meld-deepresearch
        2 轮后仍不清 -> 标成 uncertainty，绝不编结论）
   -> 合并各维度证据  ->  evidence.json
   -> 自检（硬闸门①：证据校验器）
-  -> 写报告  ->  report.src.md
-  -> 交付前可读性重排 -> 重跑全部闸门
-  -> 渲染（硬闸门②：不得有孤儿或未解析引用）-> 同一次生成
-     report.cited.md + report.md + citations.json
-  -> 内容自检 --clean（运行故障词黑名单，命中即失败）
+  -> 写报告  ->  report.src.md（开头放报告头信息块：主题 / 范围 / 数据截止日 /
+     日期 / 依据，并在标题下给出目录；「矛盾与反证」「未知与缺口」暂作独立章节）
+  -> 草稿 / 引用版评审（章节顺序等结构性检查，只警告不失败）
+  -> 交付前可读性重排：把「矛盾与反证」「未知与缺口」织进正文，不再单独成章
+     （最强反证提示与每处 unknown 标记必须在重排后原样保留）
+  -> 重跑全部闸门
+  -> 渲染（硬闸门②：不得有孤儿或未解析引用）-> 同一次生成两份报告
+     report.md（交付物，首行链接到引用版）+ report.cited.md（存入 .work/，中间产物）
+     + citations.json
+  -> 内容硬闸门 content_review.py --clean 判 report.md：运行故障词黑名单命中，
+     或独立的 `## 矛盾与反证` / `## 未知与缺口` 章节残留 -> 失败
+     （章节顺序等结构性检查已前移到草稿 / 引用版评审）
   -> 生成 sources.md（URL 归一化 + 去重）
-  -> 交付 report.md + report.cited.md + sources.md + evidence.json + citations.json
+  -> 交付 report.md + sources.md + evidence.json + citations.json
 ```
 
 关键规则：先检索再抓取；没读过原文就不采信摘要片段；主动去找反证；尊重时效

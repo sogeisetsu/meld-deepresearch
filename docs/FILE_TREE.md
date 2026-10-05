@@ -27,11 +27,11 @@ meld-deepresearch/                    # repository root
 │   ├── meld-da/                      # Excel/spreadsheet analysis workflow: SKILL.md + capability/**/SKILL.md sub-skills + tests/ degrade unit test (port of SenseNova sn-da-excel-workflow)
 │   └── meld-search-academic/         # academic search/paper/refTree skill: SKILL.md, references/, scripts/, tests/ degrade unit test, requirements.txt + requirements-optional.txt (port of SenseNova sn-search-academic)
 ├── examples/                         # example artifacts, used by CI
-│   ├── sample-run/                   # one complete illustrative run: report.src.md, report.cited.md (markers), report.md (reading copy), sources.md, evidence.json, citations.json, plan.json
+│   ├── sample-run/                   # one complete illustrative run: report.src.md, report.cited.md (the cited copy is middleware — .work/report.cited.md in a real run, committed here at the top level for the CI fixtures only), report.md (reading copy), sources.md, evidence.json, citations.json, plan.json
 │   ├── chronicle-run/                # a chronicle-genre run: background claims, gaps[], source_type, plan genre + must_have_materials
 │   ├── downgrade-run/                # positive fixture: a tertiary-only factual claim that passes because it carries its 'downgrade' annotation (W_DOWNGRADE)
 │   ├── merge-run/                    # a two-axis merge fixture: sub_reports/{d1,d2}.evidence.json share one URL, which folds to a single source id with references re-pointed
-│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + gate-② drafts (orphan, blank) + a runtime-jargon reading copy
+│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + gate-② drafts (orphan, blank) + two content_review --clean drafts (runtime jargon → E_RUNTIME_TERM, standalone discipline section → E_STANDALONE_SECTION)
 └── .github/                          # GitHub configuration
     └── workflows/                    # CI: validate.yml — core job (zero-dep spec check + script self-test + degrade unit tests) and optional job (full dependency install, recorded skips)
 ```
@@ -51,10 +51,10 @@ skills/meld-deepresearch/
 │   └── genres/                       # panorama.md, comparison.md, entity.md, chronicle.md
 └── scripts/                          # Python 3 stdlib only, no dependencies
     ├── check_evidence.py             # hard gate: validate evidence.json (incl. background, gaps[], source_type, --plan genre/must_have_materials); errors may carry a "hint"
-    ├── render_citations.py           # markers -> GFM footnotes (default), anchors (--anchors), legacy plain (--legacy-plain); ONE run writes report.cited.md (markers) and report.md (marker-free reading copy) + citations.json
+    ├── render_citations.py           # markers -> GFM footnotes (default), anchors (--anchors), legacy plain (--legacy-plain); ONE run writes report.cited.md (cited copy, middleware — .work/report.cited.md in a real run) + report.md (marker-free reading copy whose first line links to the cited copy by a relative path) + citations.json (--citations; else it lands next to --output)
     ├── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md (optional source_type column)
     ├── merge_evidence.py             # fold sub_reports/*.evidence.json into one evidence.json, folding duplicate sources and re-pointing references
-    ├── content_review.py             # structural self-review (warn-only) plus, with --clean, the runtime-failure blacklist that FAILS on run-failure jargon in report.md; also reports the prose ratio
+    ├── content_review.py             # structural self-review of the draft/cited copy (warn-only) plus, with --clean, the delivery gate on report.md that FAILS on runtime-failure jargon (E_RUNTIME_TERM) or a standalone discipline chapter left standing (E_STANDALONE_SECTION); TOC / header-info-block / uncertainty / prose-ratio stay warn-only
     └── read_table.py                 # stdlib-only local .xlsx/.csv reader -> JSON/CSV, with --selftest; the zero-dependency inspection layer that complements meld-da
 ```
 

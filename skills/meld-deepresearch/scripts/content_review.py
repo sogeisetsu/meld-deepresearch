@@ -8,13 +8,23 @@ Usage:
 Two review modes:
 
 ``--clean``
-    The file is the **marker-free reading copy** (``report.md``). The
-    runtime-failure blacklist below is enforced and marker-dependent
-    heuristics (which need ``[^N]`` markers to be meaningful) are skipped.
+    The file is the **final reading copy** (``report.md``). This is the
+    delivery-stage review:
+      * the runtime-failure blacklist below is enforced (exit 1 on a hit);
+      * a standalone discipline chapter — ``## Contradictions &
+        Counter-evidence`` / ``## Gaps & Unknowns`` (or their Chinese forms)
+        — is an error (``E_STANDALONE_SECTION``): at delivery those sections
+        are woven into the narrative, not left standing (``E_STANDALONE_SECTION``);
+      * warn-only signals: prose ratio, missing header info block, missing
+        table of contents, no uncertainty marker anywhere in the body;
+      * the *structural* checks (required sections, their order, heading
+        language, uncited numbers) do **not** run here — they belong to the
+        draft/cited stage and would contradict the weave.
 
 no flag
-    The file is the **cited copy** (``report.cited.md``): full structural
-    review, no blacklist — technical detail may stay there.
+    The file is the **draft or cited copy**: full structural review (required
+    sections, order, heading language, uncited numbers, gaps section), no
+    blacklist — technical detail may stay there.
 
 Runtime-failure blacklist (``--clean`` only)
 --------------------------------------------
@@ -196,6 +206,84 @@ def section_body(report, slot_index):
     return "\n".join(lines)
 
 
+# Standalone discipline chapters are a draft-stage device: at delivery they are
+# woven into the narrative, so seeing one in the reading copy is an error.
+STANDALONE_DISCIPLINE_RE = re.compile(
+    r"^##\s+(?:Contradictions\s*(?:&|and)\s*Counter-evidence|"
+    r"Gaps\s*(?:&|and)\s*Unknowns|矛盾与反证|未知与缺口)\s*$",
+    re.MULTILINE | re.IGNORECASE)
+TOC_HEADING_RE = re.compile(
+    r"^#{2,3}\s+(?:目录|Contents|Table of Contents)\s*$", re.MULTILINE)
+TOC_LINK_RE = re.compile(r"\[[^\]]+\]\(#[^)]+\)")
+# Our own machinery must never surface in a client-facing report: the skill id,
+# the draft file names, the run log, the protocol. The single pointer line on
+# line 1 is the one sanctioned exception.
+APPARATUS_RE = re.compile(
+    r"meld-deepresearch|SKILL\.md|report\.src\.md|run-log|run_meta|run-meta|"
+    r"references/protocol|[Ww]eb\s*fetch\s*tool", re.IGNORECASE)
+UNCERTAINTY_RE = re.compile(
+    r"unknown|未知|无法证实|存疑|存在争议|待核实|证据不足|口径不明|insufficient evidence",
+    re.IGNORECASE)
+# A header info block sits between the title and the first "## " heading and
+# carries "label: value" pairs with at least one date.
+INFO_LINE_RE = re.compile(r"[:：].*\d{4}|\d{4}.*[:：]")
+
+
+def check_final_layout(report, evidence, warnings, failures):
+    """Delivery-stage layout rules for the reading copy (``report.md``)."""
+    for match in STANDALONE_DISCIPLINE_RE.finditer(report):
+        line_number = report[: match.start()].count("\n") + 1
+        failures.append(_warn(
+            "E_STANDALONE_SECTION",
+            "standalone discipline chapter %r must be woven into the "
+            "narrative before delivery; keep its content (the strongest "
+            "counter-evidence callout and every unknown label) but do not "
+            "leave it as its own top-level section" % match.group(0).strip("# \r\n"),
+            "line %d" % line_number))
+
+    if not TOC_HEADING_RE.search(report) and not TOC_LINK_RE.search(report):
+        warnings.append(_warn(
+            "W_NO_TOC",
+            "no table of contents: add a short TOC under the title",
+            "$"))
+
+    first_heading = HEADING_RE.search(report)
+    head = report[: first_heading.start()] if first_heading else report
+    if not any(INFO_LINE_RE.search(line) for line in head.splitlines()):
+        warnings.append(_warn(
+            "W_NO_INFO_BLOCK",
+            "no header info block before the first section: state the "
+            "subject, scope, data cut-off date and basis in a few lines "
+            "under the title",
+            "$"))
+
+    if not UNCERTAINTY_RE.search(report):
+        warnings.append(_warn(
+            "W_NO_UNCERTAINTY",
+            "no uncertainty marker anywhere in the body; the woven-in gaps "
+            "must still label what is unknown",
+            "$"))
+
+    for line_number, line in enumerate(report.splitlines(), start=1):
+        if line_number == 1:
+            continue  # the sanctioned pointer line to the cited copy
+        hit = APPARATUS_RE.search(line)
+        if hit:
+            failures.append(_warn(
+                "E_APPARATUS_LEAK",
+                "internal apparatus %r reached the reader-facing report; the "
+                "report must read as if the pipeline behind it does not exist "
+                "(rewrite the line in the report's own language and without "
+                "naming the tool, the protocol or a file)" % hit.group(0),
+                "line %d" % line_number))
+        elif ".work/" in line:
+            warnings.append(_warn(
+                "W_APPARATUS_LEAK",
+                "middleware path mentioned in the body; only the line-1 "
+                "pointer may refer to .work/",
+                "line %d" % line_number))
+
+
 def check_runtime_terms(report, warnings, failures):
     """Scan for run-failure jargon.
 
@@ -259,34 +347,47 @@ def check_report(report, evidence, warnings, failures, clean=False):
     is_cjk = bool(CJK_RE.search(report))
     found = check_sections(report, warnings)
 
-    present = {index for index, _, _ in found}
-    # In the default GFM-footnote mode the renderer drops the standalone
-    # "## Sources" heading and emits [^N]: definitions instead, so a footnote
-    # block satisfies the sources slot.
-    if FOOTNOTE_DEF_RE.search(report):
-        present.add(SLOTS.index(("sources", "来源")))
-    for index in range(REQUIRED_SLOTS):
-        if index not in present:
+    if clean:
+        # Delivery stage: the discipline chapters are woven into the narrative,
+        # so section presence/order is judged by the final-layout rules below,
+        # not by the draft skeleton.
+        check_final_layout(report, evidence, warnings, failures)
+    else:
+        present = {index for index, _, _ in found}
+        # In the default GFM-footnote mode the renderer drops the standalone
+        # "## Sources" heading and emits [^N]: definitions instead, so a footnote
+        # block satisfies the sources slot.
+        if FOOTNOTE_DEF_RE.search(report):
+            present.add(SLOTS.index(("sources", "来源")))
+        # A discipline section that was woven into the narrative still
+        # satisfies its slot as long as its in-body markers survive.
+        if STRONGEST_RE.search(report):
+            present.add(SLOTS.index(
+                ("contradictions & counter-evidence", "矛盾与反证")))
+        if UNCERTAINTY_RE.search(report):
+            present.add(SLOTS.index(("gaps & unknowns", "未知与缺口")))
+        for index in range(REQUIRED_SLOTS):
+            if index not in present:
+                warnings.append(_warn(
+                    "W_REVIEW_MISSING_SECTION",
+                    "required section '%s' is missing" % SLOTS[index][0],
+                    "$"))
+
+        order = [index for index, _, _ in found]
+        if order != sorted(order):
             warnings.append(_warn(
-                "W_REVIEW_MISSING_SECTION",
-                "required section '%s' is missing" % SLOTS[index][0],
+                "W_REVIEW_SECTION_ORDER",
+                "required sections are not in the documented order",
                 "$"))
 
-    order = [index for index, _, _ in found]
-    if order != sorted(order):
-        warnings.append(_warn(
-            "W_REVIEW_SECTION_ORDER",
-            "required sections are not in the documented order",
-            "$"))
-
-    if is_cjk:
-        for index, language, line_number in found:
-            if index < REQUIRED_SLOTS and language == "en":
-                warnings.append(_warn(
-                    "W_REVIEW_HEADING_LANG",
-                    "Chinese report uses the English heading '%s'"
-                    % SLOTS[index][0],
-                    "line %d" % line_number))
+        if is_cjk:
+            for index, language, line_number in found:
+                if index < REQUIRED_SLOTS and language == "en":
+                    warnings.append(_warn(
+                        "W_REVIEW_HEADING_LANG",
+                        "Chinese report uses the English heading '%s'"
+                        % SLOTS[index][0],
+                        "line %d" % line_number))
 
     # Obvious uncited numbers (meaningless in the reading copy, where every
     # marker has been stripped by design).
@@ -298,6 +399,8 @@ def check_report(report, evidence, warnings, failures, clean=False):
                 continue
             if line.strip().startswith("|"):
                 continue  # table rows (the sources table) are handled by the gate
+            if TOC_LINK_RE.search(line):
+                continue  # the contents list is links, not claims
             if CITATION_MARK_RE.search(line):
                 continue
             for token in NUMBER_RE.findall(line):
@@ -311,12 +414,13 @@ def check_report(report, evidence, warnings, failures, clean=False):
                     "line %d" % line_number))
                 break
 
-    # gaps[] present in evidence but no Gaps section in the report.
+    # gaps[] present in evidence but no Gaps section in the report (draft
+    # stage only — the reading copy weaves them into the narrative).
     has_gaps = isinstance(evidence, dict) and isinstance(
         evidence.get("gaps"), list) and len(evidence.get("gaps")) > 0
     slot_index = {index for index, _, _ in found}
-    if has_gaps and (SLOTS.index(("gaps & unknowns", "未知与缺口"))
-                     not in slot_index):
+    if not clean and has_gaps and (SLOTS.index(("gaps & unknowns", "未知与缺口"))
+                                   not in slot_index):
         warnings.append(_warn(
             "W_REVIEW_GAPS_UNSHOWN",
             "evidence.json carries gaps[] but the report has no "
@@ -394,8 +498,9 @@ def build_parser():
     parser.add_argument("--evidence", required=True, help="evidence.json")
     parser.add_argument(
         "--clean", action="store_true",
-        help="the file is the marker-free reading copy (report.md): enforce "
-             "the runtime-failure blacklist and skip marker-dependent checks",
+        help="the file is the FINAL reading copy (report.md): enforce the "
+             "runtime-failure blacklist and reject standalone discipline "
+             "chapters; structural section checks belong to the draft stage",
     )
     parser.add_argument(
         "--llm", action="store_true",

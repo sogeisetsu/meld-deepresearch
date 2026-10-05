@@ -47,8 +47,9 @@ Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, ...) can load them as-is
    allowed and may invoke each other only along documented hand-offs; no
    undocumented coupling, no skill that only works when another is installed
    (every skill degrades on its own).
-9. **Tool-agnostic.** Never hardcode host tool names
-   (`websearch` / `WebFetch` / `Task` / `AskUserQuestion`).
+9. **Tool-agnostic.** Never hardcode host tool names — describe the host's
+   own search, fetch, delegate and ask-user tools by capability, not by the
+   name one particular host happens to give them.
 10. **English artifacts, user-language output.** SKILL.md, references and code
     are English; the generated report follows the user's language.
 11. **Delegation is optional.** If the host provides subagents, research axes
@@ -93,8 +94,11 @@ The authoritative, annotated file tree lives in
 - All published text (SKILL.md, references, README) is English.
 - Scripts: Python 3 stdlib, UTF-8 without BOM, accept both `python` and
   `python3`, print JSON to stdout, exit codes 0 (pass) / 1 (fail) / 2 (bad input).
-- Report deliverables: `report.md` (clean reading copy), `report.cited.md`
-  (citation-annotated), `sources.md`, `evidence.json`, `citations.json`.
+- Report deliverables: four top-level files — `report.md` (clean reading
+  copy), `sources.md`, `evidence.json`, `citations.json`. The
+  citation-annotated `report.cited.md` is middleware that lives in
+  `.work/report.cited.md`; it sits at the top level of
+  `examples/sample-run/` only as a CI fixture.
 - Project author: `sogeisetsu`. Use this in `SKILL.md` `metadata.author`, in
   `package.json`, and in the `LICENSE` copyright line.
 - One authoritative home per topic, so copies cannot drift silently:
@@ -125,8 +129,20 @@ python skills/meld-deepresearch/scripts/check_evidence.py \
   examples/sample-run/evidence.json --plan examples/sample-run/plan.json
 
 # citation rendering — ONE run writes both report files:
-#   report.cited.md keeps the markers and the full reference block (gate ②)
-#   report.md is the marker-free reading copy, first line links to the cited one
+#   .work/report.cited.md keeps the markers and the full reference block
+#     (middleware; gate ② judges this file; committed at the top level of
+#     examples/sample-run/ only as a CI fixture)
+#   report.md is the marker-free reading copy, first line linking to the cited
+#     copy by a RELATIVE path (.work/report.cited.md in a real run,
+#     report.cited.md when both live in the same directory, as in this fixture)
+# Real-run shape (four top-level deliverables: report.md, sources.md,
+# evidence.json, citations.json; --citations keeps citations.json at the top
+# level instead of next to --output in .work/):
+#   python skills/meld-deepresearch/scripts/render_citations.py \
+#     --report .work/report.src.md --evidence evidence.json \
+#     --output .work/report.cited.md --clean-output report.md \
+#     [--citations citations.json]
+# Fixture render (both copies side by side, for the CI fixtures):
 python skills/meld-deepresearch/scripts/render_citations.py \
   --report examples/sample-run/report.src.md \
   --evidence examples/sample-run/evidence.json \
@@ -149,11 +165,16 @@ python skills/meld-deepresearch/scripts/merge_evidence.py \
   --output .work/tmp/merge-run.json
 python skills/meld-deepresearch/scripts/check_evidence.py .work/tmp/merge-run.json
 
-# content review, structural checks on the cited copy (warn-only, exit 0)
+# content review runs twice. First the structural pass on the cited copy
+# (warn-only, exit 0; in a real run that copy is .work/report.cited.md)
 python skills/meld-deepresearch/scripts/content_review.py \
   --report examples/sample-run/report.cited.md \
   --evidence examples/sample-run/evidence.json
-# content review, runtime-failure blacklist on the reading copy (exit 1 on a hit)
+# then the delivery gate on the reading copy: --clean fails (exit 1) on the
+# runtime-failure blacklist (E_RUNTIME_TERM) and on a standalone discipline
+# chapter that survived the weave (E_STANDALONE_SECTION); warn-only:
+# W_PROSE_RATIO, W_NO_TOC, W_NO_INFO_BLOCK, W_NO_UNCERTAINTY and the
+# ambiguous-term W_RUNTIME_TERM (expected here: {"ok": true, "warnings": []})
 python skills/meld-deepresearch/scripts/content_review.py --clean \
   --report examples/sample-run/report.md \
   --evidence examples/sample-run/evidence.json
@@ -210,14 +231,24 @@ reason: `evidence.unknown-source.json` → `E_REF_SOURCE`, `evidence.tertiary-on
 gate ② (exit 1), and so does `report.empty-marker.src.md` — its blank `[^]` /
 `[^ ]` markers must fail gate ② in the default GFM-footnote mode (exit 1).
 `report.runtime-jargon.src.md` renders cleanly but its reading copy must fail
-`content_review.py --clean` with `E_RUNTIME_TERM` (exit 1); the positive
-counterpart is `examples/downgrade-run/evidence.json` (exit 0, `W_DOWNGRADE`).
+`content_review.py --clean` with `E_RUNTIME_TERM` (exit 1); likewise
+`report.standalone-section.src.md` renders cleanly but its reading copy must
+fail `content_review.py --clean` with `E_STANDALONE_SECTION` (exit 1) — the
+discipline chapters (`## Contradictions & Counter-evidence`, `## Gaps &
+Unknowns`, or their Chinese forms `## 矛盾与反证` / `## 未知与缺口`) must be
+woven into the narrative before delivery. The delivery-gate positive is
+`examples/sample-run/report.md` (`content_review.py --clean`, exit 0, zero
+warnings); the evidence-gate positive counterpart is
+`examples/downgrade-run/evidence.json` (exit 0, `W_DOWNGRADE`).
 
 CI has **two jobs**. The `core` job installs nothing and must be green: the
 frontmatter/spec check over every `skills/*/SKILL.md` (field lengths, English-only
 ASCII `description`, `license`, `metadata.author`, name-matches-directory), the
-whole script self-test above, and the stdlib-only degrade-path unit tests of both
-capability skills. The `optional` job runs the **full install** of the declared
+whole script self-test above — including both delivery-gate negatives
+(runtime jargon → `E_RUNTIME_TERM`, standalone discipline chapter →
+`E_STANDALONE_SECTION`) against the zero-warning positive
+`examples/sample-run/report.md` — and the stdlib-only degrade-path unit tests of
+both capability skills. The `optional` job runs the **full install** of the declared
 `requirements.txt` files (plus the optional browser tier), re-runs the
 degrade-path tests with the packages present, AST-parses every shipped script,
 and re-runs the core gates; when `pip install` fails it records the reason in the

@@ -390,3 +390,13 @@ Top-level fields can be used directly (e.g. `--category cs`); subcategories are 
 | **Biology / medicine** | `q-bio.NC` | Neuroscience |
 | | `q-bio.GN` | Genomics |
 | | `q-bio.QM` | Quantitative methods |
+
+## Platform notes (pure Windows)
+
+- Run scripts with `python` when `python3` is not on `PATH` (on stock Windows
+  `python3` may be the Microsoft Store stub). Every command in this skill is
+  written as `python3 …`; substituting `python` is the only change needed.
+- The scripts use `pathlib.Path` throughout and never assume a POSIX temp
+  directory, a POSIX shell or `/` separators, so no other change is required.
+- The optional crawler tier additionally needs Node.js on `PATH`; when it is
+  missing the skill degrades exactly as it does for a missing Python package.
