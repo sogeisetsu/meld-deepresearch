@@ -162,6 +162,13 @@ committed).
 - [x] T2 fix applied (commit `639f408`, `structure` anchor)
 - [x] T2 round 2 live run — done (`test/runs/example2/round2/`, 6 chapters)
 - [x] T2 round 2 scoring — **PASS** (meld 25 vs baseline 18 median)
+- [x] Scale redesign branch `feat/scale-redesign` (baseline `f05bcbc`); frozen
+      baseline exported to [`baseline-f05bcbc.json`](baseline-f05bcbc.json)
+      (A5 / B3 / C1 / D0 / E5 / G1 = 15 of 30) straight from the committed
+      round-3 record — no re-blinding
+- [x] T1 round 4 live run — done (`test/runs/example1/round4/`, dual output)
+- [x] T1 round 4 scoring — **PASS on the first attempt** (redesign 28 vs frozen
+      15, every axis median ≥ frozen) → [`example1.md`](example1.md)
 
 ## 13. Result
 
