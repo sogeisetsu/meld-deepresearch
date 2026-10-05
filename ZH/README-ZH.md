@@ -66,8 +66,8 @@ skill 目录（例如 `~/.agents/skills/`）。
 | 目录 | 用途 | 依赖 |
 |---|---|---|
 | `skills/meld-deepresearch` | 核心研究 / 证据 / 引用循环 | 无——Python 3 标准库 |
-| `skills/meld-da` | Excel 与电子表格数据分析工作流（移植自 SenseNova-Skills `sn-da-excel-workflow`） | `requirements.txt` 中的可选 Python 包；缺包时按文档降级 |
-| `skills/meld-search-academic` | 学术检索、论文阅读、引用树追溯（移植自 SenseNova-Skills `sn-search-academic`） | `requirements.txt`（外加 `requirements-optional.txt`）中的可选 Python 包；缺包时按文档降级 |
+| `skills/meld-da` | Excel 与电子表格数据分析工作流（据 SenseNova-Skills `sn-da-excel-workflow` 改写） | `requirements.txt` 中的可选 Python 包；缺包时按文档降级 |
+| `skills/meld-search-academic` | 学术检索、论文阅读、引用树追溯（据 SenseNova-Skills `sn-search-academic` 改写） | `requirements.txt`（外加 `requirements-optional.txt`）中的可选 Python 包；缺包时按文档降级 |
 
 每个 skill 都能独立使用；它们只有在
 [`references/protocol.md`](../skills/meld-deepresearch/references/protocol.md)
@@ -194,8 +194,8 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
 ## 许可证与署名
 
 MIT——见 [`LICENSE`](../LICENSE)。作者：**sogeisetsu**。
-[`NOTICE`](../NOTICE) 列出了所有其材料被移植或借鉴的上游项目，
-包括两个 SenseNova-Skills 移植。
+[`NOTICE`](../NOTICE) 列出了所有其材料被借用或借鉴的上游项目，
+包括两个据 SenseNova-Skills 改写的技能。
 
 ---
 

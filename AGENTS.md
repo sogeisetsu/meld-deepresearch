@@ -13,10 +13,10 @@ The repository ships **several cooperating skills** — the core research
 skill plus optional capability skills it can invoke:
 
 - `skills/meld-deepresearch` — the core research / evidence / citation loop.
-- `skills/meld-da` — spreadsheet & data-analysis workflow (port of
+- `skills/meld-da` — spreadsheet & data-analysis workflow (adapted from
   SenseNova-Skills `sn-da-excel-workflow`).
 - `skills/meld-search-academic` — academic search, paper reading and
-  citation-tree tracing (port of SenseNova-Skills `sn-search-academic`).
+  citation-tree tracing (adapted from SenseNova-Skills `sn-search-academic`).
 
 Skills may call each other where a documented hand-off exists (see
 `references/protocol.md` §2a). Any Agent Skills-compatible host (opencode,

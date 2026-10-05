@@ -24,8 +24,8 @@ meld-deepresearch/                    # repository root
 │   └── .nojekyll                     # tells GitHub Pages to serve docs/ as-is instead of running Jekyll
 ├── skills/                           # skill packages (this repo ships three)
 │   ├── meld-deepresearch/            # core research/evidence/citation skill (contents in the note below)
-│   ├── meld-da/                      # Excel/spreadsheet analysis workflow: SKILL.md + capability/**/SKILL.md sub-skills + tests/ degrade unit test (port of SenseNova sn-da-excel-workflow)
-│   └── meld-search-academic/         # academic search/paper/refTree skill: SKILL.md, references/, scripts/, tests/ degrade unit test, requirements.txt + requirements-optional.txt (port of SenseNova sn-search-academic)
+│   ├── meld-da/                      # Excel/spreadsheet analysis workflow: SKILL.md + capability/**/SKILL.md sub-skills + tests/ degrade unit test (adapted from SenseNova sn-da-excel-workflow)
+│   └── meld-search-academic/         # academic search/paper/refTree skill: SKILL.md, references/, scripts/, tests/ degrade unit test, requirements.txt + requirements-optional.txt (adapted from SenseNova sn-search-academic)
 ├── examples/                         # example artifacts, used by CI
 │   ├── sample-run/                   # one complete illustrative run: report.src.md, report.cited.md (the cited copy is middleware — .work/report.cited.md in a real run, committed here at the top level for the CI fixtures only), report.md (reading copy), sources.md, evidence.json, citations.json, plan.json
 │   ├── chronicle-run/                # a chronicle-genre run: background claims, gaps[], source_type, plan genre + must_have_materials

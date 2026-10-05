@@ -48,12 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   crawler).
 - **Scale redesign (0.3.0) — the repository now ships three cooperating
   skills** instead of one:
-  - `skills/meld-da` — the Excel / spreadsheet analysis workflow, a full port
-    of SenseNova-Skills `sn-da-excel-workflow` @ `5abde96f` (MIT) translated to
+  - `skills/meld-da` — the Excel / spreadsheet analysis workflow, adapted from
+    SenseNova-Skills `sn-da-excel-workflow` @ `5abde96f` (MIT) and translated to
     English, with sandbox paths removed, `requirements.txt`, and a stdlib
     degrade-path unit test that proves the `read_table.py` fallback.
   - `skills/meld-search-academic` — academic search, paper reading and
-    citation-tree tracing, a full port of SenseNova-Skills `sn-search-academic`
+    citation-tree tracing, adapted from SenseNova-Skills `sn-search-academic`
     @ the same commit; `playwright`/`camoufox` are an **optional** tier
     (`requirements-optional.txt`) that degrades to the official APIs and then to
     generic search instead of aborting, with its own unit test.

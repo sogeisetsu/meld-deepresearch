@@ -72,8 +72,8 @@ Notes:
 | Directory | Purpose | Dependencies |
 |---|---|---|
 | `skills/meld-deepresearch` | Core research / evidence / citation loop | None — Python 3 stdlib |
-| `skills/meld-da` | Excel & spreadsheet data-analysis workflow (port of SenseNova-Skills `sn-da-excel-workflow`) | Optional Python packages in `requirements.txt`; documented fallback without them |
-| `skills/meld-search-academic` | Academic search, paper reading, citation-tree tracing (port of SenseNova-Skills `sn-search-academic`) | Optional Python packages in `requirements.txt` (+ `requirements-optional.txt`); documented fallback without them |
+| `skills/meld-da` | Excel & spreadsheet data-analysis workflow (adapted from SenseNova-Skills `sn-da-excel-workflow`) | Optional Python packages in `requirements.txt`; documented fallback without them |
+| `skills/meld-search-academic` | Academic search, paper reading, citation-tree tracing (adapted from SenseNova-Skills `sn-search-academic`) | Optional Python packages in `requirements.txt` (+ `requirements-optional.txt`); documented fallback without them |
 
 Each skill stands alone; they may invoke one another only along the hand-offs
 documented in [`references/protocol.md`](skills/meld-deepresearch/references/protocol.md) §2a.

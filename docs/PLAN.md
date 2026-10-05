@@ -375,7 +375,7 @@ plan / research / write / render 各上限 **1 次**；仍失败 → 停止，�
 
 | 来源 | License | 借了什么（一句话） |
 |---|---|---|
-| OpenSenseNova/SenseNova-Skills（商汤，5.7k★） | MIT | 证据契约 + 校验器 + refute 义务 + 引用渲染（**核心**）；固定 commit `5abde96f` 全量移植 `sn-da-excel-workflow` → `skills/meld-da`、`sn-search-academic` → `skills/meld-search-academic`，`sn-research-report` 摘译进 `references/report-template.md` |
+| OpenSenseNova/SenseNova-Skills（商汤，5.7k★） | MIT | 证据契约 + 校验器 + refute 义务 + 引用渲染（**核心**）；固定 commit `5abde96f` 据其改写 `sn-da-excel-workflow` → `skills/meld-da`、`sn-search-academic` → `skills/meld-search-academic`（译成英文、删去不合用部分，非逐行搬运），`sn-research-report` 摘译进 `references/report-template.md` |
 | Weizhena/Deep-Research-skills（2.3k★） | MIT | 两阶段 + HITL + item×field 结构化 |
 | OpenAI Deep Research | 产品 | Plan-Act-Observe、逐 claim 引用 |
 | Anthropic multi-agent research | 产品 | 上下文隔离、归因代理 |

@@ -19,13 +19,13 @@ This file is a good-faith attribution notice, not a legal instrument.
    mechanical validators, Search->URL->Fetch->evaluate loop, time-sensitivity
    strategy, citation rendering, failure/retry design.
 
-   Ported in full (translated to English, adapted, sandbox path assumptions
-   removed):
+   Adapted from (translated to English, pruned of unsuitable parts, sandbox
+   path assumptions removed) — reworked, not copied line for line:
    - skills/meld-da/                 <- skills/sn-da-excel-workflow
    - skills/meld-search-academic/    <- skills/sn-search-academic
    The report structure guidance in references/report-template.md is
    excerpted and translated from skills/sn-research-report at the same
-   commit. Scripts under both ported skills keep their upstream algorithmic
+   commit. Scripts under both adapted skills keep their upstream algorithmic
    content; credential handling stays environment-variable based.
 
 2. Weizhena/Deep-Research-skills — Weizhena
