@@ -164,7 +164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   JSON stdout with 0/1/2 exit codes.
 - **`README.md` rewritten in English** in the concise style of
   `199-biotechnologies/claude-deep-research-skill` — structure imitated, no
-  sentence copied (verified: that repository ships **no license**).
+  sentence copied. (That project declares **MIT** in its README but ships no
+  standalone `LICENSE` file; the README statement is the licence of record.)
 - **Fixtures re-tuned:** negative fixtures that test a non-finding rule now
   carry `key_findings: []` so each still fails for exactly its own reason, and
   the merge fixture's key finding gained a second independent origin.

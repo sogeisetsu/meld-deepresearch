@@ -54,13 +54,14 @@ no text is copied:
 - assafelovic/gpt-researcher
 - langchain-ai/open_deep_research
 
-- 199-biotechnologies/claude-deep-research-skill — verified 2026-10-05:
-  the repository ships NO LICENSE file (raw `LICENSE` returns 404 and the
-  GitHub API reports `license: null`). Its material is therefore consulted
-  for *style and structure only* (lightweight SKILL.md, on-demand
-  disclosure of references, concise README tone, tiered word-count
-  targets); no code and no prose is reproduced from it. If that project
-  later adds a license, borrowing terms must be re-checked first.
+- 199-biotechnologies/claude-deep-research-skill — License: **MIT**, as
+  declared by the project's own README (`## License — MIT`). The repository
+  ships no standalone `LICENSE` file and the GitHub API reports
+  `license: null`, so the README statement is the licence of record.
+  Material is consulted for *style and structure only* (lightweight
+  SKILL.md, on-demand disclosure of references, concise README tone, tiered
+  word-count targets); no code and no prose is reproduced from it.
+  Verified 2026-10-05.
 
 The four report-quality dimensions used in `references/report-template.md`
 (comprehensiveness, insight, instruction-following, readability) follow the
