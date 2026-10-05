@@ -1,6 +1,6 @@
 ---
 name: meld-search-academic
-description: Academic literature search, paper full-text and section reading, and citation-tree tracing. Use when the user wants to search papers or encyclopedia entries across arXiv, Semantic Scholar, Google Scholar, PubMed, SSRN and Wikipedia, read arXiv or PMC full text, list paper sections, trace a paper's references and citations, or follow citation chains for related-work surveys and literature reviews.
+description: Academic literature search, paper full-text and section reading, and citation-chain tracing. Use when the user wants to find papers, run a systematic review, search papers or encyclopedia entries across arXiv, Semantic Scholar, Google Scholar, PubMed, SSRN and Wikipedia, read arXiv or PMC full text, list paper sections, trace a paper's references and citations, or follow a citation chain for related-work surveys and literature reviews.
 license: MIT
 metadata:
   author: sogeisetsu

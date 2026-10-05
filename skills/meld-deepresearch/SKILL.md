@@ -1,6 +1,6 @@
 ---
 name: meld-deepresearch
-description: Turn a vague topic into a verifiable, citation-backed research report by searching multiple sources, opening the originals, and actively looking for counter-evidence instead of answering from the first few results. Use for systematic research, multi-source investigation, competitive analysis, literature reviews, trend analysis, fact-checking, and any request for a cited report, brief, or deep dive.
+description: Turn a vague topic into a verifiable, citation-backed research report by searching multiple sources, opening the originals, and actively looking for counter-evidence instead of answering from the first few results. Use for deep research, systematic research, market research, competitive and landscape analysis, multi-source investigation, source verification, literature reviews, trend analysis, fact-checking, and any request for a cited report, brief, or deep dive.
 license: MIT
 compatibility: Requires web search, web fetch, file read/write and command execution; optional PDF, code-reading and subagent capabilities degrade gracefully when absent.
 metadata:
@@ -24,9 +24,10 @@ to this skill's directory; detail loads on demand.
 
 ## 1. When to use this skill
 
-For answers that need **evidence from more than one source** and must be checkable: research,
-literature review, landscape/trend or competitive analysis, fact-checking, any explicit request
-for a cited report or brief — not a one-line answer, tidying up supplied sources or pure opinion.
+For answers that need **evidence from more than one source** and must be checkable: deep
+research, market research, literature review, landscape/trend or competitive analysis, source
+verification, fact-checking, any explicit request for a cited report or brief — not a one-line
+answer, tidying up supplied sources or pure opinion.
 
 ## 2. Capability probe (do this first)
 

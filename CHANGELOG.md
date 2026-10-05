@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Skill placement descriptions now carry the high-intent terms users actually
+  type: `meld-deepresearch` lists **deep research**, **market research** and
+  **source verification**, and `meld-search-academic` lists **find papers**,
+  **systematic review** and **citation chain**. No capability changed; only the
+  matching surface did.
+
 ## [0.3.0] - 2026-10-06
 
 ### Added
