@@ -278,7 +278,10 @@ python scripts/render_citations.py --report .work/report.src.md --evidence evide
 - **`report.md`** — the marker-free reading copy: markers stripped, the
   renderer-owned tail rebuilt as plain un-numbered `## Sources` /
   `## Observations` lists, and a **first line linking to `report.cited.md`**
-  (the pointer follows the report's language).
+  (the pointer follows the report's language). The reading copy rewrites each
+  observation as `method — environment (YYYY-MM-DD)` — the word `captured`
+  never reaches it — so **citing an observation can never trip the runtime
+  jargon gate**; do not skip a citation to avoid it.
 - Both files come from the same run and numbering, so they can never disagree
   about which source backs which passage. **Never hand-edit one to agree with
   the other** — fix `report.src.md` and re-render: the writer ends it at
