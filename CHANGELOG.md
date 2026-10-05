@@ -9,6 +9,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Scale redesign (0.3.0) — the repository now ships three cooperating
+  skills** instead of one:
+  - `skills/meld-da` — the Excel / spreadsheet analysis workflow, a full port
+    of SenseNova-Skills `sn-da-excel-workflow` @ `5abde96f` (MIT) translated to
+    English, with sandbox paths removed, `requirements.txt`, and a stdlib
+    degrade-path unit test that proves the `read_table.py` fallback.
+  - `skills/meld-search-academic` — academic search, paper reading and
+    citation-tree tracing, a full port of SenseNova-Skills `sn-search-academic`
+    @ the same commit; `playwright`/`camoufox` are an **optional** tier
+    (`requirements-optional.txt`) that degrades to the official APIs and then to
+    generic search instead of aborting, with its own unit test.
+  - Documented cross-skill hand-offs live in `references/protocol.md` §2a:
+    spreadsheet analysis routes to `meld-da`, and **academic, scientific or
+    historical subjects must route the scholarly layer through
+    `meld-search-academic`**. Neither skill may require the other.
+- **Dual-file output.** One `render_citations.py` run now writes
+  `report.cited.md` (markers + full reference block, what gate ② judges) **and**
+  `report.md` — a marker-free reading copy whose first line links to the cited
+  copy, in the report's language.
+- **Runtime-failure jargon gate.** `content_review.py --clean` fails the run
+  (`E_RUNTIME_TERM`, exit 1) when the reading copy contains any of nine
+  high-precision run-failure tokens (`access-limited`, `webfetch`,
+  `captured 20`, `word_count`, `extracted_main`, `bot-protection`, …);
+  ambiguous network terms only warn and must be recorded as exemptions. It also
+  reports the prose-first ratio (`W_PROSE_RATIO`, warn-only).
+- **Soft budget with a bounded extension.** Fetch caps raised (`quick` ≤ 12,
+  `normal` ≤ 40; rounds per axis 4 / 5) and exhaustion no longer stops a run
+  that still has open key questions: it extends **automatically, at most 2
+  rounds**, logging new sources / still unresolved questions / cost per round —
+  after which the open questions become `uncertainty` (`gaps[]` + `unknown`)
+  and never a fabricated conclusion.
+- **Evidence-rule refinements** (`check_evidence.py` + `evidence-contract.md`):
+  a `factual` claim may now rest on `tertiary` support **only** with an explicit
+  `downgrade` writing-context annotation (`E_FACTUAL_SOURCE` without it,
+  `W_DOWNGRADE` with it); an `interpretive` claim needs two distinct origins
+  **with at least one `primary`/`secondary`** (`E_INTERPRETIVE_CREDIBLE`); a
+  `key_finding` needs the same basis (`E_FINDING_BASIS`). A `tertiary` source may
+  be the second origin — never the only pillar.
+- **Length tiers and the mandatory readability pass.** The writer records
+  whether a long report is worth it and why, then picks short 1500–3000 /
+  medium 3000–6000 / long 6000–12000 words (an explicit user length wins),
+  writes ≤2000 words per section per pass, and runs a pre-delivery readability
+  pass whose allowed/forbidden operations are spelled out in
+  `references/report-template.md` — after which every gate runs again.
+- **Layered CI.** A zero-dependency `core` job (spec check over every
+  `skills/*/SKILL.md`, the full script self-test, both degrade-path unit tests)
+  that must be green, plus an `optional` job that performs the full dependency
+  install, re-runs the tests with packages present, AST-parses every script, and
+  records a skip reason instead of failing when the network is unavailable.
+- New fixtures: `examples/downgrade-run/` (positive, `W_DOWNGRADE`),
+  `examples/invalid/evidence.interpretive-tertiary-pair.json`,
+  `examples/invalid/evidence.finding-single-source.json`,
+  `examples/invalid/report.runtime-jargon.src.md`.
+- **`docs/eval/records/sensenova-live/baseline-f05bcbc.json`** — the frozen
+  per-axis baseline (A5 / B3 / C1 / D0 / E5 / G1 = 15 of 30) exported from the
+  committed round-3 record, so acceptance no longer depends on re-blinding.
 - **Genre templates** (`skills/meld-deepresearch/templates/genres/`): a report
   can append a genre-specific structure — panorama, comparison (with a required
   comparison matrix), entity / due-diligence, or chronicle (history) — chosen at
@@ -45,6 +101,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`SKILL.md` slimmed to 120 lines** (from 188): every rule that does not need
+  to be in the entry point moved into `references/`, which is loaded on demand.
+- **`references/report-template.md` restructured around the reader's cognitive
+  task** — panorama / comparison / entity / chronicle, plus academic, medical,
+  legal and policy shapes — excerpted and translated from SenseNova-Skills
+  `sn-research-report` (attribution in `NOTICE`); the evidence spine stays
+  mandatory and in fixed order, and a user-requested structure still binds.
+- **`AGENTS.md` non-negotiables rewritten:** multiple skills are allowed,
+  documented cross-skill hand-offs are allowed, third-party Python dependencies
+  are allowed for capability skills (core scripts stay stdlib-only). Retained:
+  no host-specific tool names, English published text, `main` always mergeable,
+  JSON stdout with 0/1/2 exit codes.
+- **`README.md` rewritten in English** in the concise style of
+  `199-biotechnologies/claude-deep-research-skill` — structure imitated, no
+  sentence copied (verified: that repository ships **no license**).
+- **Fixtures re-tuned:** negative fixtures that test a non-finding rule now
+  carry `key_findings: []` so each still fails for exactly its own reason, and
+  the merge fixture's key finding gained a second independent origin.
 - `report-template.md` now requires the **Executive Summary to be a 3–5 bullet
   TL;DR** (answer first, one figure per line, strongest counter-evidence by the
   third line) and a `**Strongest counter-evidence:**` line opening
