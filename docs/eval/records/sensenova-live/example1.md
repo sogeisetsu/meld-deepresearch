@@ -240,3 +240,72 @@ exists. The redesigned run's report is narrower in raw page count but carries
 21 dated resolvable references, a dedicated contradiction section with the
 strongest counter-evidence first, labelled unknowns, and a visible method
 appendix.
+
+## Round 5 (new delivery form: four deliverables, woven chapters) — **FAIL on E**
+
+Round 4 had passed while the judge was still shown `report.cited.md`. The
+delivery form then changed (cited copy moved to `.work/`; the reading copy must
+carry a header info block, a table of contents and the discipline chapters
+woven in), so round 5 re-ran the task on the new skill
+(`test/runs/example1/round5/`) and this time the judge was shown **`report.md`
+itself** — the file a reader actually gets.
+
+- Run: `normal`, genre `panorama`, 4 axes, 15 distinct sources, 8 `refute`
+  claims, 21/40 fetches, 0 extensions, ~18.5 minutes (the efficiency rules
+  landed: incremental `run-log.md`, small scripts).
+- Deterministic: gate ① `ok` (twice, before and after the weave), gate ②
+  `ok` (15 citations, 2 observations, 0 orphan/uncited), `content_review
+  --clean` exit 0 under the rules then in force, 0 standalone discipline
+  chapters, 0 markers, 0 blacklist hits; 8/8 sampled links HTTP 200 (the
+  ninth check, BBC, returned 200 via curl).
+
+Blind passes (A/B order swapped, fresh judge per pass, deliverables only):
+
+| pass | order | total A | total B |
+|---|---|---|---|
+| 1 | A=baseline · B=round5 | 13 | 26 |
+| 2 | A=round5 · B=baseline | 26 | 16 |
+| 3 | A=baseline · B=round5 | 16 | 26 |
+
+Per-axis medians:
+
+| axis | frozen baseline | this round's baseline | round5 | ≥ frozen? |
+|---|---|---|---|---|
+| A Coverage | 5 | 4 | **5** | ✓ |
+| B Depth | 3 | 3 | **5** | ✓ |
+| C Factual support | 1 | 2 | **5** | ✓ |
+| D Citation quality | 0 | 1 | **5** | ✓ |
+| E Instruction-following | 5 | 4 | **3** | ✗ |
+| G Process discipline | 1 | 1 | **3** | ✓ |
+| **total** | **15** | 16 | **26** | ✓ |
+
+**FAIL on axis E** (3 < 5). All three judges independently gave E = 3 and
+named the same three causes — internal apparatus inside the delivered report:
+
+1. line 1 linked `.work/report.cited.md` (middleware path visible to the reader);
+2. the header info block said `依据：meld-deepresearch 研究协议` — the skill
+   and the protocol named in a client-facing report;
+3. `## 观测记录` carried English process narration (`web fetch tool`,
+   `Windows 11`) in a Chinese report.
+
+Coverage, depth, citations, evidence and process discipline all still beat the
+frozen baseline (26 vs 15 overall); only presentation discipline regressed,
+because the new opening block and the observation section were introduced
+without rules about what may appear in them.
+
+### Repair (attempt 1 of at most 2) — commit `4b5cf24`
+
+- `content_review.py --clean` now fails on apparatus leaks
+  (`E_APPARATUS_LEAK`: skill id, `SKILL.md` / `report.src.md` / `run-log` /
+  protocol names, "web fetch tool") and warns on any `.work/` path after line 1.
+- The reading copy renders observations as `method (date)` — the machine
+  environment stays in the cited copy.
+- `report-template.md` states the rules explicitly: the info block's `依据`
+  line describes the evidence basis only and never names a tool, skill or
+  protocol; observation methods are written in the report's language, for
+  readers, tool-agnostically; "no apparatus in the body" is a named rule.
+- Checked retroactively: round 5's `report.md` now fails `content_review
+  --clean` with three `E_APPARATUS_LEAK` hits — the gate catches exactly what
+  the judges caught.
+
+Round 6 is the repair run; its verdict follows below.

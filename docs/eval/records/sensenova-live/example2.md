@@ -228,3 +228,56 @@ internal-process wording in the body), and the run's external source count (4) i
 below the normal-tier floor — a genuine quality limitation, but not a loss
 against the baseline. Current skill: `main` `0958af1`, `report-template.md`
 `4D566C7A…`.
+
+## Round 5 (scale redesign, `feat/scale-redesign`) — gates PASS, no blind eval
+
+Fresh sub agent, fresh directory `test/runs/example2/round5/`, the ten
+`.xlsx` inputs read through `read_table.py` (10 recorded `observations[]`
+commands) plus a stdlib analysis step (10 more). Per the goal this round is
+**not** blind-scored: it validates the two gates, `content_review`, the dual
+files and the runtime-jargon rule.
+
+Deliverables: `report.md` (30,354 B) + `report.cited.md` (31,030 B) +
+`sources.md`, `evidence.json`, `citations.json`, `run-log.md`, `run-meta.json`
+and `.work/` middleware (plan, draft, 4 sub-reports, analysis helpers).
+
+| Check | Result |
+|---|---|
+| Gate ① `check_evidence.py --plan` (before **and** after the readability pass) | `{"ok": true, "errors": [], "warnings": []}` exit 0 |
+| Gate ② one render → both files | `{"ok": true, "citation_count": 3, "observation_count": 20, "orphans": [], "uncited": []}` exit 0 |
+| `content_review.py --clean --report report.md` | exit 0 — one warn-only signal: `W_PROSE_RATIO 0.49` |
+| Binding structure | **6 numbered chapters** (requested 5–6) + 摘要 + 主要发现 |
+| runtime-jargon scan of `report.md` (9 high-precision tokens) | **0** hits; `[^` markers: **0** |
+| charts | 5 Mermaid + 6 tables (binary charts are out of scope) |
+
+Independent numeric re-computation from the raw `.xlsx` (orchestrator-run,
+`analyze.py`): 932 records, mean **50.0339**, median 49.12, fail rate
+**575/932 = 61.7%**, 117 names / 119 工号, 38 posts — matching both the frozen
+baseline recompute (`932 / 50.03 / 49.12 / 61.7%`) and the figures the run
+reported (top post 岗位14 = 64.17, bottom 岗位10 = 40.04, strict whole-series
+improvers = 3).
+
+`meld-da` was **not** invoked: the run stayed on the stdlib pipeline and
+recorded that as a degradation note, which is the documented behaviour when
+the third-party analysis packages are not installed.
+
+**Cost diagnosis (the round took ~85 minutes, 18:32 → 20:00).** The gates are
+not the cost — they are sub-second and never failed. The timeline shows:
+18:32 start → 18:33 all ten workbooks dumped to JSON (3 seconds) → **18:33–19:11
+≈ 38 minutes with no artifact on disk** (silent in-context reasoning) → 19:11
+statistics JSON → 19:25–19:30 draft → 19:54 a 38 KB `build_evidence.py` plus
+the merged evidence. The three real causes: the round demanded *every*
+headline figure be independently recomputed and recorded as a re-runnable
+command (pushing the agent to script an evidence builder), a data task needs
+`snippet` + `quote_type` per number (structurally heavy), and the run wrote no
+incremental `run-log.md` (so 38 minutes left no trace). Mitigations now in the
+skill: incremental `run-log.md` after every stage, small helper scripts only,
+computed figures carried as `observations[]` rather than one claim per number.
+
+**Rule change after this run:** the delivery form was tightened afterwards
+(discipline chapters must be woven in, header info block + table of contents,
+`content_review --clean` fails on `E_STANDALONE_SECTION` / `E_APPARATUS_LEAK`).
+Round 5's `report.md` still carries standalone `## 矛盾与反证` / `## 未知与缺口`
+chapters, so it would **not** pass the current delivery gate. Per the user's
+decision this example was **not re-run**; the record above is what the run
+produced and passed under the rules in force at 20:00.

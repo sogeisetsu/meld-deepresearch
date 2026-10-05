@@ -169,6 +169,13 @@ committed).
 - [x] T1 round 4 live run — done (`test/runs/example1/round4/`, dual output)
 - [x] T1 round 4 scoring — **PASS on the first attempt** (redesign 28 vs frozen
       15, every axis median ≥ frozen) → [`example1.md`](example1.md)
+- [x] T2 round 5 live run — done (`test/runs/example2/round5/`, dual output,
+      6 chapters); gates + `content_review` green, numbers independently
+      re-confirmed; **not blind-scored** (per decision) → [`example2.md`](example2.md)
+- [x] T1 round 5 live run — done (`test/runs/example1/round5/`, the new
+      reading-copy deliverable) and scored: **FAIL on axis E** (3 vs frozen 5)
+      — apparatus leaked into the body; fix committed `4b5cf24`
+- [ ] T1 round 6 — repair attempt 1 of at most 2 (in flight)
 
 ## 13. Result
 
