@@ -74,7 +74,10 @@ ZH/SKILL-ZH.md
 # Local git worktrees (kept inside the repo so agents need no external-dir grant)
 .worktrees/
 
-# SenseNova comparison: frozen baseline downloads + live-run artifacts (local only)
+# SenseNova comparison: the scratch area was retired (see CHANGELOG "Removed");
+# keep ignoring it so nothing recreates it as a tracked directory. Its frozen
+# baseline lives in .work/backup-baseline/ (also ignored) and its scores live
+# in docs/eval/records/sensenova-live/.
 test/
 
 # Deepwork progress files (git-local)
