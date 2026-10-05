@@ -19,6 +19,10 @@ Two review modes:
       * a narrated run failure (login wall, unopenable page) is an error
         (``E_FAILURE_NARRATION``) and internal apparatus in the body is an
         error (``E_APPARATUS_LEAK``);
+      * a labelled counter-evidence callout — a line opening with a bold
+        ``**最强反证：**`` / ``**Strongest counter-evidence:**`` label — is an
+        error (``E_ADVERSARY_CALLOUT``): at delivery the counter-evidence is
+        woven into the paragraph of the claim it qualifies;
       * the opening must have survived the pass: header info block
         (``W_NO_INFO_BLOCK``), a vertical table of contents (``W_NO_TOC`` /
         ``W_THIN_TOC``), a definitions-and-scope section
@@ -76,8 +80,8 @@ judgement was not performed here.
 stdout is one ASCII-safe JSON object:
     {"ok": bool, "warnings": [{"code","message","where"}], "sections": [...]}
 
-Exit codes: 0 pass (warnings allowed), 1 blacklist hit in ``--clean`` mode,
-2 bad input (unreadable file / invalid JSON / wrong usage).
+Exit codes: 0 pass (warnings allowed), 1 delivery-gate failure in ``--clean``
+mode, 2 bad input (unreadable file / invalid JSON / wrong usage).
 
 Python 3 standard library only; no network access.
 """
@@ -92,9 +96,22 @@ CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 CITATION_MARK_RE = re.compile(r"\[\^?[so]?\d+\]|\[O\d+\]|\[\[\d+\]\]|\[\^o\d+\]")
 NUMBER_RE = re.compile(r"\d[\d,]*(?:\.\d+)?\s*%?")
 YEAR_RE = re.compile(r"^(?:19|20)\d{2}$")
-# The report template requires the single strongest refutation to be called out
-# on its own line; either language form satisfies it.
-STRONGEST_RE = re.compile(r"最强反方|最强反证|strongest counter", re.IGNORECASE)
+# Counter-evidence / limitation wording, in either language, in any of its
+# ordinary woven-in forms: a report that contains none of it at all shows the
+# active refutation search never happened.
+COUNTER_EVIDENCE_RE = re.compile(
+    r"最强反证|最强反方|反证|反驳|相悖|相反|不过|然而|局限|限制|存疑|未能证实|"
+    r"strongest counter|counter-evidence|however|contrary|contradict|"
+    r"limited by|caveat|dispute",
+    re.IGNORECASE)
+# A labelled counter-evidence callout is a draft device. At delivery the
+# counter-evidence is woven into the paragraph of the claim it qualifies, so a
+# line that begins (after an optional list bullet) with the bold label is a
+# delivery-stage failure; either language form and both colon widths count.
+ADVERSARY_CALLOUT_RE = re.compile(
+    r"^[ \t]*(?:(?:[-*+]|\d+[.)])[ \t]+)?"
+    r"\*\*(?:最强反证|最强反方|strongest counter-evidence)[:：]\*\*",
+    re.IGNORECASE)
 SUMMARY_SENTENCE_LIMIT = 140
 
 # High-precision run-failure jargon: never allowed in the reading copy.
@@ -265,14 +282,26 @@ INFO_LINE_RE = re.compile(r"[:：].*\d{4}|\d{4}.*[:：]")
 
 def check_final_layout(report, evidence, warnings, failures):
     """Delivery-stage layout rules for the reading copy (``report.md``)."""
+    for line_number, line in enumerate(report.splitlines(), start=1):
+        if ADVERSARY_CALLOUT_RE.match(line):
+            failures.append(_warn(
+                "E_ADVERSARY_CALLOUT",
+                "labelled counter-evidence callout reached the reading copy; "
+                "weave the counter-evidence into the paragraph of the claim "
+                "it qualifies — same sentence or the one immediately after, "
+                "joined by an ordinary contrastive transition (不过 / however "
+                "/ but / limited by), with no bold label and no standalone "
+                "paragraph",
+                "line %d" % line_number))
+
     for match in STANDALONE_DISCIPLINE_RE.finditer(report):
         line_number = report[: match.start()].count("\n") + 1
         failures.append(_warn(
             "E_STANDALONE_SECTION",
             "standalone discipline chapter %r must not exist in the reading "
             "copy; weave it into the section whose claim it belongs to, "
-            "keeping the strongest-counter-evidence callout and every "
-            "unknown label attached to that claim" % match.group(0).strip("# \r\n"),
+            "keeping every limitation and `unknown` label attached to the "
+            "claim it qualifies" % match.group(0).strip("# \r\n"),
             "line %d" % line_number))
 
     for match in FAILURE_NARRATION_RE.finditer(report):
@@ -437,7 +466,7 @@ def check_report(report, evidence, warnings, failures, clean=False):
             present.add(SLOTS.index(("sources", "来源")))
         # A discipline section that was woven into the narrative still
         # satisfies its slot as long as its in-body markers survive.
-        if STRONGEST_RE.search(report):
+        if COUNTER_EVIDENCE_RE.search(report):
             present.add(SLOTS.index(
                 ("contradictions & counter-evidence", "矛盾与反证")))
         if UNCERTAINTY_RE.search(report):
@@ -503,13 +532,14 @@ def check_report(report, evidence, warnings, failures, clean=False):
             "'Gaps & Unknowns' section",
             "$"))
 
-    # Strongest counter-evidence must be called out on its own line.
-    if not STRONGEST_RE.search(report):
+    # Counter-evidence/limitation wording must exist somewhere in the report:
+    # warn only when there is none at all, whatever form it takes.
+    if not COUNTER_EVIDENCE_RE.search(report):
         warnings.append(_warn(
             "W_REVIEW_NO_STRONGEST_COUNTER",
-            "no explicit 'strongest counter-evidence' callout found; "
-            "Contradictions & Counter-evidence should open with a "
-            "'Strongest counter-evidence:' line",
+            "no counter-evidence or limitation wording found anywhere in the "
+            "report; weave the strongest refutation into the paragraph of the "
+            "claim it qualifies (however / but / 不过 / 局限 …)",
             "$"))
 
     # Executive Summary should read as short, plain sentences.
@@ -575,8 +605,9 @@ def build_parser():
     parser.add_argument(
         "--clean", action="store_true",
         help="the file is the FINAL reading copy (report.md): enforce the "
-             "runtime-failure blacklist and reject standalone discipline "
-             "chapters; structural section checks belong to the draft stage",
+             "runtime-failure blacklist, reject standalone discipline "
+             "chapters and labelled counter-evidence callouts; structural "
+             "section checks belong to the draft stage",
     )
     parser.add_argument(
         "--llm", action="store_true",

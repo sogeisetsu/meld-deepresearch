@@ -18,4 +18,5 @@ recommend one.
 6. **Risks & limits** — what the recommendation does not cover (风险与局限).
 
 A comparison without the matrix is incomplete; the matrix is the spine of this
-genre. Required sections are unchanged and always come first.
+genre. Required sections are unchanged and always come first (draft stage; the
+pre-delivery readability pass later dissolves them).

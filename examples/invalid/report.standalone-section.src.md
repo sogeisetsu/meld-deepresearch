@@ -17,7 +17,7 @@ The figure above rests on one opened source.[^s1]
 
 ## Contradictions & Counter-evidence
 
-**Strongest counter-evidence:** a second source disputes the figure.[^s1]
+A second source disputes the figure.[^s1]
 
 ## Gaps & Unknowns
 

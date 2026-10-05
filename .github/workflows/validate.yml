@@ -336,6 +336,18 @@ jobs:
               --report "${tmp}/standalone.md" \
               --evidence examples/sample-run/evidence.json
 
+          # Counter-evidence is woven into its claim: a labelled callout fails.
+          step "render_citations: adversary-callout fixture renders" 0 '"ok": true' -- \
+            python3 $S/render_citations.py \
+              --report examples/invalid/report.adversary-callout.src.md \
+              --evidence examples/sample-run/evidence.json \
+              --output "${tmp}/work/adversary.cited.md" \
+              --clean-output "${tmp}/adversary.md"
+          step "content_review: labelled counter-evidence callout fails" 1 "E_ADVERSARY_CALLOUT" -- \
+            python3 $S/content_review.py --clean \
+              --report "${tmp}/adversary.md" \
+              --evidence examples/sample-run/evidence.json
+
           # The reader must never be told that the run failed to open a page.
           step "render_citations: failure-narration fixture renders" 0 '"ok": true' -- \
             python3 $S/render_citations.py \

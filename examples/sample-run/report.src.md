@@ -36,7 +36,7 @@ marked `unknown` where it matters.
   passed roughly 12,000 stars within three months [^s1] [^s2].
 - The available evidence attributes that growth mainly to build-time wins
   rather than to marketing activity [^s2] [^s3] [^s4].
-- **Strongest counter-evidence:** the star figure is a single snapshot, so
+- However, the star figure is a single snapshot, so
   "adoption accelerated" may be partly an artifact of which snapshot was taken
   [^s2] — the curve's shape is `unknown`.
 - Two limits qualify everything above: one snapshot instead of a time series,
@@ -54,12 +54,10 @@ writeup [^s1] [^s3]. The release-notes page was read directly on 2026-09-29
 
 The project passed 12,000 stars within three months of the release [^s2]. If
 the recorded rate holds, it is projected to pass 20,000 stars by the end of
-2026 [^s2].
-
-**Strongest counter-evidence:** the adoption figure is a single snapshot, not
-an archived time series, so "adoption accelerated" may be partly an artifact of
-which snapshot was taken [^s2]; how the curve actually shaped up is `unknown`.
-A second limit is the source of the comparison: the same writeup reports both
+2026 [^s2]. However, the adoption figure is a single snapshot, not an archived
+time series, so "adoption accelerated" may be partly an artifact of which
+snapshot was taken [^s2]; how the curve actually shaped up is `unknown`. A
+second limit is the source of the comparison: the same writeup reports both
 the star count and its own growth narrative [^s2] [^s3].
 
 ## Why it grew

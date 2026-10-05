@@ -18,4 +18,5 @@ person/organisation background check.
 
 Sub-structure is chosen by purpose: checklist-style for due diligence,
 argument-driven for an investment case, background-style for a person or
-organisation. Required sections are unchanged and always come first.
+organisation. Required sections are unchanged and always come first (draft
+stage; the pre-delivery readability pass later dissolves them).

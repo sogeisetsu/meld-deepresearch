@@ -123,12 +123,15 @@ searching for their contents:
 5. If the file cannot be parsed (corrupt or unsupported), record a `gaps[]` entry
    with `reason: access-limited` (or `other`) and continue.
 
+Both capability skills document their own hand-off entry and exit contract in a
+`## Hand-off entry & exit` section of their own skill directory.
+
 ## 3. Mandatory refutation
 
 - After the supporting evidence looks sufficient, **actively search for counter-evidence**: opposing findings, failed cases, debunkings, and claims that cannot be verified at all.
 - Record refuting claims with `polarity: refute` (and `neutral` for ambiguous material) — never drop them because they are inconvenient.
 - **A refute count of zero almost always means the refutation search was not done properly**, not that the topic has no counter-arguments. If a run ends with zero refutes, re-run at least one refutation-targeted search before writing.
-- Contradictions between sources are reported in the report's `Contradictions & Counter-evidence` section, not silently reconciled.
+- Contradictions between sources are reported in the section whose claim they qualify, woven into its prose — never in a standalone chapter and never as a labelled callout — and never silently reconciled.
 
 ## 4. Time-sensitivity: three cases
 
@@ -365,12 +368,15 @@ the renderer.
   draft shape (required sections, their order, heading language, uncited
   numbers). Warn-only, exit 0.
 - **with `--clean`, on `report.md`** — the delivery gate. It fails (exit 1) on
-  four things: the runtime-failure blacklist (`E_RUNTIME_TERM`); a standalone
+  five things: the runtime-failure blacklist (`E_RUNTIME_TERM`); a standalone
   discipline chapter, at H2 or H3, English or Chinese — including
   `## 观测记录` (`E_STANDALONE_SECTION`); narrating a run failure to the reader
-  such as a login wall or an unopenable page (`E_FAILURE_NARRATION`); and
+  such as a login wall or an unopenable page (`E_FAILURE_NARRATION`);
   internal apparatus — the skill id, draft/run-log file names, a protocol name
-  (`E_APPARATUS_LEAK`). Warn-only signals: prose ratio, missing header info
+  (`E_APPARATUS_LEAK`); and a labelled counter-evidence callout — a paragraph
+  opening with a bold `**最强反证：**` / `**Strongest counter-evidence:**`
+  lead-in instead of the limitation being woven into the claim's own prose
+  (`E_ADVERSARY_CALLOUT`). Warn-only signals: prose ratio, missing header info
   block, missing or single-line table of contents, no definitions section, a
   generic container heading, no uncertainty marker, a `.work/` path outside
   line 1, and the ambiguous-term exemptions. Technical detail is allowed to

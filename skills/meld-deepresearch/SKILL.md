@@ -53,7 +53,7 @@ Fix `language` (follow the user), `format` (default `report`), `structure` (a re
 | 7 | Write | one pass, inline citations, **no new facts**, header info block + TOC + discipline sections | strength ≤ evidence |
 | 8 | Readability | weave the discipline chapters into the narrative (`report-template.md`) | re-run every gate after it |
 | 9 | Gate ② | `scripts/render_citations.py` → `.work/report.cited.md` **and** `report.md` | no orphan, no unresolved |
-| 10 | Review | `scripts/content_review.py --clean --report report.md` | no jargon, no chapter left standing |
+| 10 | Review | `scripts/content_review.py --clean --report report.md` | no jargon, no chapter left standing, no labelled callout |
 | 11 | Deliver | `scripts/dedupe_sources.py` → `sources.md`, then the four artifacts + coverage gaps (§9) | — |
 
 ## 5. Evidence and citation rules
@@ -93,12 +93,12 @@ sources, open questions and cost per round — then those questions become
 
 Run the commands exactly as `references/protocol.md` §9 lists them (gate ① also takes
 `--plan` on a `normal` run). Gate ① passes only on `ok`; gate ② fails on an **orphan** or
-**unresolved** marker; `content_review.py --clean` fails on run-failure jargon, a discipline
-chapter left standing, a narrated run failure, or internal apparatus leaking into `report.md`.
-Fix once and re-run — a second failure means **STOP** and report honestly. Every stage
-(plan / research / merge / write / render) retries once, then stops with the failing stage,
-artifacts and last error (`protocol.md` §10). No command execution? Walk the gates by hand
-and say they were skipped.
+**unresolved** marker; `content_review.py --clean` fails on five things: run-failure jargon,
+a chapter left standing, a narrated run failure, apparatus leaking into `report.md`, or a
+labelled counter-evidence callout. Fix once and re-run — a second failure means **STOP** and
+report honestly. Every stage (plan / research / merge / write / render) retries once, then
+stops with the failing stage, artifacts and last error (`protocol.md` §10). No command
+execution? Walk the gates by hand and say they were skipped.
 
 ## 9. Deliverables
 

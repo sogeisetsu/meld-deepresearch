@@ -19,4 +19,5 @@ attribution-type questions where the timeline is the argument.
 
 Attribution questions ("who did what") rarely have binary answers: state what
 is confirmed, what is disputed and what cannot be established. Required
-sections are unchanged and always come first.
+sections are unchanged and always come first (draft stage; the pre-delivery
+readability pass later dissolves them).

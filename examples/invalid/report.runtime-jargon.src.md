@@ -18,7 +18,7 @@ rests on an access-limited page that returned a captured 20 body.[^s1]
 
 ### Limits and unknowns
 
-**Strongest counter-evidence:** none is recorded in this fixture; the rest of
+No counter-evidence is recorded in this fixture; the rest of
 it is irrelevant, but `word_count` and `extracted_main` noise must not reach
 the reader either.
 
