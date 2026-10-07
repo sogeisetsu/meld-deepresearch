@@ -47,7 +47,9 @@ skill 目录（例如 `~/.agents/skills/`）。
   标为 `unknown`，绝不猜测。
 - 反证是被主动去寻找的——矛盾与缺口会被如实报告，而不是被抹
   平。
-- 三道硬闸门拦住糟糕的运行：`check_evidence.py` 校验证据契约，
+- 三道硬闸门拦住糟糕的运行——`meld.py prepare`、`meld.py render` 与
+  `meld.py review --clean`（薄 CLI `skills/meld-deepresearch/scripts/meld.py`
+  的三个子命令，包装着底层脚本）：证据契约由 `check_evidence.py` 校验，
   `render_citations.py` 拒绝孤儿或未解析的标记，
   `content_review.py --clean` 用五个错误码判阅读版失败：
   `E_RUNTIME_TERM`、`E_STANDALONE_SECTION`、
@@ -107,10 +109,11 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
   键问题。
 - **per-axis research** —— 检索 → 打开原始页面 → 评估 → 补充池
   子，每个维度最多三轮；摘要片段永远不算证据。
-- **merge** —— `merge_evidence.py` 把各维度的文件折叠成一份
-  `evidence.json`。
-- **gate ①** —— 对合并后的文件跑 `check_evidence.py`
-  （`normal` 档还要加 `--plan`）；失败即终止运行。
+- **merge** —— `meld.py prepare`（其合并的一半，底层为 `merge_evidence.py`）
+  把各维度的文件折叠成一份 `evidence.json`。
+- **gate ①** —— 同一个 `meld.py prepare` 随后对合并后的文件跑
+  `check_evidence.py`（`normal` 档还要加 `--plan`，当 `.work/plan.json`
+  存在时自动添加）；失败即终止运行。
 - **write** —— 只依据已校验的证据写出一份草稿 `report.src.md`；头部信息
   块、目录、标题规则以及草稿阶段独立成节的纪律章节，都在
   [`references/report-template.md`](../skills/meld-deepresearch/references/report-template.md)
@@ -125,22 +128,47 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
   标记必须在织入之后保留下来（织入规则见
   [`references/report-template.md`](../skills/meld-deepresearch/references/report-template.md)）。
 - **re-gate** —— 每道闸门在织入后的草稿上重跑一次。
-- **dual render** —— 一次 `render_citations.py` 运行（闸门②）同
+- **dual render** —— 一次 `meld.py render` 运行（闸门②；底层为
+  `render_citations.py`）同
   时产出两份文件：`report.cited.md` 进入 `.work/`，它去掉标记的
   孪生兄弟 `report.md` 落在顶层；阅读版从不带 `## Observations` 一节——观
   测记录留在 `evidence.json` 和 `.work/report.cited.md` 里。
 - **content gate** —— 对 `report.md` 跑
-  `content_review.py --clean`，即交付闸门：五个错误码时退出码
+  `meld.py review --clean`（底层为 `content_review.py --clean`），即交付闸门：五个错误码时退出码
   1——`E_RUNTIME_TERM`、`E_STANDALONE_SECTION`、`E_FAILURE_NARRATION`、
   `E_APPARATUS_LEAK` 与 `E_ADVERSARY_CALLOUT`。每个错误码的含义与只警
   告的清单见
   [`references/protocol.md`](../skills/meld-deepresearch/references/protocol.md)
   §9。
-- **deliver** —— `dedupe_sources.py` 写出去重后的 `sources.md`，
+- **deliver** —— `meld.py sources`（底层为 `dedupe_sources.py`）写出去重后的
+  `sources.md`，
   然后报告完整的产物清单，包括缺口与抓取失败。
 
 每道闸门最多有一次修复后重试的机会；第二次失败会终止运行，并如
 实报告，而不是交付出去。
+
+## 运行闸门
+
+[`references/protocol.md`](../skills/meld-deepresearch/references/protocol.md)
+§9 是权威命令清单。在技能自身目录下执行：
+
+```bash
+OUTDIR="meld-deepresearch-reports/2026-09-29-my-topic-ab12"
+
+python scripts/meld.py prepare --outdir "$OUTDIR"         # 合并 + 关卡 ①（normal 档自动加 --plan）
+python scripts/meld.py render  --outdir "$OUTDIR"         # 关卡 ②：两份报告文件 + citations.json
+python scripts/meld.py review  --outdir "$OUTDIR"         # 结构审查（仅警告）
+python scripts/meld.py review  --outdir "$OUTDIR" --clean # 交付闸门
+python scripts/meld.py sources --outdir "$OUTDIR"         # sources.md
+# 一条命令跑完整条链——prepare → render → review → review --clean，
+# 首个失败即停，并打印 {"ok": false, "stage": ..., "exit": ...}：
+python scripts/meld.py verify  --outdir "$OUTDIR"
+```
+
+底层脚本命令（`merge_evidence.py`、`check_evidence.py`、
+`render_citations.py`、`content_review.py`、`dedupe_sources.py`）保持等价、
+仍可各自独立运行——两种形式并列列在 protocol.md §9 的 "Gate commands"
+一节中。
 
 ## 产物
 

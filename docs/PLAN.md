@@ -197,6 +197,21 @@ python dedupe_sources.py --evidence <evidence.json> --output <sources.md>
 
 - `check_evidence.py --plan` 只依赖 `dimensions[].id` 与 `dimensions[].key_questions[].id`；其余字段为人类可读元数据，校验器忽略。
 
+**`meld.py`（薄 CLI，六个门脚本之上的统一入口）**
+
+```bash
+python meld.py prepare --outdir OUT     # 合并 OUT/.work/sub_reports/*.evidence.json → OUT/evidence.json（目录缺失或为空则跳过），再跑关卡 ①（存在 OUT/.work/plan.json 时自动加 --plan）
+python meld.py render  --outdir OUT     # OUT/.work/report.src.md + OUT/evidence.json → OUT/.work/report.cited.md + OUT/report.md + OUT/citations.json
+python meld.py review  --outdir OUT [--clean]   # 不带 --clean：结构审查 .work/report.cited.md（仅警告）；带 --clean：对 report.md 的交付门；文件自动选择
+python meld.py sources --outdir OUT     # → OUT/sources.md
+python meld.py verify  --outdir OUT [--tier ...]   # 依次 prepare → render → review → review --clean，首个失败即停；stdout 打印 {"ok": false, "stage": ..., "exit": ...}，退出码沿用底层脚本
+python meld.py table [read_table 参数...]   # 透传 read_table.py（自带路径/--selftest 参数，不带 --outdir）
+```
+
+- `--tier quick|normal` 只覆盖 prepare/verify 的自动 `--plan` 行为：`--tier normal` 而没有 `.work/plan.json` 是用法错误（exit 2）。
+- 以 subprocess 调用六个脚本、不 import 它们；JSON 输出与 0/1/2 退出码契约与底层脚本一致，六个脚本仍可各自独立运行。**权威命令清单见 `references/protocol.md` §9**（CLI 形式为主，原始脚本命令等价保留）。
+- 夹具 `examples/cli-run/` 带真实的 `.work/` 布局（`.work/plan.json`、`.work/report.src.md`、`.work/sub_reports/axis.evidence.json`），用于端到端跑 `meld.py verify`。
+
 ### 5.7 元文件与站点
 - `package.json`、`README.md`（含 6 宿主安装矩阵 + 致谢）、`NOTICE`、`CHANGELOG.md`、`.gitignore`、`.github/workflows/validate.yml`。
 - `ZH/README-ZH.md`：中文版 README，与英文版**互设双语切换按钮**。`ZH/CHANGELOG-ZH.md` 与 `ZH/SKILL-ZH.md` 为**本地专用**、已被 `.gitignore` 忽略，**不入库、不发布**（因此中文 README 不链接它们）。

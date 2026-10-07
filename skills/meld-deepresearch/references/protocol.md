@@ -285,9 +285,9 @@ extensions is **not** part of either.
 
 ### Merge (after every axis, before gate ①)
 
-Run
-`scripts/merge_evidence.py --subreports <output_dir>/.work/sub_reports --output <output_dir>/evidence.json`.
-It folds the six contract arrays — `claims`, `sources`, `observations`,
+Run `python scripts/meld.py prepare --outdir <output_dir>` (raw equivalent:
+`scripts/merge_evidence.py --subreports <output_dir>/.work/sub_reports --output
+<output_dir>/evidence.json`). It folds the six contract arrays — `claims`, `sources`, `observations`,
 `writing_context`, `key_findings`, `gaps` — from every
 `sub_reports/dN.evidence.json` into one `evidence.json`:
 
@@ -313,7 +313,11 @@ It folds the six contract arrays — `claims`, `sources`, `observations`,
 | ② | citation renderer (`render_citations.py`) | no **orphan** markers, no **unresolved** markers; **uncited** sources/observations are a warning only |
 
 **Gate ① must run with `--plan` on a `normal` run.** Because `plan.json` is a
-required normal-tier artifact, gate ① for a `normal` run is
+required normal-tier artifact, gate ① for a `normal` run must validate against
+it: `meld.py prepare` adds `--plan "$OUTDIR/.work/plan.json"` automatically
+whenever that file exists (`--tier` only overrides this auto behaviour:
+`--tier quick` omits the flag, `--tier normal` without a `plan.json` is a usage
+error, exit 2), and the raw equivalent is
 `check_evidence.py "$OUTDIR/evidence.json" --plan "$OUTDIR/.work/plan.json"` — this
 is the only gate that checks plan coverage (every declared dimension covered,
 every declared `kqN` answered). A `normal` run whose gate ① omits `--plan` has
@@ -338,6 +342,25 @@ Run this block **from the skill's own directory** — the script paths below are
 relative to it. Set `OUTDIR` to the run's output directory first, and use
 `python3` when `python` is unavailable. The block uses bash variable syntax
 (`OUTDIR=...`, `"$OUTDIR"`); adapt it to the shell the host actually provides.
+**This block is the authoritative command list.** `scripts/meld.py` is a thin
+CLI over the six gate scripts (it shells out to them, imports none of them) and
+keeps their contract: JSON on stdout, exit `0` (pass) / `1` (gate failure) /
+`2` (bad input).
+
+```bash
+OUTDIR="meld-deepresearch-reports/2026-09-29-my-topic-ab12"
+
+python scripts/meld.py prepare --outdir "$OUTDIR"                 # merge sub_reports/ → evidence.json, then gate ① (--plan auto when .work/plan.json exists; --tier overrides)
+python scripts/meld.py render  --outdir "$OUTDIR"                 # gate ②: .work/report.cited.md + report.md + citations.json
+python scripts/meld.py review  --outdir "$OUTDIR"                 # structural review of .work/report.cited.md (warn-only)
+python scripts/meld.py review  --outdir "$OUTDIR" --clean         # delivery gate on report.md
+python scripts/meld.py sources --outdir "$OUTDIR"                 # sources.md
+python scripts/meld.py verify  --outdir "$OUTDIR"                 # prepare → render → review → review --clean; stops at the first failure, prints {"ok": false, "stage": ..., "exit": ...}
+python scripts/meld.py table --selftest                           # passthrough to read_table.py (its own flags, no --outdir)
+```
+
+**Equivalent raw commands** — every script stays independently runnable, so the
+raw form below always means the same thing as the CLI block above:
 
 ```bash
 OUTDIR="meld-deepresearch-reports/2026-09-29-my-topic-ab12"
@@ -348,7 +371,8 @@ python scripts/render_citations.py \
   --report "$OUTDIR/.work/report.src.md" \
   --evidence "$OUTDIR/evidence.json" \
   --output "$OUTDIR/.work/report.cited.md" \
-  --clean-output "$OUTDIR/report.md"
+  --clean-output "$OUTDIR/report.md" \
+  --citations "$OUTDIR/citations.json"
 python scripts/dedupe_sources.py --evidence "$OUTDIR/evidence.json" --output "$OUTDIR/sources.md"
 python scripts/content_review.py --report "$OUTDIR/.work/report.cited.md" --evidence "$OUTDIR/evidence.json"   # draft/structural, warn-only
 python scripts/content_review.py --report "$OUTDIR/report.md" --clean --evidence "$OUTDIR/evidence.json"       # delivery gate
@@ -362,7 +386,8 @@ and the full reference block, it is what gate ② judges, and it is never handed
 over as the primary file. Never edit one by hand to match the other — re-run
 the renderer.
 
-`content_review.py` runs twice, on purpose:
+`content_review.py` runs twice, on purpose (`meld.py review` picks the file
+itself — add `--clean` for the second pass):
 
 - **without `--clean`, on `.work/report.cited.md`** — structural review of the
   draft shape (required sections, their order, heading language, uncited
@@ -459,7 +484,8 @@ type) — so a reader can see exactly what was produced and what was skipped.
 - **Assumptions when the host cannot ask the user** go into `plan.json` for a
   `normal` run, and into the delivery message for a `quick` run (a `quick` run
   has no `plan.json`). State them there, never only in the model's context.
-- `sources.md` is produced by `dedupe_sources.py` (exact invocation in the
+- `sources.md` is produced by `meld.py sources` (raw equivalent
+  `dedupe_sources.py`; exact invocations in the
   §9 gate-command block) and is the **standalone, de-duplicated source list**
   — distinct from the report's own `## Sources` section (which the citation
   renderer owns, see `report-template.md`).

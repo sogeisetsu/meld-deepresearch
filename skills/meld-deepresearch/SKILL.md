@@ -49,13 +49,13 @@ Fix `language` (follow the user), `format` (default `report`), `structure` (a re
 | 2 | Tier | tier + length tier, worth-it reason recorded | — |
 | 3 | Plan | `quick`: `kq1..kqn`. `normal`: non-overlapping dimensions + `plan.json` | dimensions independently startable |
 | 4 | Research | per axis: search → open originals → evaluate → gaps → again (§7) | stop at depth threshold |
-| 5 | Merge | `scripts/merge_evidence.py` folds `sub_reports/*.evidence.json` → `evidence.json` | ids unique, duplicates collapse |
-| 6 | Gate ① | `scripts/check_evidence.py` (+ `--plan` for `normal`) | must report `ok` |
+| 5 | Merge | `scripts/meld.py prepare` (merge half) folds `sub_reports/*.evidence.json` → `evidence.json` | ids unique, duplicates collapse |
+| 6 | Gate ① | `meld.py prepare` (gate half) → `check_evidence.py` (+ auto `--plan` for `normal`, `--tier` overrides) | must report `ok` |
 | 7 | Write | one pass, inline citations, **no new facts**, header info block + TOC + discipline sections | strength ≤ evidence |
 | 8 | Readability | weave the discipline chapters into the narrative (`report-template.md`) | re-run every gate after it |
-| 9 | Gate ② | `scripts/render_citations.py` → `.work/report.cited.md` **and** `report.md` | no orphan, no unresolved |
-| 10 | Review | `scripts/content_review.py --clean --report report.md` | no jargon, no chapter left standing, no labelled callout |
-| 11 | Deliver | `scripts/dedupe_sources.py` → `sources.md`, then the four artifacts + coverage gaps (§9) | — |
+| 9 | Gate ② | `scripts/meld.py render` → `.work/report.cited.md` **and** `report.md` (+ `citations.json`) | no orphan, no unresolved |
+| 10 | Review | `scripts/meld.py review --clean` (file chosen automatically) | no jargon, no chapter left standing, no labelled callout |
+| 11 | Deliver | `scripts/meld.py sources` → `sources.md`, then the four artifacts + coverage gaps (§9) | — |
 
 ## 5. Evidence and citation rules
 
@@ -92,7 +92,9 @@ sources, open questions and cost per round — then those questions become
 
 ## 8. Gates, then stop or deliver
 
-Run the commands exactly as `references/protocol.md` §9 lists them (gate ① also takes
+`references/protocol.md` §9 is the authoritative command list; `scripts/meld.py` is the
+primary CLI (`meld.py verify` runs the whole chain — prepare → render → review →
+review --clean — and the raw script commands stay equivalents; gate ① also takes
 `--plan` on a `normal` run). Gate ① passes only on `ok`; gate ② fails on an **orphan** or
 **unresolved** marker; `content_review.py --clean` fails on five things: run-failure jargon,
 a chapter left standing, a narrated run failure, apparatus leaking into `report.md`, or a

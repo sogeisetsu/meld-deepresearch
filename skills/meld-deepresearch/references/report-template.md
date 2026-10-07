@@ -264,7 +264,8 @@ The host's installed CLI reports version 2.100.0.[^o1]
   environment (captured YYYY-MM-DD)` definitions in the cited copy, while the reading copy gets the plain
   `## Sources` list only — no Observations section, ever (*Dual output*).
 - Gate ② vocabulary (orphan / unresolved / uncited) is defined in `protocol.md` §9. **`sources.md` is not
-  `## Sources`**: it is the standalone de-duplicated source table (`dedupe_sources.py` deliverable); the
+  `## Sources`**: it is the standalone de-duplicated source table (`meld.py sources`, raw
+  `dedupe_sources.py`, deliverable); the
   report's `## Sources` is the renderer's numbered citation list — same sources, different purpose.
 
 ## Uncertainty grading (D3)
@@ -332,12 +333,11 @@ One renderer run writes **both** files; the cited one goes into `.work/`, becaus
 `report.md`:
 
 ```bash
-python scripts/render_citations.py --report .work/report.src.md \
-  --evidence evidence.json \
-  --output .work/report.cited.md --clean-output report.md
+python scripts/meld.py render --outdir .
 ```
 
-(`protocol.md` §9 holds the canonical gate block; adapt its paths to the run.)
+(`protocol.md` §9 is the authoritative command list — the CLI form above and the
+raw `render_citations.py` equivalent; adapt its paths to the run.)
 
 | File | Contents |
 |---|---|
@@ -357,7 +357,7 @@ never the rendered outputs; the draft shape is *input* here, not a constraint.
 | **Opening block** | The info block as separate bullet rows (never a run-in or blockquote paragraph), the TOC as a vertical list covering every content section with content-bearing titles, and `## 定义与范畴` as the first body section. |
 | **Shape rules held** | Descriptive top-level headings only; no `## Observations` in the reading copy; no run-failure narration left in the text. |
 | **Allowed / forbidden** | Allowed: adjust heading levels; reorder paragraphs; adjust connective words; delete run-failure noise (fetch errors, retry chatter, internal apparatus); merge duplicated phrasing. Forbidden (touches the evidence): changing facts or numbers, conclusion strength, the citation mapping, source attribution. |
-| **Then re-run all gates** | Gate ① and gate ② (`protocol.md` §9 — gate ② re-renders **both** output files from the edited draft) plus `content_review.py --clean` on `report.md`; only then deliver. |
+| **Then re-run all gates** | Gate ① and gate ② (`protocol.md` §9 — gate ② re-renders **both** output files from the edited draft) plus `meld.py review --clean` on `report.md`; only then deliver. |
 | **Requested structure** | A user-requested structure is **binding and is not reordered** by the pass; the weave still applies — it is about *how* the discipline material is presented. Without a requested structure, reorder freely. |
 
 ## Never narrate a run failure

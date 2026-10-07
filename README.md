@@ -51,9 +51,12 @@ Notes:
   unverified is labelled `unknown`, never guessed.
 - Counter-evidence is searched for on purpose — contradictions and gaps are
   reported, not smoothed over.
-- Three hard gates stop a bad run: `check_evidence.py` validates the evidence
-  contract, `render_citations.py` rejects orphan or unresolved markers, and
-  `content_review.py --clean` fails the reading copy on five codes:
+- Three hard gates stop a bad run — `meld.py prepare`, `meld.py render` and
+  `meld.py review --clean` (each a subcommand of the thin CLI
+  `skills/meld-deepresearch/scripts/meld.py` over the raw scripts): the
+  evidence contract is validated by `check_evidence.py`, orphan or unresolved
+  markers are rejected by `render_citations.py`, and the reading copy fails on
+  five codes:
   `E_RUNTIME_TERM`, `E_STANDALONE_SECTION`, `E_FAILURE_NARRATION`,
   `E_APPARATUS_LEAK`, `E_ADVERSARY_CALLOUT` (a labelled
   strongest-counter-evidence callout block).
@@ -115,10 +118,11 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
   `plan.json`.
 - **per-axis research** — search → open the original page → evaluate → refill
   the pool, at most three rounds per axis; snippets are never evidence.
-- **merge** — `merge_evidence.py` folds the per-axis files into one
-  `evidence.json`.
-- **gate ①** — `check_evidence.py` on the merged file (plus `--plan` on
-  `normal`); a failure stops the run.
+- **merge** — `meld.py prepare` (its merge half, raw `merge_evidence.py`)
+  folds the per-axis files into one `evidence.json`.
+- **gate ①** — the same `meld.py prepare` then runs `check_evidence.py` on the
+  merged file (plus `--plan` on `normal`, added automatically when
+  `.work/plan.json` exists); a failure stops the run.
 - **write** — one draft, `report.src.md`, from validated evidence only; the
   header info block, table of contents, heading rules and the draft's
   standalone discipline chapters are specified in
@@ -134,22 +138,48 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
   `unknown` label must survive the weave (weave rules:
   [`references/report-template.md`](skills/meld-deepresearch/references/report-template.md)).
 - **re-gate** — every gate runs again on the woven draft.
-- **dual render** — one `render_citations.py` run (gate ②) emits both files:
+- **dual render** — one `meld.py render` run (gate ②; raw `render_citations.py`)
+  emits both files:
   `report.cited.md` into `.work/`, and its marker-free twin `report.md` at
   the top level; the reading copy never carries an `## Observations`
   section — observations stay in `evidence.json` and `.work/report.cited.md`.
-- **content gate** — `content_review.py --clean` on `report.md`, the delivery
+- **content gate** — `meld.py review --clean` (raw `content_review.py --clean`)
+  on `report.md`, the delivery
   gate: exit 1 on five codes — `E_RUNTIME_TERM`, `E_STANDALONE_SECTION`,
   `E_FAILURE_NARRATION`, `E_APPARATUS_LEAK` and `E_ADVERSARY_CALLOUT`. What
   each code means, and the warn-only list, live in
   [`references/protocol.md`](skills/meld-deepresearch/references/protocol.md)
   §9.
-- **deliver** — `dedupe_sources.py` writes the de-duplicated `sources.md`,
+- **deliver** — `meld.py sources` (raw `dedupe_sources.py`) writes the
+  de-duplicated `sources.md`,
   then the full artifact manifest is reported, including gaps and failed
   fetches.
 
 Each gate gets at most one fix-and-retry; a second failure stops the run and
 is reported honestly instead of delivered.
+
+## Running the gates
+
+[`references/protocol.md`](skills/meld-deepresearch/references/protocol.md) §9
+is the authoritative command list. From the skill's own directory:
+
+```bash
+OUTDIR="meld-deepresearch-reports/2026-09-29-my-topic-ab12"
+
+python scripts/meld.py prepare --outdir "$OUTDIR"         # merge + gate ① (--plan auto for normal)
+python scripts/meld.py render  --outdir "$OUTDIR"         # gate ②: both report files + citations.json
+python scripts/meld.py review  --outdir "$OUTDIR"         # structural review (warn-only)
+python scripts/meld.py review  --outdir "$OUTDIR" --clean # delivery gate
+python scripts/meld.py sources --outdir "$OUTDIR"         # sources.md
+# the whole chain in one run — prepare → render → review → review --clean,
+# stopping at the first failure with {"ok": false, "stage": ..., "exit": ...}:
+python scripts/meld.py verify  --outdir "$OUTDIR"
+```
+
+The raw script commands (`merge_evidence.py`, `check_evidence.py`,
+`render_citations.py`, `content_review.py`, `dedupe_sources.py`) remain
+equivalent and independently runnable — both forms are listed side by side in
+protocol.md's §9 "Gate commands" block.
 
 ## Outputs
 

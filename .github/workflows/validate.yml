@@ -369,6 +369,154 @@ jobs:
           fi
           echo "All self-test steps passed."
 
+      # The thin CLI over the same scripts: every subcommand gets one happy
+      # path (JSON on stdout, exit 0) and one deliberate failure that proves
+      # the documented exit code. Spec: AGENTS.md "CLI self-test (meld.py)".
+      - name: CLI self-test (meld.py)
+        run: |
+          set -uo pipefail
+          set +e
+          status=0
+          tmp="$(mktemp -d)"
+
+          # step <label> <want_exit> <want_pattern> -- <command...>
+          step() {
+            local label="$1"
+            local want_rc="$2"
+            local want_pat="$3"
+            shift 3
+            if [ "${1:-}" = "--" ]; then
+              shift
+            fi
+            echo "-- ${label}"
+            local out rc
+            out="$("$@" 2>&1)"
+            rc=$?
+            if [ "${rc}" -ne "${want_rc}" ]; then
+              echo "FAIL [${label}]: expected exit code ${want_rc}, got ${rc}"
+              printf '%s\n' "${out}"
+              status=1
+              return
+            fi
+            if [ -n "${want_pat}" ] && ! printf '%s\n' "${out}" | grep -Eq "${want_pat}"; then
+              echo "FAIL [${label}]: stdout did not contain expected pattern ${want_pat}"
+              printf '%s\n' "${out}"
+              status=1
+              return
+            fi
+            echo "PASS [${label}]"
+          }
+
+          assert_file() {
+            if [ ! -s "$2" ]; then
+              echo "FAIL [$1]: expected non-empty output file missing: $2"
+              status=1
+            fi
+          }
+
+          S=skills/meld-deepresearch/scripts
+
+          # Stage examples/cli-run/ (the real .work/ layout) into a fresh
+          # scratch dir per case so mutations cannot leak between cases.
+          stage_fresh() {
+            rm -rf "$1"
+            cp -R examples/cli-run "$1"
+          }
+
+          stage_prepared() {
+            stage_fresh "$1"
+            python3 $S/meld.py prepare --outdir "$1" > /dev/null || {
+              echo "FAIL [staging prepare for $1]"
+              status=1
+            }
+          }
+
+          stage_built() {
+            stage_prepared "$1"
+            python3 $S/meld.py render --outdir "$1" > /dev/null || {
+              echo "FAIL [staging render for $1]"
+              status=1
+            }
+          }
+
+          # ---- happy paths -------------------------------------------------
+          d="${tmp}/prepare"
+          stage_fresh "${d}"
+          step "meld: prepare merges and gates the staged fixture" 0 '"ok": true' -- \
+            python3 $S/meld.py prepare --outdir "${d}"
+
+          d="${tmp}/render"
+          stage_prepared "${d}"
+          step "meld: render writes both report files" 0 '"ok": true' -- \
+            python3 $S/meld.py render --outdir "${d}"
+          assert_file "meld: render cited copy" "${d}/.work/report.cited.md"
+          assert_file "meld: render reading copy" "${d}/report.md"
+          assert_file "meld: render citations map" "${d}/citations.json"
+
+          d="${tmp}/review"
+          stage_built "${d}"
+          step "meld: review structural pass on the cited copy" 0 '"ok": true' -- \
+            python3 $S/meld.py review --outdir "${d}"
+          step "meld: review --clean delivery gate on the reading copy" 0 '"ok": true' -- \
+            python3 $S/meld.py review --clean --outdir "${d}"
+
+          d="${tmp}/sources"
+          stage_prepared "${d}"
+          step "meld: sources de-duplicates into sources.md" 0 '"ok": true' -- \
+            python3 $S/meld.py sources --outdir "${d}"
+          assert_file "meld: sources output" "${d}/sources.md"
+
+          d="${tmp}/verify"
+          stage_fresh "${d}"
+          step "meld: verify runs prepare to review --clean" 0 '"ok": true' -- \
+            python3 $S/meld.py verify --outdir "${d}"
+
+          step "meld: table self-test" 0 "read_table selftest: OK" -- \
+            python3 $S/meld.py table --selftest
+
+          # ---- one deliberate failure per subcommand -----------------------
+          d="${tmp}/prepare-fail"
+          stage_fresh "${d}"
+          cp examples/invalid/evidence.unknown-source.json \
+            "${d}/.work/sub_reports/axis.evidence.json"
+          step "meld: prepare fails gate one on an invalid subreport" 1 "E_REF_SOURCE" -- \
+            python3 $S/meld.py prepare --outdir "${d}"
+
+          d="${tmp}/render-fail"
+          stage_prepared "${d}"
+          cp examples/invalid/report.orphan.src.md "${d}/.work/report.src.md"
+          step "meld: render fails on an orphan-marker draft" 1 '"ok": false' -- \
+            python3 $S/meld.py render --outdir "${d}"
+
+          d="${tmp}/review-fail"
+          stage_prepared "${d}"
+          cp examples/invalid/report.runtime-jargon.src.md "${d}/.work/report.src.md"
+          step "meld: render accepts the jargon draft" 0 '"ok": true' -- \
+            python3 $S/meld.py render --outdir "${d}"
+          step "meld: review --clean fails on runtime jargon" 1 "E_RUNTIME_TERM" -- \
+            python3 $S/meld.py review --clean --outdir "${d}"
+
+          d="${tmp}/sources-fail"
+          stage_fresh "${d}"
+          step "meld: sources fails on a missing evidence.json" 2 '"ok": false' -- \
+            python3 $S/meld.py sources --outdir "${d}"
+
+          d="${tmp}/verify-fail"
+          stage_fresh "${d}"
+          cp examples/invalid/evidence.unknown-source.json \
+            "${d}/.work/sub_reports/axis.evidence.json"
+          step "meld: verify names the first failing stage" 1 '"ok": false, "stage": "prepare"' -- \
+            python3 $S/meld.py verify --outdir "${d}"
+
+          step "meld: table fails on a nonexistent file" 2 '"ok": false' -- \
+            python3 $S/meld.py table "${tmp}/no-such-file.xlsx"
+
+          if [ "${status}" -ne 0 ]; then
+            echo "One or more CLI self-test steps failed."
+            exit 1
+          fi
+          echo "All CLI self-test steps passed."
+
       - name: Skill degrade-path unit tests (stdlib only)
         run: |
           set -uo pipefail

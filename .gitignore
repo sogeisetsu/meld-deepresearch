@@ -58,6 +58,8 @@ tmp/
 meld-deepresearch-reports/
 **/meld-deepresearch-reports/
 **/.work/
+# ...but the CLI fixture ships the real .work/ layout on purpose
+!examples/cli-run/.work/
 
 # OpenCode local session state
 .opencode/

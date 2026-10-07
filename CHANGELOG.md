@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`meld.py`, a thin CLI over the six gate scripts**
+  (`skills/meld-deepresearch/scripts/meld.py`): `prepare` merges
+  `OUT/.work/sub_reports/*.evidence.json` into `OUT/evidence.json` (skipped
+  when that directory is missing or empty) and then runs gate ①, adding
+  `--plan OUT/.work/plan.json` automatically when the plan exists
+  (`--tier quick|normal` only overrides that auto behaviour; `--tier normal`
+  without a `plan.json` is a usage error, exit 2); `render` writes both report
+  files plus `citations.json`; `review [--clean]` picks the structural pass or
+  the delivery gate file automatically; `sources` writes `sources.md`;
+  `verify` runs prepare → render → review → review --clean in order, stops at
+  the first failure, prints `{"ok": false, "stage": ..., "exit": ...}` and
+  exits with the underlying code; `table` passes through to `read_table.py`.
+  JSON on stdout and exit 0/1/2 exactly as the wrapped scripts, which all stay
+  independently runnable. New fixture `examples/cli-run/` carries the real
+  `.work/` layout (`.work/plan.json`, `.work/report.src.md`,
+  `.work/sub_reports/axis.evidence.json`) so `meld.py verify` runs end to end.
+
+### Changed
+
+- **Documentation converges on `references/protocol.md` §9 as the single
+  command authority, with the CLI commands primary:** §9 now leads with the
+  `meld.py` block and keeps every raw script command in a labelled
+  "equivalent raw commands" block (the raw `render_citations.py` line gained
+  `--citations "$OUTDIR/citations.json"` so both forms produce the same four
+  deliverables). `SKILL.md` §4/§8, `README.md`, `ZH/README-ZH.md`,
+  `ZH/SKILL-ZH.md`, `report-template.md` and `evidence-contract.md` restate
+  the same stages via the CLI subcommands. No gate code, threshold, retry
+  rule or tier rule changed.
+- **CI runs a `meld.py` self-test in the core job** (documented in
+  `AGENTS.md`): the happy path for `prepare` / `render` / `review` / `sources`
+  / `verify` over the staged `examples/cli-run/` fixture, plus one deliberate
+  failure per subcommand asserting the exit code — and, for `verify`, the
+  failing stage name in its JSON body. Every pre-existing validation command
+  stays in the battery.
+
 ## [0.3.1] - 2026-10-06
 
 ### Changed

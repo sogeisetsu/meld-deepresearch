@@ -1,7 +1,8 @@
 # Evidence Contract — `evidence.json`
 
 The data contract for the structured evidence file. A validator script
-(`scripts/check_evidence.py`) enforces every rule
+(`scripts/check_evidence.py`, run for gate ① through `scripts/meld.py prepare`
+— the raw command stays equivalent, see `protocol.md` §9) enforces every rule
 below; a file that fails validation is not delivered. Field names, object names
 and enum values here are **exact** — the validator matches them literally.
 
@@ -331,7 +332,8 @@ their source, and are never promoted to `factual` in the report.
 ## `plan.json`
 
 The research plan produced during the Plan phase, consumed by
-`check_evidence.py --plan`. Its frozen shape is:
+gate ①: `meld.py prepare` adds the `--plan` flag automatically whenever
+`.work/plan.json` exists (raw form `check_evidence.py --plan`). Its frozen shape is:
 
 ```json
 {

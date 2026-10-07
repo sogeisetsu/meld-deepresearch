@@ -258,6 +258,24 @@ counter-evidence belongs in the paragraph of the claim it qualifies). The delive
 (`content_review.py --clean`, exit 0); the evidence-gate positive counterpart
 is `examples/downgrade-run/evidence.json` (exit 0, `W_DOWNGRADE`).
 
+### CLI self-test (`meld.py`)
+
+`skills/meld-deepresearch/scripts/meld.py` is the thin CLI whose authoritative
+command list is [`references/protocol.md`](skills/meld-deepresearch/references/protocol.md)
+§9. CI stages `examples/cli-run/` — the fixture with the real `.work/`
+layout — into a scratch directory, runs each subcommand against it, and
+asserts JSON on stdout plus the documented exit code; one deliberate failure
+per subcommand (the same layout with the listed negative fixture staged as
+input) proves the failure path:
+
+| subcommand (against the staged fixture) | happy path | deliberate failure |
+|---|---|---|
+| `meld.py prepare --outdir <dir>` | exit 0 — merge + gate ①, `--plan` from `.work/plan.json` | gate-①-failing `evidence.json` (e.g. `examples/invalid/evidence.unknown-source.json`) → exit 1 |
+| `meld.py render --outdir <dir>` | exit 0 — both report files + `citations.json` | orphan-marker draft (`examples/invalid/report.orphan.src.md`) → exit 1 |
+| `meld.py review --outdir <dir> [--clean]` | exit 0 — structural pass on `.work/report.cited.md`, then the delivery gate on `report.md` | reading copy carrying an `E_*` failure (e.g. `E_RUNTIME_TERM`) → `--clean` exits 1 |
+| `meld.py sources --outdir <dir>` | exit 0 — `sources.md` | missing / invalid `evidence.json` → exit 2 |
+| `meld.py verify --outdir <dir>` | exit 0 — prepare → render → review → review --clean | first failing stage → prints `{"ok": false, "stage": ..., "exit": ...}` naming the stage and exits with that stage's code |
+
 CI has **two jobs**. The `core` job installs nothing and must be green: the
 frontmatter/spec check over every `skills/*/SKILL.md` (field lengths, English-only
 ASCII `description`, `license`, `metadata.author`, name-matches-directory), the
@@ -265,7 +283,8 @@ whole script self-test above — including the delivery-gate negatives
 (runtime jargon → `E_RUNTIME_TERM`, standalone discipline chapter →
 `E_STANDALONE_SECTION`, labelled counter-evidence callout →
 `E_ADVERSARY_CALLOUT`) against the zero-warning positive
-`examples/sample-run/report.md` — and the stdlib-only degrade-path unit tests of
+`examples/sample-run/report.md` — the `meld.py` CLI self-test of the previous
+subsection, and the stdlib-only degrade-path unit tests of
 both capability skills. The `optional` job runs the **full install** of the declared
 `requirements.txt` files (plus the optional browser tier), re-runs the
 degrade-path tests with the packages present, AST-parses every shipped script,
