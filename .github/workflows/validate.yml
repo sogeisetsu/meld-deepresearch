@@ -324,26 +324,28 @@ jobs:
               --report "${tmp}/jargon.md" \
               --evidence examples/sample-run/evidence.json
 
-          # The delivery-stage weave: a discipline chapter left standing fails.
+          # The delivery-stage weave: a discipline chapter left standing is
+          # detected and reported as a warning (downgraded from a hard fail).
           step "render_citations: standalone-section fixture renders" 0 '"ok": true' -- \
             python3 $S/render_citations.py \
               --report examples/invalid/report.standalone-section.src.md \
               --evidence examples/sample-run/evidence.json \
               --output "${tmp}/work/standalone.cited.md" \
               --clean-output "${tmp}/standalone.md"
-          step "content_review: standalone discipline chapter fails" 1 "E_STANDALONE_SECTION" -- \
+          step "content_review: standalone discipline chapter warns" 0 "E_STANDALONE_SECTION" -- \
             python3 $S/content_review.py --clean \
               --report "${tmp}/standalone.md" \
               --evidence examples/sample-run/evidence.json
 
-          # Counter-evidence is woven into its claim: a labelled callout fails.
+          # Counter-evidence is woven into its claim: a labelled callout is
+          # detected and reported as a warning (downgraded from a hard fail).
           step "render_citations: adversary-callout fixture renders" 0 '"ok": true' -- \
             python3 $S/render_citations.py \
               --report examples/invalid/report.adversary-callout.src.md \
               --evidence examples/sample-run/evidence.json \
               --output "${tmp}/work/adversary.cited.md" \
               --clean-output "${tmp}/adversary.md"
-          step "content_review: labelled counter-evidence callout fails" 1 "E_ADVERSARY_CALLOUT" -- \
+          step "content_review: labelled counter-evidence callout warns" 0 "E_ADVERSARY_CALLOUT" -- \
             python3 $S/content_review.py --clean \
               --report "${tmp}/adversary.md" \
               --evidence examples/sample-run/evidence.json
@@ -533,6 +535,10 @@ jobs:
             exit 1
           fi
           echo "Degrade-path unit tests passed."
+
+      - name: content_review --fix unit tests (stdlib only)
+        run: |
+          python3 skills/meld-deepresearch/tests/test_content_review_fix.py
 
   optional:
     name: optional (third-party dependencies)

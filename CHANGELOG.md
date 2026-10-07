@@ -25,6 +25,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   independently runnable. New fixture `examples/cli-run/` carries the real
   `.work/` layout (`.work/plan.json`, `.work/report.src.md`,
   `.work/sub_reports/axis.evidence.json`) so `meld.py verify` runs end to end.
+- **`content_review.py --fix`** — before the review, the two **closed** safe
+  operations are applied to the `--report` target *and* its counterpart copy
+  (the pair derives from the same outdir root: `OUT/report.md` ↔
+  `OUT/.work/report.cited.md`; either may be given as `--report`, and a
+  missing counterpart is simply not edited): stripping the exact bold
+  callout-label tokens (`ADVERSARY_LABEL_TOKENS`, both colon widths — the
+  precise tokens `E_ADVERSARY_CALLOUT` matches — keeping the sentence that
+  follows inline) and demoting one level the heading lines seeded in the
+  closed `GENERIC_HEADING_FIX` map (what `W_GENERIC_HEADING` itself treats
+  as generic). Nothing else is ever rewritten: unsafe shapes, notably a
+  standing discipline chapter (`E_STANDALONE_SECTION`), are never
+  auto-merged, restructured or deleted. With `--fix` the JSON gains one
+  `fixes` record per applied edit (`{"file","op","line","detail"}`), and
+  both report copies are kept in sync; without the flag the stdout JSON and
+  exit codes are unchanged byte-for-byte. Unit test:
+  `skills/meld-deepresearch/tests/test_content_review_fix.py`.
+- **Per-code failure hints.** Every warning/failure entry whose `code` is a
+  key of the closed `HINTS` map carries an additive `"hint"` string naming
+  the smallest safe fix — attached only when that code fires, so a run in
+  which no mapped code fires contains no hint anywhere; every existing
+  field, exit code and greppable substring is unchanged.
 
 ### Changed
 
@@ -43,6 +64,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   failure per subcommand asserting the exit code — and, for `verify`, the
   failing stage name in its JSON body. Every pre-existing validation command
   stays in the battery.
+- **The draft-shape / weave-as-a-separate-pass prose is gone, and with it the
+  "re-run everything from gate ① after the readability pass" rule.** After
+  prose edits only the delivery gate re-runs: `meld.py review --clean` —
+  that is what `report-template.md`'s readability-pass section,
+  `protocol.md` §9 stop rules, `SKILL.md` §4 row 8 and both READMEs'
+  re-gate bullet now say.
+- **The anti-pattern → fix table migrated out of `report-template.md` and
+  into the gate itself:** every code `content_review.py` reports now carries
+  its fix as a `hint` (see *Added*); the rows with no checker code remain in
+  `report-template.md` as pure writing rules.
+- **13 duplicate rules were converted to pointers — one authority per
+  rule:** budgets and stop rules → `protocol.md` §8, gate commands and code
+  meaning → §9, stop/retry → §9–§10, artifacts and directory layout → §11,
+  evidence rules → `evidence-contract.md`, length tiers →
+  `report-template.md`. `SKILL.md` shrinks 119 → 107 lines, `README.md`
+  240 → 232, `templates/genres/*` 87 → 83 combined. Prose line counts for
+  `references/` (before → after phase 2): `protocol.md` 502 → 504,
+  `report-template.md` 422 → 417, `evidence-contract.md` 431 → 431,
+  `tier-selection.md` 90 → 90 — total 1,445 → 1,442, with the delivery-gate
+  severity wording (downgrade entry below) as the only material addition.
+- **`E_STANDALONE_SECTION` and `E_ADVERSARY_CALLOUT` were downgraded from
+  delivery-gate hard fail to warnings:** detection is unchanged — both are
+  still reported with their `hint` and still must be fixed before delivery —
+  but they land in `warnings[]` with exit 0. The three hard codes remain
+  `E_RUNTIME_TERM`, `E_FAILURE_NARRATION` and `E_APPARATUS_LEAK`.
+  Rollback clause honored: the full validation battery stayed green, so no
+  rollback was needed.
 
 ## [0.3.1] - 2026-10-06
 

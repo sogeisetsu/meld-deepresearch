@@ -12,8 +12,7 @@ Execution rules for `meld-deepresearch`. `SKILL.md` decides *whether* to run and
 | **Merge (this file, §9)** | `merge_evidence.py` folds every axis file into one | `evidence.json` |
 | Gate ① | evidence validator on the **merged** `evidence.json` (normal: plus `--plan`) | `{"ok": true}` |
 | Write | one-shot draft: info block + TOC + required sections, inline citations, no new facts | `report.src.md` |
-| Readability | weave the discipline chapters into the narrative (`report-template.md`) | edited `report.src.md` |
-| Gate ① re-run | evidence validator again after the weave | `{"ok": true}` |
+| Readability | prose edits to `report.src.md` (`report-template.md`); discipline material woven into the narrative | edited `report.src.md` |
 | Gate ② | citation renderer, **both files in one run** | `.work/report.cited.md` + `report.md`, `citations.json` |
 | Content review | `content_review.py --clean` on the reading copy | `{"ok": true}` |
 | Deliver | 4 artifacts + coverage note | see §11 |
@@ -131,7 +130,7 @@ Both capability skills document their own hand-off entry and exit contract in a
 - After the supporting evidence looks sufficient, **actively search for counter-evidence**: opposing findings, failed cases, debunkings, and claims that cannot be verified at all.
 - Record refuting claims with `polarity: refute` (and `neutral` for ambiguous material) — never drop them because they are inconvenient.
 - **A refute count of zero almost always means the refutation search was not done properly**, not that the topic has no counter-arguments. If a run ends with zero refutes, re-run at least one refutation-targeted search before writing.
-- Contradictions between sources are reported in the section whose claim they qualify, woven into its prose — never in a standalone chapter and never as a labelled callout — and never silently reconciled.
+- Contradictions between sources are reported, never silently reconciled; *where* they are written in the report is `report-template.md`'s rule (*No standalone discipline chapters*).
 
 ## 4. Time-sensitivity: three cases
 
@@ -390,26 +389,29 @@ the renderer.
 itself — add `--clean` for the second pass):
 
 - **without `--clean`, on `.work/report.cited.md`** — structural review of the
-  draft shape (required sections, their order, heading language, uncited
+  cited draft (required sections, their order, heading language, uncited
   numbers). Warn-only, exit 0.
 - **with `--clean`, on `report.md`** — the delivery gate. It fails (exit 1) on
-  five things: the runtime-failure blacklist (`E_RUNTIME_TERM`); a standalone
-  discipline chapter, at H2 or H3, English or Chinese — including
-  `## 观测记录` (`E_STANDALONE_SECTION`); narrating a run failure to the reader
-  such as a login wall or an unopenable page (`E_FAILURE_NARRATION`);
-  internal apparatus — the skill id, draft/run-log file names, a protocol name
-  (`E_APPARATUS_LEAK`); and a labelled counter-evidence callout — a paragraph
-  opening with a bold `**最强反证：**` / `**Strongest counter-evidence:**`
-  lead-in instead of the limitation being woven into the claim's own prose
-  (`E_ADVERSARY_CALLOUT`). Warn-only signals: prose ratio, missing header info
-  block, missing or single-line table of contents, no definitions section, a
+  three codes: the runtime-failure blacklist (`E_RUNTIME_TERM`); narrated run
+  failures such as a login wall or an unopenable page (`E_FAILURE_NARRATION`);
+  internal apparatus — skill id, draft/run-log file names, protocol name
+  (`E_APPARATUS_LEAK`). Two more shapes are **detected but reported as
+  warnings** (same codes, exit 0): a standalone discipline chapter, H2 or H3,
+  English or Chinese, `## 观测记录` included (`E_STANDALONE_SECTION`); and a
+  labelled counter-evidence callout — a bold `**最强反证：**` /
+  `**Strongest counter-evidence:**` lead-in instead of the limitation woven
+  into the claim's own prose (`E_ADVERSARY_CALLOUT`). Both are weave-rule
+  violations the writer still has to fix (`report-template.md`) and both land
+  in `warnings[]` with their `hint`. Warn-only signals: prose ratio, missing
+  header info block, missing or single-line TOC, no definitions section, a
   generic container heading, no uncertainty marker, a `.work/` path outside
   line 1, and the ambiguous-term exemptions. Technical detail is allowed to
   stay in the cited copy, so none of the failures apply there.
 
-The reading copy never carries an `## Observations` section: observations live
-in `evidence.json` and in `.work/report.cited.md`. A reader is told *what is
-known and what is not*, never *what the run failed to open*.
+Reading-copy placement rules — no `## Observations` section (observations stay
+in `evidence.json` and `.work/report.cited.md`), epistemic status instead of
+run-failure narration — are `report-template.md`'s (*Observations are never
+part of the reading copy*; *Never narrate a run failure*).
 
 A `quick` run has no `plan.json`, so it omits the `--plan` flag.
 `render_citations.py` renders GFM footnotes by default (the renderer wires the
@@ -422,7 +424,7 @@ other than next to `--output`.
 
 - Gate failure ⇒ **fix once and re-run** (at most one re-run per gate).
 - Second failure ⇒ **stop and report honestly** (failing stage, artifact paths, last error). Do not deliver a report that failed a gate.
-- **After any pre-delivery readability pass over the draft** (`report-template.md`), every gate above runs again from gate ①, and the renderer regenerates both files — an reorder is never delivered without a fresh green run.
+- After prose edits (`report-template.md`), only the delivery gate needs re-running: `python scripts/meld.py review --clean --outdir "$OUTDIR"`.
 
 ## 10. Failure and retry
 

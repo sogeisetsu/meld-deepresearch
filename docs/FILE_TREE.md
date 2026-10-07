@@ -32,7 +32,7 @@ meld-deepresearch/                    # repository root
 │   ├── downgrade-run/                # positive fixture: a tertiary-only factual claim that passes because it carries its 'downgrade' annotation (W_DOWNGRADE)
 │   ├── merge-run/                    # a two-axis merge fixture: sub_reports/{d1,d2}.evidence.json share one URL, which folds to a single source id with references re-pointed
 │   ├── cli-run/                      # CLI fixture with the real .work/ layout (runs meld.py verify end-to-end): .work/plan.json, .work/report.src.md, .work/sub_reports/axis.evidence.json
-│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + gate-② drafts (orphan, blank) + four content_review --clean drafts (runtime jargon → E_RUNTIME_TERM, standalone discipline section → E_STANDALONE_SECTION, narrated run failure → E_FAILURE_NARRATION, labelled counter-evidence callout → E_ADVERSARY_CALLOUT)
+│   └── invalid/                      # negative fixtures: evidence.json files that each fail for exactly one reason + gate-② drafts (orphan, blank) + four content_review --clean drafts (runtime jargon → E_RUNTIME_TERM and narrated run failure → E_FAILURE_NARRATION fail the gate, exit 1; standalone discipline section → E_STANDALONE_SECTION and labelled counter-evidence callout → E_ADVERSARY_CALLOUT are detected as warnings, exit 0)
 └── .github/                          # GitHub configuration
     └── workflows/                    # CI: validate.yml — core job (zero-dep spec check + script self-test + meld.py CLI self-test + degrade unit tests) and optional job (full dependency install, recorded skips)
 ```
@@ -50,14 +50,15 @@ skills/meld-deepresearch/
 │   └── report-template.md            # structure by reader's cognitive task, dual output, readability pass, runtime-jargon rule, length tiers, citation mechanism, self-check
 ├── templates/                        # genre append-templates, chosen at plan time
 │   └── genres/                       # panorama.md, comparison.md, entity.md, chronicle.md
-└── scripts/                          # Python 3 stdlib only, no dependencies
-    ├── meld.py                       # thin CLI over the six gate scripts (prepare/render/review/sources/verify/table); protocol.md §9 lists its commands
-    ├── check_evidence.py             # hard gate: validate evidence.json (incl. background, gaps[], source_type, --plan genre/must_have_materials); errors may carry a "hint"
-    ├── render_citations.py           # markers -> GFM footnotes (default), anchors (--anchors), legacy plain (--legacy-plain); ONE run writes report.cited.md (cited copy, middleware — .work/report.cited.md in a real run) + report.md (marker-free reading copy whose first line links to the cited copy by a relative path) + citations.json (--citations; else it lands next to --output)
-    ├── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md (optional source_type column)
-    ├── merge_evidence.py             # fold sub_reports/*.evidence.json into one evidence.json, folding duplicate sources and re-pointing references
-    ├── content_review.py             # structural self-review of the draft/cited copy (warn-only) plus, with --clean, the delivery gate on report.md that FAILS on runtime-failure jargon (E_RUNTIME_TERM) or a standalone discipline chapter left standing (E_STANDALONE_SECTION); TOC / header-info-block / uncertainty / prose-ratio stay warn-only
-    └── read_table.py                 # stdlib-only local .xlsx/.csv/.docx reader -> JSON/CSV/Markdown, with --selftest; the zero-dependency inspection layer that complements meld-da (docx support salvaged from test/tools/docx_to_md.py)
+├── scripts/                          # Python 3 stdlib only, no dependencies
+│   ├── meld.py                       # thin CLI over the six gate scripts (prepare/render/review/sources/verify/table); protocol.md §9 lists its commands
+│   ├── check_evidence.py             # hard gate: validate evidence.json (incl. background, gaps[], source_type, --plan genre/must_have_materials); errors may carry a "hint"
+│   ├── render_citations.py           # markers -> GFM footnotes (default), anchors (--anchors), legacy plain (--legacy-plain); ONE run writes report.cited.md (cited copy, middleware — .work/report.cited.md in a real run) + report.md (marker-free reading copy whose first line links to the cited copy by a relative path) + citations.json (--citations; else it lands next to --output)
+│   ├── dedupe_sources.py             # normalize and de-duplicate URLs; emits sources.md (optional source_type column)
+│   ├── merge_evidence.py             # fold sub_reports/*.evidence.json into one evidence.json, folding duplicate sources and re-pointing references
+│   ├── content_review.py             # structural self-review of the draft/cited copy (warn-only) plus, with --clean, the delivery gate on report.md: three hard failures (E_RUNTIME_TERM, E_FAILURE_NARRATION, E_APPARATUS_LEAK) and two downgraded warnings (E_STANDALONE_SECTION, E_ADVERSARY_CALLOUT); --fix applies two closed safe edits (label stripping, generic-heading demotion); per-code entries may carry a "hint"; TOC / header-info-block / uncertainty / prose-ratio stay warn-only
+│   └── read_table.py                 # stdlib-only local .xlsx/.csv/.docx reader -> JSON/CSV/Markdown, with --selftest; the zero-dependency inspection layer that complements meld-da (docx support salvaged from test/tools/docx_to_md.py)
+└── tests/                            # stdlib-only unit test: test_content_review_fix.py — the two closed --fix operations, counterpart-copy sync and per-code hint attachment (run directly with python)
 ```
 
 ---

@@ -15,6 +15,5 @@ breadth across one field is the point.
    never stated as fact (结论与展望).
 5. **Appendix** — optional tables, glossaries or method notes (附录).
 
-Required sections (`Executive Summary` / `Findings` / `Contradictions &
-Counter-evidence` / `Gaps & Unknowns`) are unchanged and always come first
-(draft stage; the pre-delivery readability pass later dissolves them).
+Required sections (`Executive Summary` / `Findings`) are unchanged and always
+come first.

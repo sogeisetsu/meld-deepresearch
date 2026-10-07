@@ -181,15 +181,18 @@ python skills/meld-deepresearch/scripts/check_evidence.py .work/tmp/merge-run.js
 python skills/meld-deepresearch/scripts/content_review.py \
   --report examples/sample-run/report.cited.md \
   --evidence examples/sample-run/evidence.json
-# then the delivery gate on the reading copy: --clean fails (exit 1) on the
-# runtime-failure blacklist (E_RUNTIME_TERM), on a standalone discipline
-# chapter that survived the weave (E_STANDALONE_SECTION, H2 or H3, EN or ZH,
-# including the observation section), on narration of a run failure to the
-# reader (E_FAILURE_NARRATION), on internal apparatus (E_APPARATUS_LEAK) and
-# on a labelled counter-evidence callout (E_ADVERSARY_CALLOUT);
+# then the delivery gate on the reading copy: --clean fails (exit 1) on
+# three codes — the runtime-failure blacklist (E_RUNTIME_TERM), narration
+# of a run failure to the reader (E_FAILURE_NARRATION) and internal
+# apparatus (E_APPARATUS_LEAK) — and reports two downgraded codes as
+# warnings (exit 0, detection unchanged): a standalone discipline chapter
+# that survived the weave (E_STANDALONE_SECTION, H2 or H3, EN or ZH,
+# including the observation section) and a labelled counter-evidence
+# callout (E_ADVERSARY_CALLOUT);
 # warn-only: W_PROSE_RATIO, W_NO_TOC, W_THIN_TOC, W_NO_INFO_BLOCK,
-# W_NO_UNCERTAINTY, W_NO_DEFINITIONS, W_GENERIC_HEADING, W_APPARATUS_LEAK and
-# the ambiguous-term W_RUNTIME_TERM (expected here: exit 0)
+# W_NO_UNCERTAINTY, W_NO_DEFINITIONS, W_GENERIC_HEADING, W_APPARATUS_LEAK,
+# the ambiguous-term W_RUNTIME_TERM and the two downgraded E_ codes above
+# (expected here: exit 0)
 python skills/meld-deepresearch/scripts/content_review.py --clean \
   --report examples/sample-run/report.md \
   --evidence examples/sample-run/evidence.json
@@ -202,6 +205,10 @@ python skills/meld-deepresearch/scripts/check_evidence.py \
 # capability-skill degrade paths (stdlib only, no network)
 python skills/meld-da/tests/test_degrade.py
 python skills/meld-search-academic/tests/test_degrade.py
+
+# content_review --fix closed-operation unit tests (stdlib only; label
+# stripping, closed generic-heading demotion, unsafe case still warned)
+python skills/meld-deepresearch/tests/test_content_review_fix.py
 
 # zero-dependency reader self-test (stdlib only; builds a fixture xlsx and a
 # fixture .docx in memory)
@@ -248,13 +255,15 @@ gate ② (exit 1), and so does `report.empty-marker.src.md` — its blank `[^]` 
 `[^ ]` markers must fail gate ② in the default GFM-footnote mode (exit 1).
 `report.runtime-jargon.src.md` renders cleanly but its reading copy must fail
 `content_review.py --clean` with `E_RUNTIME_TERM` (exit 1); likewise
-`report.standalone-section.src.md` → `E_STANDALONE_SECTION`,
 `report.failure-narration.src.md` → `E_FAILURE_NARRATION` (the reader is never
 told that a page needed a login or could not be opened — that belongs in
 `observations[]`/`gaps[]`, while the report states the epistemic status
-instead), and `report.adversary-callout.src.md` → `E_ADVERSARY_CALLOUT` (a
-labelled `**最强反证：**` / `**Strongest counter-evidence:**` block; the
-counter-evidence belongs in the paragraph of the claim it qualifies). The delivery-gate positive is `examples/sample-run/report.md`
+instead). Two fixtures prove detection with warning severity (exit 0, the
+code present in `warnings[]`): `report.standalone-section.src.md` →
+`E_STANDALONE_SECTION`, and `report.adversary-callout.src.md` →
+`E_ADVERSARY_CALLOUT` (a labelled `**最强反证：**` /
+`**Strongest counter-evidence:**` block; the counter-evidence belongs in the
+paragraph of the claim it qualifies). The delivery-gate positive is `examples/sample-run/report.md`
 (`content_review.py --clean`, exit 0); the evidence-gate positive counterpart
 is `examples/downgrade-run/evidence.json` (exit 0, `W_DOWNGRADE`).
 
@@ -280,11 +289,15 @@ CI has **two jobs**. The `core` job installs nothing and must be green: the
 frontmatter/spec check over every `skills/*/SKILL.md` (field lengths, English-only
 ASCII `description`, `license`, `metadata.author`, name-matches-directory), the
 whole script self-test above — including the delivery-gate negatives
-(runtime jargon → `E_RUNTIME_TERM`, standalone discipline chapter →
-`E_STANDALONE_SECTION`, labelled counter-evidence callout →
-`E_ADVERSARY_CALLOUT`) against the zero-warning positive
+(runtime jargon → `E_RUNTIME_TERM`, narrated run failure →
+`E_FAILURE_NARRATION`, both exit 1) and the two downgraded detection checks
+(standalone discipline chapter → `E_STANDALONE_SECTION`, labelled
+counter-evidence callout → `E_ADVERSARY_CALLOUT`, both exit 0 with the code
+in `warnings[]`) against the zero-warning positive
 `examples/sample-run/report.md` — the `meld.py` CLI self-test of the previous
-subsection, and the stdlib-only degrade-path unit tests of
+subsection, the stdlib-only `content_review --fix` unit test
+(`skills/meld-deepresearch/tests/test_content_review_fix.py`), and the
+stdlib-only degrade-path unit tests of
 both capability skills. The `optional` job runs the **full install** of the declared
 `requirements.txt` files (plus the optional browser tier), re-runs the
 degrade-path tests with the packages present, AST-parses every shipped script,

@@ -38,7 +38,7 @@ degrade and note it. Never deliver a silently degraded report (`protocol.md` §1
 
 ## 3. Anchors, clarification, tier, length
 
-Fix `language` (follow the user), `format` (default `report`), `structure` (a requested chapter count or outline is **binding** — discipline material folds in, never inflates it, internal ids `kqN`/`dN` stay out of the body) and `output_dir` (default `meld-deepresearch-reports/YYYY-MM-DD-{slug}-{hex4}/`; a user path replaces it). Ask **1–3 scope-only questions** if the host can ask, else record the assumptions. Pick `quick`/`normal` (`tier-selection.md`), then judge **whether a long report is worth it and record why**: short 1500–3000, medium 3000–6000, long 6000–12000 words; a user-specified length wins.
+Fix `language` (follow the user), `format` (default `report`), `structure` (a requested chapter count or outline is **binding** — discipline material folds in, never inflates it, internal ids `kqN`/`dN` stay out of the body) and `output_dir` (default naming and the user-path rule: `protocol.md` §11). Ask **1–3 scope-only questions** if the host can ask, else record the assumptions. Pick `quick`/`normal` (`tier-selection.md`), then judge **whether a long report is worth it and record why** — the length tiers and the user-length override live in `report-template.md` (*Length tiers*).
 
 ## 4. Workflow
 
@@ -52,23 +52,18 @@ Fix `language` (follow the user), `format` (default `report`), `structure` (a re
 | 5 | Merge | `scripts/meld.py prepare` (merge half) folds `sub_reports/*.evidence.json` → `evidence.json` | ids unique, duplicates collapse |
 | 6 | Gate ① | `meld.py prepare` (gate half) → `check_evidence.py` (+ auto `--plan` for `normal`, `--tier` overrides) | must report `ok` |
 | 7 | Write | one pass, inline citations, **no new facts**, header info block + TOC + discipline sections | strength ≤ evidence |
-| 8 | Readability | weave the discipline chapters into the narrative (`report-template.md`) | re-run every gate after it |
+| 8 | Readability | prose polish of `report.src.md` (`report-template.md`); discipline material woven into the narrative | after prose edits re-run only `meld.py review --clean` |
 | 9 | Gate ② | `scripts/meld.py render` → `.work/report.cited.md` **and** `report.md` (+ `citations.json`) | no orphan, no unresolved |
-| 10 | Review | `scripts/meld.py review --clean` (file chosen automatically) | no jargon, no chapter left standing, no labelled callout |
+| 10 | Review | `scripts/meld.py review --clean` (file chosen automatically) | no jargon (hard); chapter left standing and labelled callout reported as warnings (§9) |
 | 11 | Deliver | `scripts/meld.py sources` → `sources.md`, then the four artifacts + coverage gaps (§9) | — |
 
 ## 5. Evidence and citation rules
 
-- **Enforced by the validator**; full schema in `references/evidence-contract.md`.
-- Every claim carries evidence — a web source, or a reproducible first-hand
-  `observations[]` entry cited `[^oN]`. A snippet is never evidence;
-  counter-evidence is searched on purpose (zero `refute` warns).
-- A `factual` claim needs a `primary`/`secondary` source or an observation; a
-  lone `tertiary` source must carry an explicit "insufficient evidence / to
-  verify" downgrade or it is rejected. An `interpretive` claim and any key
-  finding need two distinct origins with at least one `primary`/`secondary` —
-  `tertiary` may be the second origin, never the only pillar. Unverifiable ⇒
-  `unknown`.
+- **Enforced by the validator**; the rules and the full schema live in
+  `references/evidence-contract.md` (claim kinds and their evidence floors,
+  downgrade annotations, two-origin `interpretive` claims, referential
+  integrity, `unknown` when unverifiable), with the research obligations
+  they rest on in `references/protocol.md` §2–§3.
 
 ## 6. Cross-skill hand-offs
 
@@ -80,36 +75,29 @@ scholarly layer through `skills/meld-search-academic`** (`search.py` → `paper.
 
 ## 7. Budget and stop
 
-| Tier | Fetches (soft) | Distinct sources | Rounds per axis |
-|---|---|---|---|
-| `quick` | ≤ 12 | ≥ 5 | ≤ 4 |
-| `normal` | ≤ 40 | ≥ 15 | ≤ 5 |
-
-Every fetch attempt counts (failures too); searches and local reads do not. On
-exhaustion with key questions open, extend **at most 2 rounds**, logging new
-sources, open questions and cost per round — then those questions become
-`uncertainty` (`gaps[]` + `unknown`), never a fabricated conclusion (§8).
+Per-tier budgets (fetches, distinct sources, rounds per axis), the
+fetch-counting rules, the bounded extension while key questions remain open
+and every stop rule live in `references/protocol.md` §8 — their single
+authority.
 
 ## 8. Gates, then stop or deliver
 
-`references/protocol.md` §9 is the authoritative command list; `scripts/meld.py` is the
-primary CLI (`meld.py verify` runs the whole chain — prepare → render → review →
-review --clean — and the raw script commands stay equivalents; gate ① also takes
-`--plan` on a `normal` run). Gate ① passes only on `ok`; gate ② fails on an **orphan** or
-**unresolved** marker; `content_review.py --clean` fails on five things: run-failure jargon,
-a chapter left standing, a narrated run failure, apparatus leaking into `report.md`, or a
-labelled counter-evidence callout. Fix once and re-run — a second failure means **STOP** and
-report honestly. Every stage (plan / research / merge / write / render) retries once, then
-stops with the failing stage, artifacts and last error (`protocol.md` §10). No command
-execution? Walk the gates by hand and say they were skipped.
+`references/protocol.md` §9 is the authoritative command list *and* code meaning (gate ①
+passes only on `ok`; gate ② fails on an **orphan** or **unresolved** marker;
+`content_review.py --clean` hard-fails on three delivery codes and reports two downgraded codes as warnings, all §9-defined); `scripts/meld.py`
+is the primary CLI (`meld.py verify` runs prepare → render → review → review --clean, and
+the raw script commands stay equivalents; gate ① also takes `--plan` on a `normal` run).
+Stop rules — fix once and re-run, a second failure means **STOP**, one retry per stage —
+live in `protocol.md` §9–§10. No command execution? Walk the gates by hand and say they
+were skipped.
 
 ## 9. Deliverables
 
-`report.md` — the file the reader opens: no markers, header info block, table of contents,
-discipline chapters woven into the narrative, first line linking to `.work/report.cited.md`.
-Also `sources.md`, `evidence.json`, `citations.json`; `.work/` holds the middleware including
-the cited copy. Return the four paths, the tier, coverage, the manifest, every failed fetch and
-any budget extension; without file write, return the report body and say nothing was persisted.
+Four top-level artifacts — `report.md` (the marker-free reading copy the reader opens),
+`sources.md`, `evidence.json`, `citations.json` — plus the manifest, directory layout,
+delivery message and the no-file-write fallback are specified in `protocol.md` §11.
+Return their paths, the tier, coverage, the manifest, every failed fetch and any budget
+extension.
 
 ## 10. Non-negotiables
 
