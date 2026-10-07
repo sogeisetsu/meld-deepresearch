@@ -5,7 +5,7 @@ license: MIT
 metadata:
   author: sogeisetsu
   repository: https://github.com/sogeisetsu/meld-deepresearch
-  version: "0.3.1"
+  version: "0.4.0"
 ---
 
 # meld-search-academic - Academic search

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-07
+
 ### Added
 
 - **`meld.py`, a thin CLI over the six gate scripts**
@@ -518,7 +520,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The skill is at version `0.1.0` and is published. See `docs/PLAN.md`
   milestones M1-M4.
 
-[Unreleased]: https://github.com/sogeisetsu/meld-deepresearch/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/sogeisetsu/meld-deepresearch/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/sogeisetsu/meld-deepresearch/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/sogeisetsu/meld-deepresearch/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/sogeisetsu/meld-deepresearch/releases/tag/v0.3.0
 [0.2.0]: https://github.com/sogeisetsu/meld-deepresearch/releases/tag/v0.2.0
