@@ -2,11 +2,31 @@
 
 English · [中文](ZH/README-ZH.md)
 
+[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
+
+A lightweight, portable Agent Skill family for verifiable, citation-backed deep research reports.
+
 A portable Agent Skill that turns a vague topic into a verifiable,
 citation-backed research report. It follows the Agent Skills open standard
 (`SKILL.md`), so any compatible host can load it straight from a path — no
 framework, no vendor lock-in. The repository ships three cooperating skills:
 the core research loop plus two optional capability skills.
+
+## Table of Contents
+
+- [Install](#install)
+- [Usage](#usage)
+- [What it gives you](#what-it-gives-you)
+- [Skills in this repo](#skills-in-this-repo)
+- [How a run works](#how-a-run-works)
+- [Running the gates](#running-the-gates)
+- [Outputs](#outputs)
+- [When to use it / when not to](#when-to-use-it--when-not-to)
+- [Requirements](#requirements)
+- [Documentation](#documentation)
+- [Validation](#validation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Install
 
@@ -45,6 +65,32 @@ Notes:
 - Both CLIs discover the repo's three skills via the `skills/*/SKILL.md`
   convention.
 
+## Usage
+
+1. Clone this repository anywhere on disk.
+2. Point your host at it: a host loads a skill by reading
+   `skills/<name>/SKILL.md`. Per-host skill directories are listed in your
+   host's own documentation; a project-local `skills/` directory works in
+   most hosts.
+3. Optional — for the capability skills, install the packages listed in that
+   skill's `requirements.txt`. Without them the skill degrades to its
+   documented fallback.
+4. Start a new session and ask for research: a cited report, a comparison, a
+   literature review, a fact-check. The skill's `description` does the
+   matching; there is nothing to configure.
+5. Pick up the deliverables from the run's output directory (see
+   **Outputs**).
+
+A typical ask, once the skill is loaded:
+
+```text
+Write a cited comparison report on this topic — a source behind every
+claim, gaps and contradictions reported, unverified claims labelled unknown.
+```
+
+The core skill reuses the host's own search, fetch, file and command
+capabilities; it ships no keys and stores no credentials.
+
 ## What it gives you
 
 - Every claim links back to a source that was actually opened; anything
@@ -81,25 +127,6 @@ Notes:
 
 Each skill stands alone; they may invoke one another only along the hand-offs
 documented in [`references/protocol.md`](skills/meld-deepresearch/references/protocol.md) §2a.
-
-## Quick start
-
-1. Clone this repository anywhere on disk.
-2. Point your host at it: a host loads a skill by reading
-   `skills/<name>/SKILL.md`. Per-host skill directories are listed in your
-   host's own documentation; a project-local `skills/` directory works in
-   most hosts.
-3. Optional — for the capability skills, install the packages listed in that
-   skill's `requirements.txt`. Without them the skill degrades to its
-   documented fallback.
-4. Start a new session and ask for research: a cited report, a comparison, a
-   literature review, a fact-check. The skill's `description` does the
-   matching; there is nothing to configure.
-5. Pick up the deliverables from the run's output directory (see
-   **Outputs**).
-
-The core skill reuses the host's own search, fetch, file and command
-capabilities; it ships no keys and stores no credentials.
 
 ## How a run works
 
@@ -225,7 +252,14 @@ an opinion piece where no evidence is expected.
 The full validation set — positive fixtures, negative fixtures, and every
 renderer mode — is listed in [`AGENTS.md`](AGENTS.md) and executed by CI.
 
-## License & attribution
+## Contributing
+
+Questions are welcome — please open a
+[GitHub issue](https://github.com/sogeisetsu/meld-deepresearch/issues).
+Pull requests are accepted; the bar for a PR is that the validation battery
+listed in [`AGENTS.md`](AGENTS.md) passes.
+
+## License
 
 MIT — see [`LICENSE`](LICENSE). Author: **sogeisetsu**.
 [`NOTICE`](NOTICE) lists every upstream project whose material is ported or

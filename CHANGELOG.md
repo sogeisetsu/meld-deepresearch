@@ -91,6 +91,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `E_RUNTIME_TERM`, `E_FAILURE_NARRATION` and `E_APPARATUS_LEAK`.
   Rollback clause honored: the full validation battery stayed green, so no
   rollback was needed.
+- READMEs restructured to the Standard Readme spec — standard-readme badge,
+  one-line short description matching `package.json`, a table of contents,
+  Usage/Contributing/License section order (License last); language switchers
+  preserved.
 
 ## [0.3.1] - 2026-10-06
 

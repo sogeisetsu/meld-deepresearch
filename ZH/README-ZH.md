@@ -2,11 +2,31 @@
 
 🌐 **中文** · [<kbd>English</kbd>](../README.md)
 
+[![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
+
+一个轻便、可移植的 Agent Skill 系列，产出可核查、有引用支撑的深度研究报告。
+
 一个可移植的 Agent Skill，把含糊的话题变成一份可核查、有引用
 支撑的研究报告。它遵循 Agent Skills 开放标准（`SKILL.md`），
 任何兼容的主机都能直接从路径加载它——不需要框架，也不绑定厂
 商。本仓库提供三个互相配合的 skill：核心研究循环，加上两个可
 选的能力 skill。
+
+## 目录
+
+- [安装](#安装)
+- [用法](#用法)
+- [它能给你什么](#它能给你什么)
+- [本仓库的 skills](#本仓库的-skills)
+- [一次运行如何进行](#一次运行如何进行)
+- [运行闸门](#运行闸门)
+- [产物](#产物)
+- [何时该用 / 何时不该用](#何时该用--何时不该用)
+- [环境要求](#环境要求)
+- [文档](#文档)
+- [验证](#验证)
+- [贡献](#贡献)
+- [许可证](#许可证)
 
 ## 安装
 
@@ -41,6 +61,29 @@ skill 目录（例如 `~/.agents/skills/`）。
   `--agent <host>`；`npx` 对应的写法是 `-a <host>`。
 - 两个 CLI 都通过 `skills/*/SKILL.md` 约定发现本仓库的三个 skill。
 
+## 用法
+
+1. 把本仓库克隆到磁盘上任意位置。
+2. 把你的主机指向它：主机通过读取 `skills/<name>/SKILL.md` 来
+   加载 skill。各主机的 skill 目录列在你所用主机自己的文档里；
+   项目内的 `skills/` 目录在多数主机上都能用。
+3. 可选——能力 skill 需要安装其各自 `requirements.txt` 中列出
+   的包。没有这些包，skill 会降级到文档记载的回退方案。
+4. 开一个新会话，提出研究需求：一份带引用的报告、一次对比、一
+   篇文献综述、一次事实核查。skill 的 `description` 负责匹配；
+   没有任何需要配置的东西。
+5. 从该次运行的输出目录里取走交付物（见**产物**）。
+
+skill 加载之后，一次典型的提问：
+
+```text
+就这个主题写一份带引用的对比报告——每条断言都有来源，缺口与矛盾
+如实报告，未经核实的论断标为 unknown。
+```
+
+核心 skill 复用主机自己的检索、抓取、文件与命令能力；它不附带
+任何密钥，也不存储任何凭据。
+
 ## 它能给你什么
 
 - 每条断言都链接到一份真正打开过的来源；任何未经核实的内容都
@@ -73,22 +116,6 @@ skill 目录（例如 `~/.agents/skills/`）。
 每个 skill 都能独立使用；它们只有在
 [`references/protocol.md`](../skills/meld-deepresearch/references/protocol.md)
 §2a 记载的交接点上才能互相调用。
-
-## 快速开始
-
-1. 把本仓库克隆到磁盘上任意位置。
-2. 把你的主机指向它：主机通过读取 `skills/<name>/SKILL.md` 来
-   加载 skill。各主机的 skill 目录列在你所用主机自己的文档里；
-   项目内的 `skills/` 目录在多数主机上都能用。
-3. 可选——能力 skill 需要安装其各自 `requirements.txt` 中列出
-   的包。没有这些包，skill 会降级到文档记载的回退方案。
-4. 开一个新会话，提出研究需求：一份带引用的报告、一次对比、一
-   篇文献综述、一次事实核查。skill 的 `description` 负责匹配；
-   没有任何需要配置的东西。
-5. 从该次运行的输出目录里取走交付物（见**产物**）。
-
-核心 skill 复用主机自己的检索、抓取、文件与命令能力；它不附带
-任何密钥，也不存储任何凭据。
 
 ## 一次运行如何进行
 
@@ -207,7 +234,14 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
 完整的验证集合——正向示例、负向示例以及每一种渲染模式——列在
 [`AGENTS.md`](../AGENTS.md) 中，并由 CI 执行。
 
-## 许可证与署名
+## 贡献
+
+问题欢迎开
+[GitHub issue](https://github.com/sogeisetsu/meld-deepresearch/issues)——
+我们很乐意帮忙。接受 Pull Request；PR 的门槛是
+[`AGENTS.md`](../AGENTS.md) 中列出的验证集合全部通过。
+
+## 许可证
 
 MIT——见 [`LICENSE`](../LICENSE)。作者：**sogeisetsu**。
 [`NOTICE`](../NOTICE) 列出了所有其材料被借用或借鉴的上游项目，
