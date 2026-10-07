@@ -97,8 +97,9 @@ capabilities; it ships no keys and stores no credentials.
   unverified is labelled `unknown`, never guessed.
 - Counter-evidence is searched for on purpose — contradictions and gaps are
   reported, not smoothed over.
-- Three hard gates stop a bad run — `meld.py prepare`, `meld.py render` and
-  `meld.py review --clean` (each a subcommand of the thin CLI
+- Three hard gates stop a bad run — `meld.py prepare` (gate ①),
+  `meld.py render` (gate ②) and `meld.py review --clean` (the content gate;
+  each a subcommand of the thin CLI
   `skills/meld-deepresearch/scripts/meld.py` over the raw scripts): the
   evidence contract is validated by `check_evidence.py`, orphan or unresolved
   markers are rejected by `render_citations.py`, and the reading copy is
@@ -133,7 +134,7 @@ documented in [`references/protocol.md`](skills/meld-deepresearch/references/pro
 ```text
 probe → clarify → tier → plan → per-axis research → merge → gate ①
      → write → draft review → readability pass
-     → dual render → content gate → deliver
+     → gate ② (dual render) → content gate → deliver
 ```
 
 - **probe** — check which host capabilities exist; a missing blocking one

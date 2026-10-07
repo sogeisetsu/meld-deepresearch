@@ -90,9 +90,9 @@ skill 加载之后，一次典型的提问：
   标为 `unknown`，绝不猜测。
 - 反证是被主动去寻找的——矛盾与缺口会被如实报告，而不是被抹
   平。
-- 三道硬闸门拦住糟糕的运行——`meld.py prepare`、`meld.py render` 与
-  `meld.py review --clean`（薄 CLI `skills/meld-deepresearch/scripts/meld.py`
-  的三个子命令，包装着底层脚本）：证据契约由 `check_evidence.py` 校验，
+- 三道硬闸门拦住糟糕的运行——`meld.py prepare`（闸门①）、`meld.py render`
+  （闸门②）与 `meld.py review --clean`（内容闸门；三者都是薄 CLI
+  `skills/meld-deepresearch/scripts/meld.py` 的子命令，包装着底层脚本）：证据契约由 `check_evidence.py` 校验，
   `render_citations.py` 拒绝孤儿或未解析的标记，阅读版由三个硬性交付错误码
   判定——另有两种形态（`E_STANDALONE_SECTION`、`E_ADVERSARY_CALLOUT`）
   以警告报告——它们的确切含义与并列在旁的只警告清单见
@@ -122,7 +122,7 @@ skill 加载之后，一次典型的提问：
 ```text
 probe → clarify → tier → plan → per-axis research → merge → gate ①
      → write → draft review → readability pass
-     → dual render → content gate → deliver
+     → gate ② (dual render) → content gate → deliver
 ```
 
 - **probe** —— 检查主机具备哪些能力；缺少某个阻塞性能力时终止
