@@ -137,6 +137,8 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
      → gate ② (dual render) → content gate → deliver
 ```
 
+![Hand-drawn sketch of the run flow: probe → anchor → tier → plan → research loop → merge → gate ① → write → readability → gate ② → review → deliver, with both failure loops](docs/flow/skill-flow-en.png)
+
 - **probe** — check which host capabilities exist; a missing blocking one
   stops the run and says so.
 - **clarify** — up to three questions, or explicit assumptions written down
