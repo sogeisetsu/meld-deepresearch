@@ -20,6 +20,7 @@ meld-deepresearch/                    # repository root
 │   ├── FILE_TREE.md                  # this file: annotated file tree + update rule
 │   ├── index.html                    # GitHub Pages landing page (single self-contained file, zero external requests)
 │   ├── og.png                        # 1200x630 social-preview card, referenced by og:image / twitter:image (regenerate from the live hero if the hero changes)
+│   ├── skill-flow.excalidraw         # bilingual (zh/en) hand-drawn Excalidraw sketch of the SKILL.md §4 run flow; opens in the OpenChamber Excalidraw extension
 │   ├── eval/                         # evaluation standard (README.md, with a Records index) + records/: design-score.md, live-runs.md, skill-creator-iterations/, sensenova-live/ (frozen-baseline live comparison: protocol, per-example scores, and baseline-f05bcbc.json — the frozen per-axis medians exported from the committed round-3 record)
 │   └── .nojekyll                     # tells GitHub Pages to serve docs/ as-is instead of running Jekyll
 ├── skills/                           # skill packages (this repo ships three)
