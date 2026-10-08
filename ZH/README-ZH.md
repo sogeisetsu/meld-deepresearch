@@ -125,6 +125,8 @@ probe → clarify → tier → plan → per-axis research → merge → gate ①
      → gate ② (dual render) → content gate → deliver
 ```
 
+![运行流程手绘草图：能力探测 → 锚定 → 分档 → 计划 → 研究循环 → 合并 → 闸门① → 写作 → 可读性 → 闸门② → 审查 → 交付，含两条失败回环](../docs/flow/skill-flow-zh.png)
+
 - **probe** —— 检查主机具备哪些能力；缺少某个阻塞性能力时终止
   运行并说明。
 - **clarify** —— 最多三个问题，或者在无人可答时写下明确的假
